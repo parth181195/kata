@@ -15,6 +15,8 @@ export const env = {
     key: process.env.BUNNY_STORAGE_KEY ?? '',
     host: process.env.BUNNY_STORAGE_HOST ?? 'storage.bunnycdn.com',
     pullZoneHost: process.env.BUNNY_PULL_ZONE_HOST ?? '',
+    /** Folder inside the storage zone (the zone is shared with other projects) — e.g. `kata`. */
+    prefix: (process.env.BUNNY_PREFIX ?? '').replace(/^\/+|\/+$/g, ''),
   },
 };
 export type Env = typeof env;
