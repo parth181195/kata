@@ -14,6 +14,7 @@ import 'features/library/library_screen.dart';
 import 'features/library/recipe_detail_screen.dart';
 import 'features/mine/mine_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'features/scan/scan_screen.dart';
 import 'features/shell/shell_scaffold.dart';
 
 final initialLocationProvider = Provider<String>((_) => '/library');
@@ -70,6 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/probe', pageBuilder: (_, s) => _page(s, const ProbeScreen())),
       GoRoute(path: '/kit', pageBuilder: (_, s) => _page(s, const KitScreen())),
       GoRoute(path: '/cameras', pageBuilder: (_, s) => _page(s, const SupportedCamerasScreen())),
+      GoRoute(path: '/scan', pageBuilder: (_, s) => _page(s, const ScanScreen())),
       StatefulShellRoute.indexedStack(
         pageBuilder: (_, s, shell) => _page(s, ShellScaffold(shell: shell)),
         branches: [

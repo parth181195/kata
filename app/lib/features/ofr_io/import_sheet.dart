@@ -42,16 +42,27 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
       _issues = const [];
       if (text.trim().isEmpty) return;
       try {
-        final j = jsonDecode(text) as Map<String, dynamic>;
-        final r = OfrRecipe.fromJson(j);
-        final issues = OfrValidator.validate(r);
-        if (r.hash != null && r.hash != OfrHasher.compute(r)) {
-          issues.add(const OfrIssue('hash', 'stored ≠ computed (will be recomputed)', severity: OfrSeverity.warning));
+        final OfrRecipe r;
+        final issues = <OfrIssue>[];
+        if (KataCode.looksLike(text)) {
+          // a Kata Code pasted from a chat / card
+          final res = KataCode.decode(text);
+          r = res.recipe;
+          issues.addAll(res.warnings.map((w) => OfrIssue('kata code', w, severity: OfrSeverity.warning)));
+        } else {
+          final j = jsonDecode(text) as Map<String, dynamic>;
+          r = OfrRecipe.fromJson(j);
+          if (r.hash != null && r.hash != OfrHasher.compute(r)) {
+            issues.add(const OfrIssue('hash', 'stored ≠ computed (will be recomputed)', severity: OfrSeverity.warning));
+          }
         }
+        issues.addAll(OfrValidator.validate(r));
         _recipe = r;
         _issues = issues;
+      } on FormatException catch (e) {
+        _parseError = e.message.startsWith('Not a Kata Code') ? e.message : 'Not valid JSON or Kata Code';
       } catch (e) {
-        _parseError = 'Not valid JSON';
+        _parseError = 'Not valid JSON or Kata Code';
       }
     });
   }
@@ -70,11 +81,11 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
     final r = _recipe;
     final blocking = _parseError != null || r == null || OfrValidator.hasErrors(_issues);
     final rows = [
-      if (_parseError != null) IssueRow(_parseError!, 'paste the full document'),
+      if (_parseError != null) IssueRow(_parseError!, 'paste the full document or a kata1: code'),
       for (final i in _issues) IssueRow('${i.field}${_fieldValue(r, i.field)}', i.message),
     ];
-    return KataSheet(eyebrow: 'Import · paste or pick a file', title: r?.name ?? 'Paste OFR JSON', children: [
-      KataTextField(label: 'OFR JSON', controller: _ctrl, hint: '{ "v": 1, "film_simulation": … }', maxLines: 5, mono: true, onChanged: _parse, onClear: () { _ctrl.clear(); _parse(''); }),
+    return KataSheet(eyebrow: 'Import · paste or pick a file', title: r?.name ?? 'Paste OFR JSON or a Kata Code', children: [
+      KataTextField(label: 'OFR JSON or Kata Code', controller: _ctrl, hint: '{ "v": 1, … }  or  kata1:CC,DR400,…', maxLines: 5, mono: true, onChanged: _parse, onClear: () { _ctrl.clear(); _parse(''); }),
       const SizedBox(height: 10),
       Row(children: [
         KataPillButton(label: 'Pick file', kind: KataButtonKind.secondary, display: false, height: 40, expand: false, onPressed: _pickFile),
