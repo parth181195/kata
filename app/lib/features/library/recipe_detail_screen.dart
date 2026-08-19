@@ -12,6 +12,7 @@ import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import '../camera/write_sheet.dart';
 import '../ofr_io/export_sheet.dart';
+import '../share/share_composer_sheet.dart';
 import 'image_viewer.dart';
 import 'recipe_card.dart';
 
@@ -44,6 +45,7 @@ class RecipeDetailScreen extends ConsumerWidget {
         );
 
     void overflow() => showKataSheet(context, builder: (c) => KataSheet(eyebrow: 'Kata', title: recipe.name, children: [
+          KataListRow(title: 'Share card', value: 'S1–S4 · Kata Code', onTap: () { Navigator.of(c).pop(); showShareComposer(context, recipe); }),
           KataListRow(title: 'Export OFR', value: '.ofr.json', onTap: () { Navigator.of(c).pop(); showExportSheet(context, recipe); }),
           KataListRow(title: 'Copy source link', value: recipe.ofr.sourceUrl == null ? '—' : 'URL', enabled: recipe.ofr.sourceUrl != null, onTap: () async {
             await Clipboard.setData(ClipboardData(text: recipe.ofr.sourceUrl!));
