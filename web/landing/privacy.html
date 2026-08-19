@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kata — Privacy</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+.doc { max-width: 720px; margin: 0 auto; padding: 72px var(--gut) 96px; display: flex; flex-direction: column; gap: 28px; }
+.doc h1 { font-size: clamp(34px, 5vw, 44px); line-height: 1.04; }
+.doc h2 { font-size: 18px; margin-top: 10px; }
+.doc p, .doc li { font-size: 14px; line-height: 1.7; color: var(--dim); }
+.doc ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.doc a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Kata home"><span class="mark">型</span><span class="wordmark">Kata</span></a>
+    <nav class="links" aria-label="Primary"><a class="btn sm" href="/#get">Get Kata</a></nav>
+  </div>
+</header>
+<main class="doc">
+  <span class="mono" style="font-size:10px;letter-spacing:.18em">PRIVACY · UPDATED 2026-08-19</span>
+  <h1>What Kata knows about you</h1>
+  <p>Kata is a small open-source app. It keeps as little as it can. This page says exactly what is stored, where, and why.</p>
+
+  <h2>Signing in</h2>
+  <p>You sign in with Google so your favourites (and, later, recipes you publish) follow you across devices. From Google we store your account id, email, display name and profile picture URL. We do not receive your password and we do not ask for access to Drive, Photos, Contacts or anything else.</p>
+
+  <h2>What is stored on our server</h2>
+  <ul>
+    <li>Your account (the Google fields above) and when it was created.</li>
+    <li>Which library recipes you favourited.</li>
+    <li>Recipes you choose to publish, with the attribution you give them.</li>
+    <li>Short-lived server logs (IP address, request path, timestamp) for debugging and abuse prevention, rotated within 14 days.</li>
+  </ul>
+  <p>The server runs on a single virtual machine in Google Cloud (us-central1) operated by the author. Recipe photos are served through Bunny CDN.</p>
+
+  <h2>What stays on your phone</h2>
+  <ul>
+    <li>The recipe library cache, recipes you import or read back from your camera, and your sign-in tokens (in Android's encrypted storage).</li>
+    <li>Everything Kata reads from or writes to your camera over USB stays on the device. Nothing about your camera, photos or settings is uploaded.</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <ul>
+    <li>No analytics SDKs, advertising, tracking pixels or fingerprinting.</li>
+    <li>No selling, sharing or renting of your data.</li>
+    <li>No reading your photos — Kata only talks to the camera's settings over the USB protocol.</li>
+  </ul>
+
+  <h2>Deleting your data</h2>
+  <p>Sign out removes tokens from the device. To delete your account and everything tied to it on the server, email <a href="mailto:parthrock181195@gmail.com">parthrock181195@gmail.com</a> from the address you signed in with; it is removed within 7 days. Library recipes you published stay public unless you ask for those to go too.</p>
+
+  <h2>Recipes and credit</h2>
+  <p>The library contains film-simulation recipes collected from public sources with attribution and a link back to the original post. Camera settings themselves are facts and are not owned by anyone; the write-ups and photographs belong to their authors and are not copied. If you are an author and want a recipe credited differently or removed, email the address above.</p>
+
+  <p class="mono" style="font-size:10px;letter-spacing:.02em;text-transform:none">Kata is not affiliated with Fujifilm Corporation. "Fujifilm", "X-Trans" and film-simulation names are trademarks of their owners.</p>
+</main>
+</body>
+</html>

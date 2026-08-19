@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kata — film recipes, straight into your Fujifilm</title>
+<meta name="description" content="Kata keeps every Fujifilm film-simulation recipe you love in one library and writes it into your camera's custom slots (C1–C7) over USB-C. Android, free, open source.">
+<meta property="og:title" content="Kata — stop retyping film recipes">
+<meta property="og:description" content="A library of Fujifilm recipes, written straight into C1–C7 over USB-C. Android · free · open source.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kata.parthjansari.dev/">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Kata home"><span class="mark">型</span><span class="wordmark">Kata</span></a>
+    <nav class="links" aria-label="Primary">
+      <a class="mono" href="#how">How it works</a>
+      <a class="mono" href="#code">Kata Code</a>
+      <a class="mono" href="#cameras">Cameras</a>
+      <a class="mono" href="#free">What's included</a>
+      <a class="btn sm" href="#get">Get Kata</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero wrap dots" aria-labelledby="h1">
+  <div class="hero-copy">
+    <span class="pill"><span class="dot"></span>ANDROID · USB-C · FREE, EVERY FEATURE</span>
+    <h1 id="h1">Stop retyping<br>film recipes</h1>
+    <p class="lede">Kata keeps every film-simulation recipe you love in one library and writes it straight into your Fujifilm's custom slots over USB-C. Twenty-two menu items, one tap.</p>
+    <div class="ctas">
+      <a class="btn primary" href="#get"><span class="ring"></span>Get Kata free</a>
+      <a class="btn ghost" href="#how">See how it works</a>
+    </div>
+    <div class="stats" aria-label="At a glance">
+      <div class="stat"><b>340</b><span>RECIPES IN LIBRARY</span></div>
+      <div class="stat"><b>22</b><span>SETTINGS PER WRITE</span></div>
+      <div class="stat"><b>0</b><span>MENU DIVES</span></div>
+    </div>
+  </div>
+  <div class="masonry" aria-hidden="true">
+    <div class="col">
+      <div class="frame h300">hero frame</div>
+      <div class="frame h180">frame</div>
+    </div>
+    <div class="col off">
+      <div class="frame h180">frame</div>
+      <div class="frame h300">frame</div>
+    </div>
+  </div>
+</section>
+
+<div class="strip" aria-hidden="true">
+  <div class="wrap">
+    <span>CLASSIC CHROME</span><span>ACROS +R</span><span>NOSTALGIC NEG</span><span>VELVIA</span><span>PRO NEG. STD</span><span>ETERNA</span><span>CLASSIC NEG</span><span>REALA ACE</span>
+  </div>
+</div>
+
+<section id="how" class="section wrap" aria-labelledby="how-h">
+  <div class="head">
+    <h2 id="how-h">Library → cable → slot</h2>
+    <p>No cloud round-trip, no camera-app pairing, no Wi-Fi handshake. A cable and three taps.</p>
+  </div>
+  <div class="grid3">
+    <article class="card">
+      <div class="top"><span class="num">1</span><span class="mono" style="font-size:9.5px;letter-spacing:.16em">FIND</span></div>
+      <h3>Pick a kata</h3>
+      <p>Browse verified recipes from Fuji X Weekly and the community, filter by film sim, sensor generation or look. Save the ones you shoot.</p>
+      <div class="frame h150 fill" aria-hidden="true">frame</div>
+    </article>
+    <article class="card">
+      <div class="top"><span class="num">2</span><span class="mono" style="font-size:9.5px;letter-spacing:.16em">CONNECT</span></div>
+      <h3>Plug in USB-C</h3>
+      <p>Kata walks you through the two camera menu items once, then reads what's already in each C-slot so nothing is lost.</p>
+      <div class="slots fill" aria-hidden="true">
+        <div class="slot"><b>C1</b><span>CLASSIC CHR<br>DR400</span></div>
+        <div class="slot on"><b>C2</b><span>NOST NEG<br>DR200</span></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="top"><span class="num">3</span><span class="mono" style="font-size:9.5px;letter-spacing:.16em">WRITE</span></div>
+      <h3>One tap, 22 settings</h3>
+      <p>Anything your body can't do is flagged and skipped — never silently coerced. Then turn the dial and shoot.</p>
+      <div class="fill" aria-hidden="true">
+        <div class="matrix">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+          <i class="on"></i><i class="d1"></i><i class="d2"></i><i class="d3"></i><i></i><i></i>
+        </div>
+        <div class="matrix-cap">WRITING 18/22 → C3</div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="code" class="section alt" aria-labelledby="code-h">
+  <div class="wrap code-grid">
+    <div class="code-copy">
+      <span class="pill hollow"><span class="dot"></span>THE KATA CODE · ROADMAP · NEXT RELEASE</span>
+      <h2 id="code-h" class="h2">A recipe you<br>can screenshot</h2>
+      <p class="lede">The code on every Kata card <em>contains</em> the recipe — not a link to one. Repost it, print it, photograph it off someone's screen: it still imports, offline, with no account and no dead URLs.</p>
+      <div class="payload" aria-label="Example Kata Code payload">kata1:CC,DR400,WB5800/+2-3,H+1,S-0.5,
+C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
+      <div class="bullets">
+        <div><i></i>Works with no signal — on location, in a basement studio</div>
+        <div><i></i>Credit travels with the recipe automatically</div>
+        <div><i></i>Already today: paste OFR JSON, or export <code>.ofr.json</code></div>
+      </div>
+    </div>
+    <div>
+      <div class="recipe-card" aria-label="Example recipe card">
+        <div class="row"><span class="brand-s">Kata 型</span><span class="tag">Recipe card</span></div>
+        <div class="frame h250" aria-hidden="true">sample frame</div>
+        <div class="row" style="align-items:flex-start">
+          <div style="min-width:0;display:flex;flex-direction:column;gap:5px"><span class="name">Kodachrome 64</span><span class="tag">Classic Chrome · X-Trans IV/V</span></div>
+          <div class="swatch" aria-hidden="true"><i style="height:70%;background:#8a8a8a"></i><i style="height:40%;background:#d9d9d9"></i><i style="height:100%;background:#000"></i><i style="height:30%;background:#d9d9d9"></i><i style="height:55%;background:#2e2e2e"></i></div>
+        </div>
+        <div class="spec"><span>DR 400</span><span>WB 5800K</span><span>HIGHLIGHT +1</span><span>SHADOW −0.5</span><span>COLOR +2</span><span>GRAIN WEAK/SM</span></div>
+        <div class="row foot">
+          <div><div class="handle">Fuji X Weekly</div><div class="scan">SCAN TO IMPORT · 22 SETTINGS</div></div>
+          <span class="qr-s" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cameras" class="section wrap" aria-labelledby="cam-h">
+  <div class="head">
+    <h2 id="cam-h">Bodies &amp; slots</h2>
+    <p>Kata knows what each generation supports and writes only what your body accepts.</p>
+  </div>
+  <div class="table" role="table" aria-label="Supported camera generations">
+    <div class="th" role="columnheader">Generation</div><div class="th" role="columnheader">Example bodies</div><div class="th" role="columnheader">Custom slots</div><div class="th" role="columnheader">Film sims</div><div class="th" role="columnheader">Write support</div>
+
+    <div class="gen" role="cell">X-Trans V</div>
+    <div class="bodies" role="cell">X-T5 · X-H2 · X-S20 · X100VI</div>
+    <div class="val" role="cell">C1–C7<small>C1–C4 on X-S20</small></div>
+    <div class="val" role="cell">20</div>
+    <div role="cell"><span class="chip full"><i></i>FULL · TESTED ON X-S20</span></div>
+
+    <div class="gen" role="cell">X-Trans IV</div>
+    <div class="bodies" role="cell">X-T4 · X-S10 · X-Pro3 · X100V</div>
+    <div class="val" role="cell">C1–C7<small>C1–C4 on X-S10 / X-T30 II</small></div>
+    <div class="val" role="cell">18</div>
+    <div role="cell"><span class="chip most"><i></i>FULL · UNTESTED</span></div>
+
+    <div class="gen" role="cell">GFX</div>
+    <div class="bodies" role="cell">GFX100 II · GFX50S II</div>
+    <div class="val" role="cell">C1–C7</div>
+    <div class="val" role="cell">19</div>
+    <div role="cell"><span class="chip most"><i></i>MOST FIELDS</span></div>
+
+    <div class="gen" role="cell">X-Trans III</div>
+    <div class="bodies" role="cell">X-T2 · X-Pro2 · X-H1</div>
+    <div class="val" role="cell">C1–C7</div>
+    <div class="val" role="cell">15</div>
+    <div role="cell"><span class="chip ro"><i></i>READ ONLY</span></div>
+  </div>
+  <p class="table-note">Writing uses the same USB protocol as Fujifilm's X RAW Studio (camera set to <span class="mono" style="letter-spacing:.06em">USB RAW CONV./BACKUP RESTORE</span>). Verified end-to-end on the X-S20; other bodies follow the documented per-generation field sets and are flagged in the app until someone confirms them — <a href="#get" style="color:#d9d9d9;text-decoration:underline;text-underline-offset:3px">reports welcome</a>.</p>
+</section>
+
+<section id="free" class="section alt" aria-labelledby="free-h">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:40px">
+    <div class="center" style="display:flex;flex-direction:column;gap:14px">
+      <span class="pill solid"><span class="dot"></span>FREE · OPEN SOURCE · NO TIERS, NO ADS</span>
+      <h2 id="free-h" class="h2">Everything, free</h2>
+      <p class="lede">Every feature ships to everyone. Nothing about your camera, your recipes or your sharing sits behind a paywall — and the code is MIT-licensed.</p>
+    </div>
+    <div class="grid3">
+      <article class="card">
+        <span class="mono" style="font-size:9.5px;letter-spacing:.18em">SHOOT</span>
+        <h3 style="font-size:21px">Library &amp; writing</h3>
+        <div class="check">
+          <div>Full community library — 340 katas and counting</div>
+          <div>Unlimited writes to your custom slots</div>
+          <div>Read back what's already in the camera, save it as a kata</div>
+          <div>Unsupported fields are flagged, never silently changed</div>
+        </div>
+      </article>
+      <article class="card">
+        <span class="mono" style="font-size:9.5px;letter-spacing:.18em">SHARE</span>
+        <h3 style="font-size:21px">Cards &amp; codes</h3>
+        <div class="check">
+          <div>Import any <code>.ofr.json</code> or pasted recipe</div>
+          <div>Export your katas as Open Fuji Recipe JSON</div>
+          <div class="soon">Share cards &amp; scan-to-import Kata Codes — next release</div>
+          <div class="soon">Publish katas under your handle — next release</div>
+        </div>
+      </article>
+      <article class="card">
+        <span class="mono" style="font-size:9.5px;letter-spacing:.18em">KEEP</span>
+        <h3 style="font-size:21px">Yours, portable</h3>
+        <div class="check">
+          <div>Library cached on-device — browse and write offline</div>
+          <div>No ads, no tracking, no upsells</div>
+          <div>Open spec (OFR) and open source (MIT)</div>
+          <div>Google sign-in only to sync favourites across devices</div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="get" class="get wrap dots" aria-labelledby="get-h">
+  <span class="mark lg" aria-hidden="true">型</span>
+  <h2 id="get-h">The form you<br>fall back on</h2>
+  <p class="lede">Android 8+, USB-C, free. Bring your camera and a data cable.</p>
+  <div class="ctas" style="justify-content:center">
+    <a class="btn primary" href="/kata.apk" download>Get it on Android</a>
+    <span class="qr"><img src="qr-install.svg" alt="QR code linking to the Kata APK download" width="54" height="54">SCAN TO INSTALL</span>
+  </div>
+  <p class="small">Direct APK for now (a Play Store listing comes later) — Android will ask you to allow installs from your browser. Not on Android? The recipe library is open data: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe spec</a>.</p>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="brand"><span class="wordmark" style="font-size:15px">Kata 型</span><span class="mono" style="font-size:10.5px;letter-spacing:.02em;text-transform:none">© 2026 Parth Jansari</span></div>
+    <nav class="links" aria-label="Footer">
+      <a href="https://github.com/gosku/open-fuji-recipe">OFR SPEC</a><a href="#cameras">SUPPORTED BODIES</a><a href="#free">WHAT'S INCLUDED</a><a href="privacy.html">PRIVACY</a>
+    </nav>
+    <span class="legal">Not affiliated with<br>Fujifilm Corporation</span>
+  </div>
+</footer>
+
+</body>
+</html>
