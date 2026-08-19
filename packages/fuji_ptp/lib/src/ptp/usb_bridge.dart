@@ -45,21 +45,52 @@ class UsbDeviceInfo {
       '${vid.toRadixString(16).padLeft(4, '0')}:${pid.toRadixString(16).padLeft(4, '0')}';
 }
 
-/// Dart side of the Kotlin `fuji/usb` MethodChannel. Implements [UsbLink].
-class UsbBridge implements UsbLink {
-  static const _ch = MethodChannel('fuji/usb');
+class UsbEvent {
+  const UsbEvent({required this.attached, this.deviceName, this.vid});
+  final bool attached;
+  final String? deviceName;
+  final int? vid;
+}
 
+/// Platform-agnostic USB host surface (real: MethodChannel; tests: fake).
+abstract class UsbHost {
+  Future<List<UsbDeviceInfo>> listDevices();
+  Future<bool> requestPermission(String name);
+  Future<Map> open(String name, {int? interfaceId});
+  Future<void> close();
+  Stream<UsbEvent> get events;
+  UsbLink get link;
+}
+
+/// Dart side of the Kotlin `fuji/usb` MethodChannel + `fuji/usb/events` EventChannel.
+class UsbBridge implements UsbHost, UsbLink {
+  static const _ch = MethodChannel('fuji/usb');
+  static const _ev = EventChannel('fuji/usb/events');
+
+  @override
+  UsbLink get link => this;
+
+  @override
+  Stream<UsbEvent> get events => _ev.receiveBroadcastStream().map((e) {
+        final m = e as Map;
+        return UsbEvent(attached: m['attached'] as bool, deviceName: m['name'] as String?, vid: m['vid'] as int?);
+      });
+
+  @override
   Future<List<UsbDeviceInfo>> listDevices() async {
     final r = await _ch.invokeMethod<List>('listDevices');
     return (r ?? []).map((e) => UsbDeviceInfo.fromMap(e as Map)).toList();
   }
 
+  @override
   Future<bool> requestPermission(String name) async =>
       (await _ch.invokeMethod<bool>('requestPermission', {'name': name})) ?? false;
 
+  @override
   Future<Map> open(String name, {int? interfaceId}) async =>
       (await _ch.invokeMethod<Map>('open', {'name': name, 'interfaceId': interfaceId}))!;
 
+  @override
   Future<void> close() => _ch.invokeMethod('close');
 
   @override

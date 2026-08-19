@@ -6,7 +6,7 @@ import 'package:fuji_ptp/src/fuji/fuji_camera.dart';
 import 'package:fuji_ptp/src/fuji/fuji_props.dart';
 import 'package:fuji_ptp/src/ptp/transport.dart';
 
-import 'fake_fuji_body.dart';
+import 'package:fuji_ptp/testing.dart';
 
 FujiCamera cam(FakeFujiBody body, {Future<void> Function()? reopen}) =>
     FujiCamera(PtpTransport(body), reopenUsb: reopen, slotSettle: Duration.zero);

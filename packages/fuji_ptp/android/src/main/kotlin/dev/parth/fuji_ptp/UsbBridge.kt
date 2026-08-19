@@ -30,6 +30,7 @@ import java.util.concurrent.Executors
 class UsbBridge(private val context: Context) : MethodChannel.MethodCallHandler {
     companion object {
         const val CHANNEL = "fuji/usb"
+        const val EVENTS = "fuji/usb/events"
         private const val ACTION_USB_PERMISSION = "dev.parth.fuji_ptp.USB_PERMISSION"
     }
 
@@ -205,6 +206,42 @@ class UsbBridge(private val context: Context) : MethodChannel.MethodCallHandler 
         val n = c.bulkTransfer(ep, buf, maxLen, timeoutMs)
         if (n < 0) throw IllegalStateException("bulkIn failed/timeout (rc=$n)")
         return buf.copyOf(n)
+    }
+
+    // ---------------------------------------------------------------- events (attach/detach)
+    private var eventSink: io.flutter.plugin.common.EventChannel.EventSink? = null
+    private var attachReceiver: BroadcastReceiver? = null
+
+    val streamHandler = object : io.flutter.plugin.common.EventChannel.StreamHandler {
+        override fun onListen(arguments: Any?, events: io.flutter.plugin.common.EventChannel.EventSink?) {
+            eventSink = events
+            val r = object : BroadcastReceiver() {
+                override fun onReceive(ctx: Context, intent: Intent) {
+                    @Suppress("DEPRECATION")
+                    val d = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+                    val attached = intent.action == UsbManager.ACTION_USB_DEVICE_ATTACHED
+                    if (!attached) close()
+                    main.post { eventSink?.success(mapOf("attached" to attached, "name" to d?.deviceName, "vid" to d?.vendorId)) }
+                }
+            }
+            attachReceiver = r
+            val f = IntentFilter().apply {
+                addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+                addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            }
+            if (Build.VERSION.SDK_INT >= 33) {
+                context.registerReceiver(r, f, Context.RECEIVER_EXPORTED)
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                context.registerReceiver(r, f)
+            }
+        }
+
+        override fun onCancel(arguments: Any?) {
+            attachReceiver?.let { runCatching { context.unregisterReceiver(it) } }
+            attachReceiver = null
+            eventSink = null
+        }
     }
 
     fun close() {

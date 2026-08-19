@@ -1,0 +1,179 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuji_ptp/fuji_ptp.dart';
+
+enum CameraFailure { noDevice, permissionDenied, claimFailed, sessionFailed, notPresetCapable, io }
+
+sealed class CameraState {
+  const CameraState();
+}
+
+class CameraDisconnected extends CameraState {
+  const CameraDisconnected({this.reason});
+  final CameraFailure? reason;
+}
+
+class CameraConnecting extends CameraState {
+  const CameraConnecting(this.step);
+  final String step;
+}
+
+class CameraReady extends CameraState {
+  const CameraReady({required this.caps, required this.slots, this.busyWith});
+  final CameraCapabilities caps;
+  final List<CameraPreset> slots; // index 0 = C1
+  final String? busyWith;
+  bool get busy => busyWith != null;
+  CameraReady copyWith({List<CameraPreset>? slots, String? busyWith, bool clearBusy = false}) =>
+      CameraReady(caps: caps, slots: slots ?? this.slots, busyWith: clearBusy ? null : (busyWith ?? this.busyWith));
+}
+
+class CameraFailed extends CameraState {
+  const CameraFailed(this.reason, [this.detail]);
+  final CameraFailure reason;
+  final String? detail;
+}
+
+final usbHostProvider = Provider<UsbHost>((_) => UsbBridge());
+
+typedef FujiCameraFactory = FujiCamera Function(UsbLink link, Future<void> Function() reopenUsb);
+final fujiCameraFactoryProvider = Provider<FujiCameraFactory>(
+  (_) => (link, reopen) => FujiCamera(PtpTransport(link), reopenUsb: reopen),
+);
+
+final cameraServiceProvider = NotifierProvider<CameraService, CameraState>(CameraService.new);
+
+/// Connection state machine over [FujiCamera]; the only camera API the UI uses.
+class CameraService extends Notifier<CameraState> {
+  FujiCamera? _cam;
+  String? _deviceName;
+  StreamSubscription<UsbEvent>? _sub;
+  Timer? _heartbeat;
+
+  @override
+  CameraState build() {
+    _sub ??= ref.read(usbHostProvider).events.listen(_onUsbEvent);
+    ref.onDispose(() {
+      _sub?.cancel();
+      _heartbeat?.cancel();
+    });
+    return const CameraDisconnected();
+  }
+
+  UsbHost get _usb => ref.read(usbHostProvider);
+
+  Future<void> connect() async {
+    final devices = await _usb.listDevices();
+    final fuji = devices.where((d) => d.vid == fujiVendorId).toList();
+    if (fuji.isEmpty) {
+      state = const CameraDisconnected(reason: CameraFailure.noDevice);
+      return;
+    }
+    final d = fuji.first;
+    _deviceName = d.name;
+    state = const CameraConnecting('permission');
+    if (!d.hasPermission && !await _usb.requestPermission(d.name)) {
+      state = const CameraFailed(CameraFailure.permissionDenied);
+      return;
+    }
+    try {
+      state = const CameraConnecting('usb');
+      await _usb.open(d.name);
+    } catch (e) {
+      state = CameraFailed(CameraFailure.claimFailed, '$e');
+      return;
+    }
+    final cam = ref.read(fujiCameraFactoryProvider)(_usb.link, () async {
+      await _usb.close();
+      await _usb.open(d.name);
+    });
+    _cam = cam;
+    try {
+      state = const CameraConnecting('session');
+      await cam.openSession();
+      final caps = await cam.discoverCapabilities();
+      if (!caps.presetProtocol) {
+        state = const CameraFailed(CameraFailure.notPresetCapable);
+        return;
+      }
+      state = const CameraConnecting('slots');
+      final slots = await cam.readAllSlots();
+      state = CameraReady(caps: caps, slots: slots);
+      _startHeartbeat();
+    } on FujiCameraException catch (e) {
+      state = CameraFailed(CameraFailure.sessionFailed, e.message);
+    } catch (e) {
+      state = CameraFailed(CameraFailure.io, '$e');
+    }
+  }
+
+  Future<void> disconnect() async {
+    _heartbeat?.cancel();
+    try {
+      await _cam?.closeSession();
+    } catch (_) {}
+    try {
+      await _usb.close();
+    } catch (_) {}
+    _cam = null;
+    state = const CameraDisconnected();
+  }
+
+  Future<void> refreshSlots() async {
+    final s = state;
+    final cam = _cam;
+    if (s is! CameraReady || cam == null) return;
+    state = s.copyWith(busyWith: 'Reading slots');
+    try {
+      final slots = await cam.readAllSlots();
+      state = CameraReady(caps: s.caps, slots: slots);
+    } catch (e) {
+      state = CameraFailed(CameraFailure.io, '$e');
+    }
+  }
+
+  Future<WriteResult> writeRecipe(int slot, CameraPreset preset) async {
+    final s = state;
+    final cam = _cam;
+    if (s is! CameraReady || cam == null) throw StateError('camera not ready');
+    state = s.copyWith(busyWith: 'Writing C$slot');
+    try {
+      final result = await cam.writePreset(slot, preset);
+      final fresh = await cam.readSlot(slot);
+      final slots = [...s.slots];
+      slots[slot - 1] = fresh;
+      state = CameraReady(caps: s.caps, slots: slots);
+      return result;
+    } catch (e) {
+      state = CameraFailed(CameraFailure.io, '$e');
+      rethrow;
+    }
+  }
+
+  void _onUsbEvent(UsbEvent e) {
+    if (!e.attached && (e.deviceName == null || e.deviceName == _deviceName)) {
+      _heartbeat?.cancel();
+      _cam = null;
+      _usb.close();
+      state = const CameraDisconnected();
+    }
+  }
+
+  void _startHeartbeat() {
+    _heartbeat?.cancel();
+    _heartbeat = Timer.periodic(const Duration(seconds: 3), (_) async {
+      final cam = _cam;
+      final s = state;
+      if (cam == null || s is! CameraReady || s.busy) return;
+      if (!await cam.heartbeat()) {
+        _heartbeat?.cancel();
+        _cam = null;
+        try {
+          await _usb.close();
+        } catch (_) {}
+        state = const CameraDisconnected(reason: CameraFailure.io);
+      }
+    });
+  }
+}
