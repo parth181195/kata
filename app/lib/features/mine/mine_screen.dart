@@ -22,12 +22,13 @@ class _MineScreenState extends ConsumerState<MineScreen> {
     final p = context.kata;
     final lib = ref.watch(recipeRepositoryProvider);
     final favs = lib.all.where((r) => lib.favourites.contains(r.id)).toList();
-    final mine = lib.mine.where((r) => r.source == RecipeSource.imported).toList();
+    // "My recipes" = local drafts (imported/new) + my published ones; camera reads get their own segment
+    final mine = lib.mine.where((r) => r.source == RecipeSource.imported || r.source == RecipeSource.published).toList();
     final cam = lib.mine.where((r) => r.source == RecipeSource.camera).toList();
     final list = [favs, mine, cam][_seg];
     final emptyCopy = [
       ('Nothing saved yet', 'Favourite a kata or read one back from your camera.', 'Browse library'),
-      ('No recipes of yours yet', 'Import an OFR file or paste JSON to start a collection.', 'Import'),
+      ('No recipes of yours yet', 'Start a kata from scratch, or import an OFR file. Publish when it\'s ready.', 'New kata'),
       ('Nothing from the camera', 'Connect on the Camera tab and tap “Save as kata” on a slot.', 'Camera'),
     ][_seg];
 
@@ -58,7 +59,7 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                           actionLabel: emptyCopy.$3,
                           onAction: () => switch (_seg) {
                             0 => context.go('/library'),
-                            1 => showImportSheet(context),
+                            1 => context.push('/new'),
                             _ => context.go('/camera'),
                           },
                         ),
@@ -77,6 +78,26 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                           onFavourite: () => lib.toggleFavourite(r.id),
                         );
                         if (r.source == RecipeSource.seed) return card;
+                        // status strip above my recipes: DRAFT · IN REVIEW · VERIFIED · HIDDEN
+                        final status = r.source == RecipeSource.published
+                            ? (r.hidden ? 'HIDDEN' : (r.verified ? 'VERIFIED' : 'IN REVIEW'))
+                            : (r.source == RecipeSource.camera ? 'FROM CAMERA' : 'DRAFT');
+                        final withStatus = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4, bottom: 6),
+                            child: Row(children: [
+                              KataStatusPill(
+                                status == 'VERIFIED' ? KataStatus.connected : (status == 'HIDDEN' ? KataStatus.offline : KataStatus.disconnected),
+                                label: status,
+                              ),
+                              const Spacer(),
+                              if (r.source != RecipeSource.camera)
+                                KataPillButton(label: r.source == RecipeSource.published ? 'Edit' : 'Edit · Publish', kind: KataButtonKind.secondary, display: false, height: 30, expand: false, onPressed: () => context.push('/edit/${r.id}')),
+                            ]),
+                          ),
+                          card,
+                        ]);
+                        if (r.source == RecipeSource.published) return withStatus;
                         return Dismissible(
                           key: ValueKey(r.id),
                           direction: DismissDirection.endToStart,
@@ -87,7 +108,7 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                             child: Text('DELETE', style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: p.red)),
                           ),
                           onDismissed: (_) => lib.remove(r.id),
-                          child: card,
+                          child: withStatus,
                         );
                       },
                     ),
@@ -99,10 +120,14 @@ class _MineScreenState extends ConsumerState<MineScreen> {
             child: KataIconCircle(
               size: 56,
               filled: true,
-              onPressed: () async {
-                final id = await showImportSheet(context);
-                if (id != null && context.mounted) KataToast.show(context, 'Saved to Mine', action: 'Undo', onAction: () => lib.remove(id));
-              },
+              onPressed: () => showKataSheet(context, builder: (c) => KataSheet(eyebrow: 'Mine', title: 'Add a kata', children: [
+                KataListRow(title: 'New kata', sub: 'Start from camera defaults', value: 'Editor', onTap: () { Navigator.of(c).pop(); context.push('/new'); }),
+                KataListRow(title: 'Import OFR', sub: 'Paste JSON or pick a .ofr.json file', value: 'Import', onTap: () async {
+                  Navigator.of(c).pop();
+                  final id = await showImportSheet(context);
+                  if (id != null && context.mounted) KataToast.show(context, 'Saved to Mine', action: 'Undo', onAction: () => lib.remove(id));
+                }),
+              ])),
               child: Text('+', style: KataType.bodyStyle(size: 24, color: p.bg, height: 1)),
             ),
           ),

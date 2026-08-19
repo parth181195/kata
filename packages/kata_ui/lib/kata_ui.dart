@@ -20,3 +20,4 @@ export 'src/widgets/bottom_nav.dart';
 export 'src/primitives/fields.dart';
 export 'src/primitives/rows.dart';
 export 'src/primitives/feedback.dart';
+export 'src/primitives/editing.dart';
