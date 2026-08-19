@@ -8,6 +8,7 @@ import '../../core/fuji/camera_service.dart';
 import '../../data/local_library.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
+import '../camera/write_sheet.dart';
 import '../ofr_io/export_sheet.dart';
 import 'recipe_card.dart';
 
@@ -159,7 +160,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                 child: KataPillButton(
                   label: 'Write to camera',
                   leading: Container(width: 16, height: 16, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: ready ? p.bg : p.muted, width: 2))),
-                  onPressed: ready ? () => KataToast.show(context, 'Write flow arrives in Task 8') : null,
+                  onPressed: ready ? () => showWriteSheet(context, recipe) : null,
                 ),
               ),
               const SizedBox(width: 13),
