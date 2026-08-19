@@ -4,7 +4,7 @@ import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/fuji/camera_service.dart';
-import '../../data/local_library.dart';
+import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 
 /// Write a recipe into a slot: choose → writing → done / failed.
@@ -68,7 +68,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
 
   Widget _choose(BuildContext context, CameraReady st) {
     final p = context.kata;
-    final lib = ref.read(localLibraryProvider);
+    final lib = ref.read(recipeRepositoryProvider);
     final sel = _slot;
     final target = sel == null ? null : st.slots[sel - 1];
     final targetName = target == null ? '' : (target.name.isEmpty ? (FilmSim.labels[target.filmSim] ?? '') : target.name);
@@ -137,7 +137,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
           final total = 22;
           final done = (_progress.value * total).round();
           return Column(mainAxisSize: MainAxisSize.min, children: [
-            DotMatrixProgress(progress: _progress.value),
+            DotMatrixProgress(progress: _progress.value, animated: true),
             const SizedBox(height: 34),
             Text('WRITING $done/$total', style: KataType.displayStyle(size: 26, color: p.fg, letterSpacing: 0)),
             const SizedBox(height: 10),

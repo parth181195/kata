@@ -1,30 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../tokens.dart';
 
-/// 4 icon-only tabs: Library ▭, Camera ◯, Mine ⊔, Profile ◠ — dot under the active one.
+/// 4 tabs — Library, Camera, Mine, Profile — hairline line-icons + tiny mono labels, dot under the active one.
 class KataBottomNav extends StatelessWidget {
-  const KataBottomNav({super.key, required this.index, required this.onTap});
+  const KataBottomNav({super.key, required this.index, required this.onTap, this.labels = const ['Library', 'Camera', 'Mine', 'Profile']});
   final int index;
   final ValueChanged<int> onTap;
+  final List<String> labels;
+
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    Widget icon(int i) {
-      final c = i == index ? p.fg : p.muted;
-      final side = BorderSide(color: c, width: 1.5);
-      return switch (i) {
-        0 => Container(width: 18, height: 14, decoration: BoxDecoration(border: Border.fromBorderSide(side), borderRadius: BorderRadius.circular(2))),
-        1 => Container(width: 17, height: 17, decoration: BoxDecoration(border: Border.fromBorderSide(side), shape: BoxShape.circle)),
-        2 => Container(width: 14, height: 17, decoration: BoxDecoration(border: Border(left: side, right: side, top: side))),
-        _ => Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(border: Border(left: side, right: side, top: side), borderRadius: const BorderRadius.vertical(top: Radius.circular(8))),
-          ),
-      };
-    }
-
     return Container(
       height: 64,
       decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.dark ? p.surface : p.hairline))),
@@ -35,8 +23,13 @@ class KataBottomNav extends StatelessWidget {
               key: ValueKey('nav-$i'),
               onTap: () => onTap(i),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                icon(i),
-                const SizedBox(height: 6),
+                CustomPaint(size: const Size(22, 18), painter: _NavIcon(i, i == index ? p.fg : p.muted)),
+                const SizedBox(height: 5),
+                Text(
+                  labels[i].toUpperCase(),
+                  style: KataType.monoStyle(size: 8, weight: FontWeight.w500, color: i == index ? p.fg : p.muted, letterSpacing: 0.12, height: 1),
+                ),
+                const SizedBox(height: 4),
                 Container(width: 4, height: 4, decoration: BoxDecoration(shape: BoxShape.circle, color: i == index ? p.fg : Colors.transparent)),
               ]),
             ),
@@ -44,4 +37,56 @@ class KataBottomNav extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Line icons at hairline weight: stacked cards (library), camera body (camera), bookmark (mine), person (profile).
+class _NavIcon extends CustomPainter {
+  _NavIcon(this.kind, this.color);
+  final int kind;
+  final Color color;
+
+  @override
+  void paint(Canvas c, Size s) {
+    final st = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = KataStroke.hairline
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    final w = s.width, h = s.height;
+    switch (kind) {
+      case 0: // library — a card in front of a card
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.22, 0.75, w * 0.68, h * 0.7), const Radius.circular(2)), st);
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0.75, h * 0.28, w * 0.68, h * 0.7), const Radius.circular(2)), st);
+      case 1: // camera — body, viewfinder bump, lens
+        final body = RRect.fromRectAndRadius(Rect.fromLTWH(0.75, h * 0.26, w - 1.5, h * 0.72), const Radius.circular(3));
+        c.drawRRect(body, st);
+        c.drawPath(
+          Path()
+            ..moveTo(w * 0.3, h * 0.26)
+            ..lineTo(w * 0.38, 0.75)
+            ..lineTo(w * 0.62, 0.75)
+            ..lineTo(w * 0.7, h * 0.26),
+          st,
+        );
+        c.drawCircle(Offset(w / 2, h * 0.62), h * 0.2, st);
+      case 2: // mine — bookmark
+        c.drawPath(
+          Path()
+            ..moveTo(w * 0.25, 0.75)
+            ..lineTo(w * 0.75, 0.75)
+            ..lineTo(w * 0.75, h - 0.75)
+            ..lineTo(w * 0.5, h * 0.7)
+            ..lineTo(w * 0.25, h - 0.75)
+            ..close(),
+          st,
+        );
+      default: // profile — head + shoulders
+        c.drawCircle(Offset(w / 2, h * 0.3), h * 0.22, st);
+        c.drawArc(Rect.fromLTWH(w * 0.18, h * 0.6, w * 0.64, h * 0.9), 3.1416, 3.1416, false, st);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NavIcon o) => o.kind != kind || o.color != color;
 }

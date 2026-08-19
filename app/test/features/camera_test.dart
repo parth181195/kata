@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuji_ptp/testing.dart';
 import 'package:kata/core/fuji/camera_service.dart';
-import 'package:kata/data/local_library.dart';
+import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/data/recipe.dart';
 
 import '../helpers.dart';
@@ -27,7 +27,7 @@ void main() {
     expect(find.text("C2 — WHAT'S IN THE CAMERA"), findsOneWidget);
     await t.tap(find.text('Save as kata'));
     await t.pumpAndSettle();
-    final mine = c.read(localLibraryProvider).lib.mine;
+    final mine = c.read(recipeRepositoryProvider).mine;
     expect(mine.length, 1);
     expect(mine.first.source, RecipeSource.camera);
     expect(find.text('Saved to Mine'), findsOneWidget);

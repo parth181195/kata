@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
-import '../../data/local_library.dart';
+import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 import '../library/recipe_card.dart';
 import '../ofr_io/import_sheet.dart';
@@ -20,10 +20,10 @@ class _MineScreenState extends ConsumerState<MineScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    final lib = ref.watch(localLibraryProvider);
-    final favs = lib.lib.all.where((r) => lib.lib.favourites.contains(r.id)).toList();
-    final mine = lib.lib.mine.where((r) => r.source == RecipeSource.imported).toList();
-    final cam = lib.lib.mine.where((r) => r.source == RecipeSource.camera).toList();
+    final lib = ref.watch(recipeRepositoryProvider);
+    final favs = lib.all.where((r) => lib.favourites.contains(r.id)).toList();
+    final mine = lib.mine.where((r) => r.source == RecipeSource.imported).toList();
+    final cam = lib.mine.where((r) => r.source == RecipeSource.camera).toList();
     final list = [favs, mine, cam][_seg];
     final emptyCopy = [
       ('Nothing saved yet', 'Favourite a kata or read one back from your camera.', 'Browse library'),
@@ -44,7 +44,9 @@ class _MineScreenState extends ConsumerState<MineScreen> {
               ]),
             ),
             Expanded(
-              child: list.isEmpty
+              child: !lib.loaded
+                  ? ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), children: const [KataSkeletonCard(), SizedBox(height: 12), KataSkeletonCard()])
+                  : list.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                       child: KataCard(
@@ -70,7 +72,7 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                         final r = list[i];
                         final card = RecipeCard(
                           recipe: r,
-                          favourite: lib.lib.favourites.contains(r.id),
+                          favourite: lib.favourites.contains(r.id),
                           onTap: () => context.push('/recipe/${r.id}'),
                           onFavourite: () => lib.toggleFavourite(r.id),
                         );

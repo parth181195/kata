@@ -30,6 +30,9 @@ void main() {
     expect(find.text('3'), findsNWidgets(2));
   });
   testWidgets('rows, banner, empty state, skeleton, dialog', (t) async {
+    // looping placeholders (skeleton pulse) never settle — run this one under reduce-motion
+    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
     bool? result;
     await t.pumpWidget(wrap(Builder(builder: (c) => Column(children: [
       const KataSectionHeader('Settings'),

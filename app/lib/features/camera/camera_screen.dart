@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/fuji/camera_service.dart';
-import '../../data/local_library.dart';
+import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 import 'slot_panel.dart';
 
@@ -121,6 +121,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         child: KataBigRound(
           label: connecting ? st.step : (failed ? 'Retry' : 'Connect'),
           sub: connecting ? null : 'USB-C',
+          loading: connecting,
           onPressed: connecting ? null : svc.connect,
         ),
       ),
@@ -132,7 +133,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   Widget _connected(BuildContext context, CameraReady st) {
     final p = context.kata;
     final svc = ref.read(cameraServiceProvider.notifier);
-    final lib = ref.read(localLibraryProvider);
+    final lib = ref.read(recipeRepositoryProvider);
     final sensors = OfrMapper.sensorsForModel(st.caps.model);
     final sel = _selected != null && _selected! <= st.slots.length ? _selected : null;
     String drOf(CameraPreset s) => s.dynamicRange == kDrAuto ? 'DR AUTO' : 'DR${s.dynamicRange ?? 100}';

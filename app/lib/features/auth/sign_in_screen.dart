@@ -3,12 +3,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
-import '../../router.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/auth/google_id_token.dart';
+import '../../core/net/api_client.dart';
+import 'google_mark.dart';
 
-class SignInScreen extends ConsumerWidget {
+class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends ConsumerState<SignInScreen> {
+  bool _busy = false;
+
+  Future<void> _signIn() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(sessionProvider.notifier).signIn();
+    } on AuthCancelled {
+      // user dismissed the account picker
+    } on AuthNotConfigured {
+      if (mounted) KataToast.show(context, "Google sign-in isn't configured in this build");
+    } on ApiException catch (e) {
+      if (mounted) KataToast.show(context, e.isNetwork ? 'No connection — try again' : 'Sign-in failed: ${e.message}');
+    } catch (_) {
+      if (mounted) KataToast.show(context, 'Sign-in failed');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final p = context.kata;
     return Scaffold(
       body: LayoutBuilder(
@@ -48,21 +76,25 @@ class SignInScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 54,
-                                height: 54,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: p.hairline),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '型',
-                                  style: KataType.displayStyle(
-                                    size: 22,
-                                    weight: FontWeight.w400,
-                                    color: p.fg,
-                                    letterSpacing: 0,
+                              GestureDetector(
+                                // developer entry: long-press the mark → probe screen
+                                onLongPress: () => context.push('/probe'),
+                                child: Container(
+                                  width: 54,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: p.hairline),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '型',
+                                    style: KataType.displayStyle(
+                                      size: 22,
+                                      weight: FontWeight.w400,
+                                      color: p.fg,
+                                      letterSpacing: 0,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -102,30 +134,11 @@ class SignInScreen extends ConsumerWidget {
                           ),
                           const Spacer(),
                           KataPillButton(
-                            label: 'Continue with Google',
+                            label: _busy ? 'Signing in…' : 'Continue with Google',
                             display: false,
-                            leading: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: p.bg, width: 1.5),
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Container(
-                                  width: 4,
-                                  height: 18,
-                                  color: p.fg,
-                                ),
-                              ),
-                            ),
-                            onPressed: () async {
-                              await ref
-                                  .read(signedInProvider.notifier)
-                                  .set(true);
-                              if (context.mounted) context.go('/library');
-                            },
+                            loading: _busy,
+                            leading: const GoogleMark(size: 18),
+                            onPressed: _signIn,
                           ),
                           const SizedBox(height: 16),
                           Row(

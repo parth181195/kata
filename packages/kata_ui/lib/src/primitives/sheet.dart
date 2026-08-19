@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme.dart';
 import '../tokens.dart';
 
@@ -40,6 +41,7 @@ Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builde
       enableDrag: dismissible,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.60),
+      sheetAnimationStyle: const AnimationStyle(duration: KataMotion.sheetIn, reverseDuration: KataMotion.sheetOut, curve: KataMotion.curve, reverseCurve: Curves.easeOut),
       builder: (c) => SafeArea(
         top: false,
         child: SingleChildScrollView(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom), child: builder(c)),

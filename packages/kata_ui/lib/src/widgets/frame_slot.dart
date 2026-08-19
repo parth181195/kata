@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme.dart';
 import '../tokens.dart';
 
@@ -13,15 +14,30 @@ class FrameSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
+    final ph = CustomPaint(
+      painter: _DotGrid(p.hairline, p.dark ? p.surface : p.code),
+      child: Center(
+        child: Text((placeholder ?? '').toUpperCase(), textAlign: TextAlign.center, style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.1)),
+      ),
+    );
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: image != null
-          ? Image(image: image!, fit: fit, width: double.infinity, height: double.infinity)
-          : CustomPaint(
-              painter: _DotGrid(p.hairline, p.dark ? p.surface : p.code),
-              child: Center(
-                child: Text((placeholder ?? '').toUpperCase(), textAlign: TextAlign.center, style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.1)),
-              ),
+      child: image == null
+          ? ph
+          : Image(
+              image: image!,
+              fit: fit,
+              width: double.infinity,
+              height: double.infinity,
+              // dot grid until the first frame decodes, then a short fade — no pop-in
+              frameBuilder: (context, child, frame, syncLoaded) {
+                if (syncLoaded || KataMotion.reduced(context)) return child;
+                return Stack(fit: StackFit.expand, children: [
+                  if (frame == null) ph,
+                  AnimatedOpacity(opacity: frame == null ? 0 : 1, duration: KataMotion.page, curve: KataMotion.curve, child: child),
+                ]);
+              },
+              errorBuilder: (_, _, _) => ph,
             ),
     );
   }

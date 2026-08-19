@@ -36,6 +36,8 @@ class KitScreen extends StatelessWidget {
           KataPillButton(label: 'Secondary', kind: KataButtonKind.secondary, display: false, expand: false, onPressed: () {}),
           KataPillButton(label: 'Tonal', kind: KataButtonKind.tonal, display: false, expand: false, onPressed: () {}),
           KataPillButton(label: 'Overwrite', kind: KataButtonKind.danger, display: false, expand: false, onPressed: () {}),
+          KataPillButton(label: 'Signing in…', display: false, expand: false, loading: true, onPressed: () {}),
+          const Padding(padding: EdgeInsets.all(12), child: KataDotsLoader()),
           KataIconCircle(onPressed: () {}, child: const Text('♡')),
           KataIconCircle(filled: true, onPressed: () {}, child: const Text('+')),
           KataBigRound(label: 'Connect', sub: 'USB-C', size: 74, onPressed: () {}),

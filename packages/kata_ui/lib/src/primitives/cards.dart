@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme.dart';
 import '../tokens.dart';
 import 'dividers.dart';
@@ -44,6 +45,7 @@ class KataCard extends StatelessWidget {
     );
     if (dashed) body = CustomPaint(foregroundPainter: _DottedBorder(outline ?? p.hairline, radius, dot: 2.5, gap: 7), child: body);
     if (useDots) body = CustomPaint(foregroundPainter: _DottedBorder(outline ?? p.hairline, radius), child: body);
+    if (onTap != null) body = KataTapScale(pressedScale: 0.985, child: body);
     return body;
   }
 }

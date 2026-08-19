@@ -1,8 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
+
+/// Cached (disk + memory) Bunny CDN image, or null when the recipe has no photos.
+ImageProvider? recipeImage(String? url) => url == null ? null : CachedNetworkImageProvider(url);
 
 String attributionLine(Recipe r) {
   final who = r.ofr.sourceAttribution ?? (r.source == RecipeSource.camera ? 'From camera' : 'Imported');
@@ -47,7 +51,7 @@ class RecipeCard extends StatelessWidget {
           SizedBox(
             height: 168,
             child: Stack(children: [
-              Positioned.fill(child: FrameSlot(radius: 0, placeholder: 'sample frame · ${r.name}', image: r.imageUrls.isEmpty ? null : NetworkImage(r.imageUrls.first))),
+              Positioned.fill(child: FrameSlot(radius: 0, placeholder: 'sample frame · ${r.name}', image: recipeImage(r.imageUrls.firstOrNull))),
               Positioned(top: 10, right: 10, child: heart),
             ]),
           ),
@@ -72,7 +76,7 @@ class RecipeCard extends StatelessWidget {
         padding: const EdgeInsets.all(13),
         onTap: onTap,
         child: Row(children: [
-          SizedBox(width: 78, height: 78, child: FrameSlot(placeholder: 'frame', image: r.imageUrls.isEmpty ? null : NetworkImage(r.imageUrls.first))),
+          SizedBox(width: 78, height: 78, child: FrameSlot(placeholder: 'frame', image: recipeImage(r.imageUrls.firstOrNull))),
           const SizedBox(width: 13),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
