@@ -1,7 +1,20 @@
 # Kata design (from the design tool)
 
 Source project: (design-tool export)
-Snapshot: `Kata.dc.html` (2026-08-19). `support.js` / `image-slot.js` are the canvas runtime.
+Snapshot: `Kata.dc.html` (2026-08-19, **rev 2**: adds turn 2 — 2a spec sheet + 2b library primitives; 1a–1g unchanged). `support.js` / `image-slot.js` are the canvas runtime.
+
+## Contract (from 2a — authoritative metrics)
+- Base 4 · grid 8 · gutter 20 (sign-in 28) · themes dark (default) + light.
+- Tokens: surface `#000`, surface-sunken `#0A0A0A` (code/JSON, table head), surface-tonal `#1A1A1A` (tonal button, track, tab divider), outline `#2E2E2E`, text-muted `#8A8A8A`, text-secondary `#D9D9D9`, text-primary/accent `#FFF`, alert `#D71921` (overwrite · skipped · invalid — outline + dot only, never fill/body text). Light mirrors: surface `#FFF`, sunken `#F5F5F5`, outline `#D9D9D9`, text `#000`; muted shared.
+- Type: Display Doto 800 30–32 upper (hero/empty) · Title Doto 900 24 +5% track · Recipe name Doto 800 18–19/1.05 (slot 14) · Values JetBrains Mono 400 15–16 tabular · Chip/status Mono 500 10.5 upper · Field label Inter 500 8.5 +16% · Body Inter 400/600 11.5–13/1.5 (min 11.5). Rule: Doto = names & headings · Mono = machine values · Inter = sentences.
+- Spacing: 4 icon↔label · 8 chip row · 12 card stack/grid · 16 section · 20 gutter.
+- Radius: 8 slot · 12 tile · 18 card · 26 sheet · pill. Zero shadows; sheets = hairline + 60% black scrim.
+- Sizes: min target 48 · primary CTA H58 R29 · secondary H50–52 · icon button 44⌀ (48 hit) · connect dial 108⌀ · field H42–56 R21 · chip H30 R15 · tab bar H64 · thumb 78sq / hero 168H.
+- Motion: tap 90ms linear · sheet 260/180ms · easing cubic(.2,0,0,1) · write dots 1 dot/60ms. Icons: geometric 1.5dp strokes, 16–18 box.
+- Component contract: Recipe card R18 pad 13 gap 11, footer = exactly 3 values, incompatible-with-body → opacity .5; Spec cell 3-up row gap 18, label→value 6, track 10H (26 edit), unsupported renders "—" never 0; Slot card R16 pad 12 badge 30sq R9, 2-up gap 11; Status pill H30 R15 pad-x 12, one per app bar; Buttons: primary hover `#FFF→#D9D9D9`, disabled `#1A1A1A` fill + `#8A8A8A` label (never opacity), one primary per screen; Sheet R26 pad 20/22, max 88% viewport, drag-dismiss unless a write is in flight, destructive confirmations modal; Alert card R14–16 pad 12–14 dot 7 gap 9–11.
+
+## Library primitives (from 2b — to add to kata_ui)
+Text field (rest/focus/filled/error with eyebrow label, unit suffix, × clear, error caption "OUT OF RANGE −5…+5"); checkbox/radio/switch; segmented control (ALL · MINE · SAVED); stepper (HIGHLIGHT +1); select (GRAIN SIZE · SMALL ▾); determinate progress "14/22 SETTINGS" + indeterminate dot marquee; skeleton loading card; app bar "Detail" + tabs (COLOUR · B&W · MINE 3); list row (title + value/sub, e.g. "Default write slot · Ask each time"), section header (SETTINGS), swipe row with EDIT/DELETE; dialog ("Overwrite C3?" body, Save first / Overwrite), snackbar ("Written to C3 · UNDO"), banner ("!" Turn the dial off C3 and back…), tooltip ("WB shift is R/B, not Kelvin"); menu rows with ✓ (Newest first / Most written / A → Z / Remove from library) and filter sheet row (X-TRANS V); chips: filter/input (ACROS ×)/add (+ FILM SIM)/disabled/count; avatar (HK/FX/M) + "@mireille · 12 katas"; tone strip at 16/32/84; empty state ("0 · Nothing saved yet · Favourite a kata or read one back from your camera. · Browse library"), error ("Camera stopped responding · Nothing was written. Reseat the cable and try again."), permission ("Allow Kata to access this USB device? · Allow"), image slot.
 
 ## Tokens
 | Token | Value | Use |
