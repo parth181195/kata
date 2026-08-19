@@ -52,9 +52,17 @@ const MODEL_SENSOR: [RegExp, string][] = [
   [/gfx/i, 'GFX'],
 ];
 
-const normFilmSim = (raw: string): string | undefined => {
+const normFilmSimExact = (raw: string): string | undefined => {
   const k = raw.toLowerCase().replace(/\s*filter\s*$/, '').replace(/\s+/g, ' ').trim();
   return FILM_SIM_ALIASES[k] ?? OfrEnums.filmSims.find((f) => f.toLowerCase() === k);
+};
+
+/** "Acros/Acros+R/Acros+G" or "Acros (Acros+Y, …)" → first listed option. */
+const normFilmSim = (raw: string): string | undefined => {
+  const exact = normFilmSimExact(raw);
+  if (exact) return exact;
+  const first = raw.split(/[/(,]| or /i)[0];
+  return first && first !== raw ? normFilmSimExact(first) : undefined;
 };
 
 const parseNum = (s: string): number | undefined => {
@@ -157,6 +165,7 @@ export function parseFxwPost(html: string, url: string): ParseResult {
       }
       case /^dynamic range$/.test(key): {
         const d = val.toUpperCase().replace(/\s+/g, '');
+        if (/N\/A|NA$|NONE/.test(d)) break; // older bodies: not set → omit
         out.dynamic_range = /AUTO/.test(d) ? 'DR-Auto' : /400/.test(d) ? 'DR400' : /200/.test(d) ? 'DR200' : 'DR100';
         break;
       }

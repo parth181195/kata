@@ -10,6 +10,8 @@ import { hasErrors, isMonoFilmSim, ofrHash, str, strList, validateOfr } from '..
 import { parseFxwPost } from './scrape-fxw';
 
 const UA = 'Mozilla/5.0 (compatible; KataSeeder/1.0; +https://kata.parthjansari.dev)';
+const DELAY_MS = Number(process.env.SEED_DELAY_MS ?? 800);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchHtml(url: string): Promise<string> {
   const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' } });
@@ -55,14 +57,24 @@ async function uploadImages(bunny: HttpBunnyClient, recipeId: string, urls: stri
 async function cmdImport(file: string, withImages: boolean) {
   const prisma = new PrismaClient();
   const bunny = new HttpBunnyClient();
-  const urls = readFileSync(file, 'utf8')
+  // urls.txt lines: `<url>` or `<url> | <name>` or `<url> | <name> | <sensor>`; `#` comments
+  const entries = readFileSync(file, 'utf8')
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'));
+    .filter((l) => l && !l.startsWith('#'))
+    .map((l) => {
+      const [url, name, sensor] = l.split('|').map((x) => x.trim());
+      return { url, name: name || undefined, sensor: sensor || undefined };
+    });
   const report: Report = { ok: [], skipped: [], failed: [] };
-  for (const url of urls) {
+  for (const { url, name: nameOverride, sensor: sensorOverride } of entries) {
+    await sleep(DELAY_MS);
     try {
       const r = parseFxwPost(await fetchHtml(url), url);
+      if (!('error' in r)) {
+        if (nameOverride) r.ofr.name = nameOverride.slice(0, 25);
+        if (sensorOverride && strList(r.ofr.sensors).length === 0) r.ofr.sensors = [sensorOverride];
+      }
       if ('error' in r) {
         report.failed.push({ url, error: r.error });
         console.log(`✗ ${url} — ${r.error}`);
