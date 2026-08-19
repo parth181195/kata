@@ -75,14 +75,19 @@ export async function cmdPhotos(libraryFile: string, flags: string[]): Promise<v
 export async function cmdPhotosApply(apiBase: string, token: string, flags: string[]): Promise<void> {
   const report = loadReport(flagVal(flags, '--report') ?? REPORT);
   let ok = 0, failed = 0;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   for (const [id, imageUrls] of Object.entries(report)) {
-    const res = await fetch(`${apiBase.replace(/\/$/, '')}/admin/recipes/${id}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrls }),
-    });
-    if (res.ok) ok++;
-    else { failed++; console.error(`✗ ${id}: ${res.status} ${(await res.text()).slice(0, 120)}`); }
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await fetch(`${apiBase.replace(/\/$/, '')}/admin/recipes/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrls }),
+      });
+      if (res.ok) { ok++; break; }
+      if (res.status === 429) { await sleep(15_000 * (attempt + 1)); continue; } // API throttles at 60/min
+      failed++; console.error(`✗ ${id}: ${res.status} ${(await res.text()).slice(0, 120)}`); break;
+    }
+    await sleep(1100); // stay under the throttle
   }
   console.log(`applied ${ok} · failed ${failed}`);
 }
