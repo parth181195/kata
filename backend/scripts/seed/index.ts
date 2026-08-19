@@ -87,7 +87,7 @@ async function cmdImport(file: string, withImages: boolean, update: boolean) {
         continue;
       }
       const hash = ofrHash(r.ofr);
-      const existing = await prisma.recipe.findUnique({ where: { hash } });
+      const existing = (await prisma.recipe.findUnique({ where: { hash } })) ?? (await prisma.recipe.findFirst({ where: { sourceUrl: url } }));
       if (existing && !update) {
         report.skipped.push({ url, reason: `duplicate of ${existing.id}` });
         console.log(`· ${url} — duplicate (${existing.name})`);
@@ -97,6 +97,7 @@ async function cmdImport(file: string, withImages: boolean, update: boolean) {
         const upd = await prisma.recipe.update({
           where: { id: existing.id },
           data: {
+            hash,
             ofr: { ...r.ofr, hash },
             name: (str(r.ofr.name) ?? existing.name).slice(0, 60),
             sensors: strList(r.ofr.sensors),
