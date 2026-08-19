@@ -42,3 +42,8 @@ Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot
 
 ## Local dev
 `backend/.env` points at `postgresql://kata:kata@localhost:5432/kata`; tests use `kata_test`. `npm run start:dev`, `npm test`, `npm run test:e2e`, `npm run prisma:migrate` (creates a migration file; edit if raw SQL is needed; `prisma migrate dev` will always report the generated `search` column as drift — that is expected, do not accept its auto-migration).
+
+## Landing page + APK (`kata.parthjansari.dev`)
+- Static files in `web/landing/`, deployed with `web/deploy.sh` (rsync → `/opt/kata/web`). Add `--apk app/build/app/outputs/flutter-apk/app-release.apk` to publish a build as `/kata.apk` (kept under `downloads/kata-<version>.apk`; version from `app/pubspec.yaml`).
+- Build the APK with the Google Web client id: `fvm flutter build apk --release --target-platform android-arm64 --dart-define=KATA_GOOGLE_WEB_CLIENT_ID=<id>`.
+- nginx: `location ~ \.apk$` sets the Android package MIME type + `Content-Disposition: attachment` (in `backend/deploy/nginx-kata.conf`; the live file under `/etc/nginx/sites-enabled/kata` also carries certbot's TLS blocks — edit in place, don't overwrite).
