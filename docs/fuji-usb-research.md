@@ -331,6 +331,8 @@ Tool: `probe/` (Flutter + Kotlin USB bridge, `fuji-probe.apk`). Camera in USB RA
 - **Write test:** `Set D18C=1`, `Set D192=12` → OK, read-back 12, and the **camera LCD shows C1 = Acros — after a mode-dial change** (no power cycle needed). The PTP write updates the *stored* slot; the body keeps running from an in-memory copy of the dial-selected slot until the dial is moved. **App rule:** after writing, prompt "turn the mode dial off Cx and back"; prefer writing to a slot the dial is not on (also avoids AUTO UPDATE CUSTOM SETTING writing the live copy back over it).
 - Conclusion: the preset protocol works on X-S20 from Android; a third-party app failing to apply is an app bug, not a platform limitation.
 
+**Plan 1 end-to-end OFR write (2026-08-19, Kata app via `fuji_ptp` plugin + `CameraService`):** the OFR README "Kodachrome 64" recipe (hash `ac98f459…c176`) mapped with `OfrMapper`, written to **C3** with the X RAW Studio order: `write C3 ok=true written=21 skipped=0` (21 props: D18D name + 20 values incl. passthrough D18E/D18F/D191/D1A3/D1A4/D1A5 copied from the slot; D198 absent on X-S20, D19C/D193/D194 omitted by value rules). Read-back verification passed for all 21.
+
 Remaining unknowns: D-Range Priority (D191?), WB white-priority / Custom WB values, DR-Auto write, whether there is a PTP prop that reports the dial-selected slot (so the app can warn), and exact `AUTO UPDATE CUSTOM SETTING` interaction.
 
 ## Sources
