@@ -12,6 +12,8 @@ dependencies:
   flutter_riverpod: ^2.6.1
   fuji_ptp:
     path: ../packages/fuji_ptp
+  kata_ui:
+    path: ../packages/kata_ui
   ofr:
     path: ../packages/ofr
 
