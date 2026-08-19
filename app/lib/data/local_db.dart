@@ -33,6 +33,14 @@ class Favourites extends Table {
   Set<Column> get primaryKey => {recipeId};
 }
 
+/// Favourite toggles made offline, pushed on the next sync.
+class PendingFavOps extends Table {
+  TextColumn get recipeId => text()();
+  BoolColumn get add => boolean()();
+  @override
+  Set<Column> get primaryKey => {recipeId};
+}
+
 class Meta extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -40,7 +48,7 @@ class Meta extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [CachedRecipes, MineRecipes, Favourites, Meta])
+@DriftDatabase(tables: [CachedRecipes, MineRecipes, Favourites, PendingFavOps, Meta])
 class KataDb extends _$KataDb {
   KataDb(super.e);
   KataDb.memory() : super(NativeDatabase.memory());
@@ -54,7 +62,15 @@ class KataDb extends _$KataDb {
   );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) await m.createTable(pendingFavOps);
+    },
+  );
 
   Future<String?> getMeta(String key) async => (await (select(meta)..where((m) => m.key.equals(key))).getSingleOrNull())?.value;
   Future<void> setMeta(String key, String value) => into(meta).insertOnConflictUpdate(MetaCompanion.insert(key: key, value: value));

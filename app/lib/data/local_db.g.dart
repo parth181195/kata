@@ -779,6 +779,219 @@ class FavouritesCompanion extends UpdateCompanion<Favourite> {
   }
 }
 
+class $PendingFavOpsTable extends PendingFavOps
+    with TableInfo<$PendingFavOpsTable, PendingFavOp> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PendingFavOpsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _recipeIdMeta = const VerificationMeta(
+    'recipeId',
+  );
+  @override
+  late final GeneratedColumn<String> recipeId = GeneratedColumn<String>(
+    'recipe_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _addMeta = const VerificationMeta('add');
+  @override
+  late final GeneratedColumn<bool> add = GeneratedColumn<bool>(
+    'add',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("add" IN (0, 1))',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [recipeId, add];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pending_fav_ops';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PendingFavOp> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('recipe_id')) {
+      context.handle(
+        _recipeIdMeta,
+        recipeId.isAcceptableOrUnknown(data['recipe_id']!, _recipeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recipeIdMeta);
+    }
+    if (data.containsKey('add')) {
+      context.handle(
+        _addMeta,
+        add.isAcceptableOrUnknown(data['add']!, _addMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {recipeId};
+  @override
+  PendingFavOp map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PendingFavOp(
+      recipeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recipe_id'],
+      )!,
+      add: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}add'],
+      )!,
+    );
+  }
+
+  @override
+  $PendingFavOpsTable createAlias(String alias) {
+    return $PendingFavOpsTable(attachedDatabase, alias);
+  }
+}
+
+class PendingFavOp extends DataClass implements Insertable<PendingFavOp> {
+  final String recipeId;
+  final bool add;
+  const PendingFavOp({required this.recipeId, required this.add});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['recipe_id'] = Variable<String>(recipeId);
+    map['add'] = Variable<bool>(add);
+    return map;
+  }
+
+  PendingFavOpsCompanion toCompanion(bool nullToAbsent) {
+    return PendingFavOpsCompanion(recipeId: Value(recipeId), add: Value(add));
+  }
+
+  factory PendingFavOp.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PendingFavOp(
+      recipeId: serializer.fromJson<String>(json['recipeId']),
+      add: serializer.fromJson<bool>(json['add']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'recipeId': serializer.toJson<String>(recipeId),
+      'add': serializer.toJson<bool>(add),
+    };
+  }
+
+  PendingFavOp copyWith({String? recipeId, bool? add}) =>
+      PendingFavOp(recipeId: recipeId ?? this.recipeId, add: add ?? this.add);
+  PendingFavOp copyWithCompanion(PendingFavOpsCompanion data) {
+    return PendingFavOp(
+      recipeId: data.recipeId.present ? data.recipeId.value : this.recipeId,
+      add: data.add.present ? data.add.value : this.add,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingFavOp(')
+          ..write('recipeId: $recipeId, ')
+          ..write('add: $add')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(recipeId, add);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingFavOp &&
+          other.recipeId == this.recipeId &&
+          other.add == this.add);
+}
+
+class PendingFavOpsCompanion extends UpdateCompanion<PendingFavOp> {
+  final Value<String> recipeId;
+  final Value<bool> add;
+  final Value<int> rowid;
+  const PendingFavOpsCompanion({
+    this.recipeId = const Value.absent(),
+    this.add = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PendingFavOpsCompanion.insert({
+    required String recipeId,
+    required bool add,
+    this.rowid = const Value.absent(),
+  }) : recipeId = Value(recipeId),
+       add = Value(add);
+  static Insertable<PendingFavOp> custom({
+    Expression<String>? recipeId,
+    Expression<bool>? add,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (recipeId != null) 'recipe_id': recipeId,
+      if (add != null) 'add': add,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PendingFavOpsCompanion copyWith({
+    Value<String>? recipeId,
+    Value<bool>? add,
+    Value<int>? rowid,
+  }) {
+    return PendingFavOpsCompanion(
+      recipeId: recipeId ?? this.recipeId,
+      add: add ?? this.add,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (recipeId.present) {
+      map['recipe_id'] = Variable<String>(recipeId.value);
+    }
+    if (add.present) {
+      map['add'] = Variable<bool>(add.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingFavOpsCompanion(')
+          ..write('recipeId: $recipeId, ')
+          ..write('add: $add, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MetaTable extends Meta with TableInfo<$MetaTable, MetaData> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -990,6 +1203,7 @@ abstract class _$KataDb extends GeneratedDatabase {
   late final $CachedRecipesTable cachedRecipes = $CachedRecipesTable(this);
   late final $MineRecipesTable mineRecipes = $MineRecipesTable(this);
   late final $FavouritesTable favourites = $FavouritesTable(this);
+  late final $PendingFavOpsTable pendingFavOps = $PendingFavOpsTable(this);
   late final $MetaTable meta = $MetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -999,6 +1213,7 @@ abstract class _$KataDb extends GeneratedDatabase {
     cachedRecipes,
     mineRecipes,
     favourites,
+    pendingFavOps,
     meta,
   ];
 }
@@ -1466,6 +1681,149 @@ typedef $$FavouritesTableProcessedTableManager =
       Favourite,
       PrefetchHooks Function()
     >;
+typedef $$PendingFavOpsTableCreateCompanionBuilder =
+    PendingFavOpsCompanion Function({
+      required String recipeId,
+      required bool add,
+      Value<int> rowid,
+    });
+typedef $$PendingFavOpsTableUpdateCompanionBuilder =
+    PendingFavOpsCompanion Function({
+      Value<String> recipeId,
+      Value<bool> add,
+      Value<int> rowid,
+    });
+
+class $$PendingFavOpsTableFilterComposer
+    extends Composer<_$KataDb, $PendingFavOpsTable> {
+  $$PendingFavOpsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get recipeId => $composableBuilder(
+    column: $table.recipeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get add => $composableBuilder(
+    column: $table.add,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PendingFavOpsTableOrderingComposer
+    extends Composer<_$KataDb, $PendingFavOpsTable> {
+  $$PendingFavOpsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get recipeId => $composableBuilder(
+    column: $table.recipeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get add => $composableBuilder(
+    column: $table.add,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PendingFavOpsTableAnnotationComposer
+    extends Composer<_$KataDb, $PendingFavOpsTable> {
+  $$PendingFavOpsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get recipeId =>
+      $composableBuilder(column: $table.recipeId, builder: (column) => column);
+
+  GeneratedColumn<bool> get add =>
+      $composableBuilder(column: $table.add, builder: (column) => column);
+}
+
+class $$PendingFavOpsTableTableManager
+    extends
+        RootTableManager<
+          _$KataDb,
+          $PendingFavOpsTable,
+          PendingFavOp,
+          $$PendingFavOpsTableFilterComposer,
+          $$PendingFavOpsTableOrderingComposer,
+          $$PendingFavOpsTableAnnotationComposer,
+          $$PendingFavOpsTableCreateCompanionBuilder,
+          $$PendingFavOpsTableUpdateCompanionBuilder,
+          (
+            PendingFavOp,
+            BaseReferences<_$KataDb, $PendingFavOpsTable, PendingFavOp>,
+          ),
+          PendingFavOp,
+          PrefetchHooks Function()
+        > {
+  $$PendingFavOpsTableTableManager(_$KataDb db, $PendingFavOpsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PendingFavOpsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PendingFavOpsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PendingFavOpsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> recipeId = const Value.absent(),
+                Value<bool> add = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PendingFavOpsCompanion(
+                recipeId: recipeId,
+                add: add,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String recipeId,
+                required bool add,
+                Value<int> rowid = const Value.absent(),
+              }) => PendingFavOpsCompanion.insert(
+                recipeId: recipeId,
+                add: add,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PendingFavOpsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$KataDb,
+      $PendingFavOpsTable,
+      PendingFavOp,
+      $$PendingFavOpsTableFilterComposer,
+      $$PendingFavOpsTableOrderingComposer,
+      $$PendingFavOpsTableAnnotationComposer,
+      $$PendingFavOpsTableCreateCompanionBuilder,
+      $$PendingFavOpsTableUpdateCompanionBuilder,
+      (
+        PendingFavOp,
+        BaseReferences<_$KataDb, $PendingFavOpsTable, PendingFavOp>,
+      ),
+      PendingFavOp,
+      PrefetchHooks Function()
+    >;
 typedef $$MetaTableCreateCompanionBuilder =
     MetaCompanion Function({
       required String key,
@@ -1602,5 +1960,7 @@ class $KataDbManager {
       $$MineRecipesTableTableManager(_db, _db.mineRecipes);
   $$FavouritesTableTableManager get favourites =>
       $$FavouritesTableTableManager(_db, _db.favourites);
+  $$PendingFavOpsTableTableManager get pendingFavOps =>
+      $$PendingFavOpsTableTableManager(_db, _db.pendingFavOps);
   $$MetaTableTableManager get meta => $$MetaTableTableManager(_db, _db.meta);
 }
