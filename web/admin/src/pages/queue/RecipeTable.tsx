@@ -13,7 +13,7 @@ export function RecipeTable({ rows, selected, onSelect, active, onOpen, selectab
   rows: AdminRecipe[]; selected: Set<string>; onSelect: (ids: Set<string>) => void; active: string | null; onOpen: (id: string) => void; selectable?: boolean;
 }) {
   const allOn = rows.length > 0 && rows.every((r) => selected.has(r.id));
-  const cols = selectable ? '36px minmax(240px,2fr) minmax(160px,1.3fr) 110px 80px 130px' : 'minmax(240px,2fr) minmax(160px,1.3fr) 110px 80px 130px';
+  const cols = selectable ? '36px minmax(240px,2fr) minmax(150px,1.2fr) 150px 76px 130px' : 'minmax(240px,2fr) minmax(150px,1.2fr) 150px 76px 130px';
   return (
     <div className="table" role="table" style={{ gridTemplateColumns: cols }}>
       {selectable && <div className="th" role="columnheader"><Checkbox on={allOn} onChange={(v) => onSelect(v ? new Set(rows.map((r) => r.id)) : new Set())} label="select all" /></div>}

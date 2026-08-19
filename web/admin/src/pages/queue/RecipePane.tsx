@@ -12,8 +12,8 @@ const fmt = (v: unknown) => v === undefined || v === null ? '—' : typeof v ===
 
 export function RecipePane({ id, onClose }: { id: string | null; onClose: () => void }) {
   const q = useRecipe(id);
-  if (!id) return <aside className="pane empty"><div><div className="mono" style={{ marginBottom: 8 }}>NO SELECTION</div>Pick a kata on the left to review it.</div></aside>;
-  if (q.isLoading || !q.data) return <aside className="pane empty"><Dots /></aside>;
+  if (!id) return <aside className="pane blank"><div><div className="mono" style={{ marginBottom: 8 }}>NO SELECTION</div>Pick a kata on the left to review it.</div></aside>;
+  if (q.isLoading || !q.data) return <aside className="pane blank"><Dots /></aside>;
   return <PaneBody r={q.data} onClose={onClose} key={q.data.id} />;
 }
 
@@ -59,7 +59,7 @@ function PaneBody({ r, onClose }: { r: AdminRecipe; onClose: () => void }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ minWidth: 0 }}>
-              <div className="display" style={{ fontSize: 20, lineHeight: 1.05 }}>{r.name}</div>
+              <div className="display" style={{ fontSize: 18, lineHeight: 1.15 }}>{r.name}</div>
               <div className="sub muted" style={{ marginTop: 6, fontSize: 11.5 }}>
                 {r.sourceAttribution ?? (r.author?.displayName ?? 'No attribution')}{r.sourceUrl && <> · <a href={r.sourceUrl} target="_blank" rel="noreferrer" className="dim" style={{ textDecoration: 'underline' }}>source ↗</a></>}
               </div>

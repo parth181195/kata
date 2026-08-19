@@ -47,3 +47,8 @@ Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot
 - Static files in `web/landing/`, deployed with `web/deploy.sh` (rsync → `/opt/kata/web`). Add `--apk app/build/app/outputs/flutter-apk/app-release.apk` to publish a build as `/kata.apk` (kept under `downloads/kata-<version>.apk`; version from `app/pubspec.yaml`).
 - Build the APK with the Google Web client id: `fvm flutter build apk --release --target-platform android-arm64 --dart-define=KATA_GOOGLE_WEB_CLIENT_ID=<id>`.
 - nginx: `location ~ \.apk$` sets the Android package MIME type + `Content-Disposition: attachment` (in `backend/deploy/nginx-kata.conf`; the live file under `/etc/nginx/sites-enabled/kata` also carries certbot's TLS blocks — edit in place, don't overwrite).
+
+## Admin console (`admin.kata.parthjansari.dev`)
+- Source `web/admin/` (Vite/React). Deploy: `web/deploy.sh --admin [--no-landing]` (builds with `npm ci && npm run build`, rsyncs `dist/` → `/opt/kata/admin`). `.env.production` holds the public Web client id + API base.
+- Promote an account: first sign in once from the app or the admin page (creates the user), then Creators → "Make admin", or SQL: `update users set role='admin' where email='…'`.
+- Google OAuth Web client must list `https://admin.kata.parthjansari.dev` (and `http://localhost:5173` for dev) under Authorized JavaScript origins; no redirect URIs needed (GIS ID-token popup).

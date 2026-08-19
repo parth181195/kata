@@ -70,4 +70,4 @@ export function ago(iso: string | null | undefined): string {
   if (d < 30) return `${d}d ${Math.floor((s % 86400) / 3600)}h`;
   return new Date(iso).toISOString().slice(0, 10);
 }
-export const sensorShort = (s: string) => s.replace('X-Trans ', 'X-T ');
+export const sensorShort = (s: string) => s.replace('X-Trans ', 'XT ');
