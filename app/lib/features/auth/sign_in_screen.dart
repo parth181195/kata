@@ -6,6 +6,7 @@ import 'package:kata_ui/kata_ui.dart';
 import '../../core/auth/auth_repository.dart';
 import '../../core/auth/google_id_token.dart';
 import '../../core/net/api_client.dart';
+import 'google_mark.dart';
 
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
@@ -110,22 +111,7 @@ class SignInScreen extends ConsumerWidget {
                           KataPillButton(
                             label: 'Continue with Google',
                             display: false,
-                            leading: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: p.bg, width: 1.5),
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Container(
-                                  width: 4,
-                                  height: 18,
-                                  color: p.fg,
-                                ),
-                              ),
-                            ),
+                            leading: const GoogleMark(size: 18),
                             onPressed: () async {
                               try {
                                 await ref.read(sessionProvider.notifier).signIn();
