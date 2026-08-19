@@ -1,7 +1,7 @@
 # Kata design (from the design tool)
 
 Source project: (design-tool export)
-Snapshot: `Kata.dc.html` (2026-08-19, **rev 2**: adds turn 2 — 2a spec sheet + 2b library primitives; 1a–1g unchanged). `support.js` / `image-slot.js` are the canvas runtime.
+Snapshot: `Kata.dc.html` (2026-08-19, **rev 3**: turn 3 sharing (3a composer + scan-to-import, 3b export templates S1–S4, 3c Kata Code spec) + turn 2 (2a spec sheet, 2b primitives); 1a–1g unchanged). `support.js` / `image-slot.js` are the canvas runtime.
 
 ## Contract (from 2a — authoritative metrics)
 - Base 4 · grid 8 · gutter 20 (sign-in 28) · themes dark (default) + light.
@@ -52,3 +52,8 @@ Text field (rest/focus/filled/error with eyebrow label, unit suffix, × clear, e
 - Sample photos per recipe (hero, 3 thumbs, card frames) → `imageUrls[]` on recipe docs; placeholders when empty.
 - "EXP. COMP" spec cell → OFR `extra["x_exposure_comp"]` (not part of OFR v1).
 - "ON DIAL: C2" assumes we can read the dial-selected slot — unknown on the wire; show only if discovered.
+
+## Sharing (from turn 3 — Stage 2b)
+- **3a Composer:** preview of the share card; template row `S1 CARD · S2 SHEET · S3 STORY · S4 CODE`; options: Invert card, Embed Kata Code, Credit (`@handle ›`), Ratio `4:5 · 1:1 · 9:16`; `{ }` raw-payload peek; primary **Share card**. **Scan-to-import:** viewfinder "SCAN A KATA CODE · PASTE INSTEAD — Point at the code on any Kata card — no network needed"; decoded preview card (name, `NOSTALGIC NEG · DR100 · WB SHIFT`, "from @heikki.k · 22 settings decoded", "Read straight from the image — the code carries the recipe, not a link"); actions **Review fields** / **Save to mine**.
+- **3b Templates:** S1 recipe card (name, sim·sensor, 2-col value list, credit, "SCAN TO IMPORT · 22 SETTINGS", optional shoot meta `12 DEC 2022 · PARIS / X-T5 · 56MM F1.4`); S2 contact sheet (photo grid + compact values + hashtags); S3 story 9:16 (big name, few values, "SCAN TO LOAD INTO YOUR OWN C-SLOT"); S4 code-only (name, summary, credit, large code, HOW TO USE).
+- **3c Kata Code:** QR whose payload *is* the recipe (not a link). Payload ~180–260 B, QR v6 ECC M, min 24 mm / 96 px, quiet zone 4 modules, always monochrome (inversion allowed, no tint, no centre logo, never over a photo). Format: `kata1:` + fixed-order abbreviated fields (omitted = camera default) + `;n=<name>;a=<credit>;v=<sensor gen>` — e.g. `kata1:CC,DR400,WB5800/+2-3,H+1,S-0.5,C+2,SH+1,NR-4,CL0,GR-WS,CCR-S,CCB-W;n=Kodachrome+64;a=heikki.k;v=xt5`. Sizes: card 36 · sheet 56 · poster 76+. Fallbacks: paste text (same string), optional short link `kata.app/k/…` resolving to the same payload, `.ofr.json` for archives. Cross-sensor codes import with unsupported fields flagged and skipped on write — never silently coerced.
