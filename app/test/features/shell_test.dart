@@ -40,10 +40,10 @@ void main() {
     await pumpKata(t);
     await t.tap(find.byKey(const ValueKey('nav-1')));
     await t.pumpAndSettle();
-    expect(find.text('CAMERA'), findsOneWidget);
+    expect(find.text('CAMERA'), findsNWidgets(2)); // nav label + screen title
     await t.tap(find.byKey(const ValueKey('nav-3')));
     await t.pumpAndSettle();
-    expect(find.text('PROFILE'), findsOneWidget);
+    expect(find.text('PROFILE'), findsNWidgets(2));
     await t.tap(find.text('Component kit'));
     await t.pumpAndSettle();
     expect(find.text('KATA 型 KIT'), findsOneWidget);
