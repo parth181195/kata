@@ -47,7 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final s = session.value;
       if (s.isLoading) return loc == '/boot' ? null : '/boot?from=${Uri.encodeComponent(state.uri.toString())}';
       final signedIn = s.valueOrNull != null;
-      if (!signedIn) return loc == '/signin' ? null : '/signin';
+      if (!signedIn) return (loc == '/signin' || _debugRoutes.contains(loc)) ? null : '/signin';
       if (loc == '/signin') return '/library';
       if (loc == '/boot') {
         final from = state.uri.queryParameters['from'];
@@ -73,6 +73,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Debug screens reachable without a session (long-press the 型 mark on sign-in).
+const _debugRoutes = {'/probe', '/kit'};
 
 /// Every route gets the kata_ui fade + rise transition.
 Page<T> _page<T>(GoRouterState s, Widget child) => CustomTransitionPage<T>(

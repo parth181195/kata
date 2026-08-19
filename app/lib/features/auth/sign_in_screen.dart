@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/auth/auth_repository.dart';
@@ -49,21 +50,25 @@ class SignInScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 54,
-                                height: 54,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: p.hairline),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '型',
-                                  style: KataType.displayStyle(
-                                    size: 22,
-                                    weight: FontWeight.w400,
-                                    color: p.fg,
-                                    letterSpacing: 0,
+                              GestureDetector(
+                                // developer entry: long-press the mark → probe screen
+                                onLongPress: () => context.push('/probe'),
+                                child: Container(
+                                  width: 54,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: p.hairline),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '型',
+                                    style: KataType.displayStyle(
+                                      size: 22,
+                                      weight: FontWeight.w400,
+                                      color: p.fg,
+                                      letterSpacing: 0,
+                                    ),
                                   ),
                                 ),
                               ),

@@ -28,6 +28,14 @@ void main() {
     expect(find.text('Continue with Google'), findsOneWidget);
   });
 
+  testWidgets('signed out: long-press the mark opens the probe screen (debug route allowed)', (t) async {
+    await pumpKata(t, signedIn: false);
+    await t.longPress(find.text('型'));
+    await t.pumpAndSettle();
+    expect(find.text('Kata · probe'), findsOneWidget);
+    expect(find.text('Ping API'), findsOneWidget);
+  });
+
   testWidgets('bottom nav switches branches; profile → kit', (t) async {
     await pumpKata(t);
     await t.tap(find.byKey(const ValueKey('nav-1')));

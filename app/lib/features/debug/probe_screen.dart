@@ -7,6 +7,7 @@ import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:ofr/ofr.dart';
 
 import '../../core/fuji/camera_service.dart';
+import '../../core/net/api_client.dart';
 
 /// Kodachrome 64 (OFR README example) used as the built-in write test.
 const kSampleOfr = '''
@@ -27,6 +28,17 @@ class _ProbeScreenState extends ConsumerState<ProbeScreen> {
   int _slot = 2;
 
   void _l(String s) => setState(() => _log.add(s));
+
+  Future<void> _pingApi() async {
+    final api = ref.read(apiClientProvider);
+    final t0 = DateTime.now();
+    try {
+      final j = await api.getJson('/health');
+      _l('GET $kApiBase/health → $j (${DateTime.now().difference(t0).inMilliseconds} ms)');
+    } on ApiException catch (e) {
+      _l('GET $kApiBase/health failed: $e');
+    }
+  }
 
   Future<void> _writeOfr() async {
     final OfrRecipe r;
@@ -86,6 +98,7 @@ class _ProbeScreenState extends ConsumerState<ProbeScreen> {
               items: [for (var i = 1; i <= 7; i++) DropdownMenuItem(value: i, child: Text('C$i'))],
               onChanged: (v) => setState(() => _slot = v ?? 2)),
           FilledButton.tonal(onPressed: ready ? _writeOfr : null, child: const Text('Write OFR → slot')),
+          OutlinedButton(onPressed: _pingApi, child: const Text('Ping API')),
         ]),
         if (st is CameraReady)
           SizedBox(
