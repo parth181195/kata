@@ -1,0 +1,29 @@
+name: kata
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  fuji_ptp:
+    path: ../packages/fuji_ptp
+  ofr:
+    path: ../packages/ofr
+
+dependency_overrides:
+  ofr:
+    path: ../packages/ofr
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true

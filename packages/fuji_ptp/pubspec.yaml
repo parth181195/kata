@@ -1,0 +1,30 @@
+name: fuji_ptp
+description: "PTP-over-USB client for Fujifilm cameras: read and write Custom Settings (C1–C7) film-simulation presets. Pure Dart protocol + Android USB-host bridge."
+version: 0.1.0
+repository: https://github.com/parthjansari/kata
+topics: [fujifilm, ptp, usb, camera]
+
+environment:
+  sdk: ^3.11.0
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ofr: ^0.1.0
+
+dependency_overrides:
+  ofr:
+    path: ../ofr
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.parth.fuji_ptp
+        pluginClass: FujiPtpPlugin
