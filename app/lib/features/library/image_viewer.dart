@@ -112,12 +112,13 @@ class _ImageViewerState extends State<_ImageViewer> {
                 if (widget.urls.length > 1)
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     for (var i = 0; i < widget.urls.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 6),
+                      if (i > 0) const SizedBox(width: 7),
+                      // square dots (Nothing style), the current one lit
                       AnimatedContainer(
                         duration: KataMotion.tap,
-                        width: i == _index ? 14 : 5,
+                        width: 5,
                         height: 5,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: i == _index ? Colors.white : KataColors.grey700),
+                        color: i == _index ? Colors.white : KataColors.grey700,
                       ),
                     ],
                   ]),
