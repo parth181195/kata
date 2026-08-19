@@ -80,10 +80,10 @@ FakeAdapter authAdapter() {
 }
 
 /// Pumps the full app with an in-memory db + fake API seeded from [seedJson]. Returns the container for reading providers.
-Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google}) async {
+Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google, FakeRecipeApi? api}) async {
   final db = KataDb.memory();
   addTearDown(db.close);
-  final repo = RecipeRepository(db: db, api: FakeRecipeApi.fromSeed(seedJson));
+  final repo = RecipeRepository(db: db, api: api ?? FakeRecipeApi.fromSeed(seedJson));
   await repo.load();
   await repo.sync();
   final tokens = MemoryTokenStore();

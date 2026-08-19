@@ -93,6 +93,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ),
             ]),
           ),
+          if (lib.loaded && lib.offline)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: KataCard(
+                radius: 14,
+                padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+                child: Row(children: [
+                  Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.dim, width: 1.5))),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('Offline — showing cached library', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 12, color: p.dim, height: 1.2))),
+                  const SizedBox(width: 8),
+                  KataPillButton(label: lib.syncing ? 'RETRYING' : 'RETRY', kind: KataButtonKind.secondary, height: 32, expand: false, display: false, onPressed: lib.syncing ? null : () => lib.sync()),
+                ]),
+              ),
+            ),
           Expanded(
             child: !lib.loaded
                 ? ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), children: const [KataSkeletonCard(), SizedBox(height: 12), KataSkeletonCard()])
@@ -113,20 +128,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ),
                         ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                        itemCount: recipes.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) {
-                          final r = recipes[i];
-                          return RecipeCard(
-                            recipe: r,
-                            hero: i == 0,
-                            favourite: lib.favourites.contains(r.id),
-                            onTap: () => context.push('/recipe/${r.id}'),
-                            onFavourite: () => lib.toggleFavourite(r.id),
-                          );
-                        },
+                    : RefreshIndicator(
+                        color: p.fg,
+                        backgroundColor: p.surface,
+                        strokeWidth: 2,
+                        onRefresh: lib.sync,
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                          itemCount: recipes.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (_, i) {
+                            final r = recipes[i];
+                            return RecipeCard(
+                              recipe: r,
+                              hero: i == 0,
+                              favourite: lib.favourites.contains(r.id),
+                              onTap: () => context.push('/recipe/${r.id}'),
+                              onFavourite: () => lib.toggleFavourite(r.id),
+                            );
+                          },
+                        ),
                       ),
           ),
         ]),

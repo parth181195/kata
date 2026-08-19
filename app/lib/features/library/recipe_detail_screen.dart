@@ -64,7 +64,7 @@ class RecipeDetailScreen extends ConsumerWidget {
               child: SizedBox(
                 height: 300,
                 child: Stack(fit: StackFit.expand, children: [
-                  FrameSlot(radius: 0, placeholder: 'hero sample frame · shot with this kata', image: recipe.imageUrls.isEmpty ? null : NetworkImage(recipe.imageUrls.first)),
+                  FrameSlot(radius: 0, placeholder: 'hero sample frame · shot with this kata', image: recipeImage(recipe.imageUrls.firstOrNull)),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: [0, 0.12, 0.4, 1], colors: [Color(0x99000000), Color(0x99000000), Color(0x00000000), Color(0xD9000000)]),
@@ -128,7 +128,15 @@ class RecipeDetailScreen extends ConsumerWidget {
                   ],
                 ]),
                 const SizedBox(height: 16),
-                SizedBox(height: 72, child: Row(children: [for (var i = 0; i < 3; i++) ...[if (i > 0) const SizedBox(width: 6), const Expanded(child: FrameSlot(radius: 8, placeholder: 'frame'))]])),
+                SizedBox(
+                  height: 72,
+                  child: Row(children: [
+                    for (var i = 0; i < 3; i++) ...[
+                      if (i > 0) const SizedBox(width: 6),
+                      Expanded(child: FrameSlot(radius: 8, placeholder: 'frame', image: recipeImage(recipe.imageUrls.skip(1 + i).firstOrNull))),
+                    ],
+                  ]),
+                ),
                 const SizedBox(height: 16),
                 const EyebrowDivider('Q-menu order'),
                 const SizedBox(height: 16),
