@@ -29,6 +29,7 @@ dependencies:
   ofr:
     path: ../packages/ofr
   flutter_svg: ^2.3.0
+  qr_flutter: ^4.1.0
 
 dependency_overrides:
   ofr:
