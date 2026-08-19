@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  admin
+}
+
+model User {
+  id            String         @id @default(uuid())
+  googleSub     String         @unique
+  email         String         @unique
+  displayName   String
+  photoUrl      String?
+  role          Role           @default(user)
+  createdAt     DateTime       @default(now())
+  recipes       Recipe[]
+  favourites    Favourite[]
+  refreshTokens RefreshToken[]
+  reports       Report[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Recipe {
+  id                String      @id @default(uuid())
+  hash              String      @unique
+  ofr               Json
+  name              String
+  filmSim           String
+  isMono            Boolean
+  sensors           String[]
+  sourceUrl         String?
+  sourceAttribution String?
+  author            User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId          String?
+  reviewed          Boolean     @default(false)
+  hidden            Boolean     @default(false)
+  reportCount       Int         @default(0)
+  favouritesCount   Int         @default(0)
+  imageUrls         String[]
+  search            Unsupported("tsvector")?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  favourites        Favourite[]
+  reports           Report[]
+
+  @@index([hidden, createdAt(sort: Desc)])
+  @@index([hidden, favouritesCount(sort: Desc)])
+  @@index([filmSim])
+  @@index([isMono])
+  @@index([search], type: Gin, map: "recipes_search_idx")
+  @@index([sensors], type: Gin, map: "recipes_sensors_idx")
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "recipes_name_trgm_idx")
+  @@map("recipes")
+}
+
+model Favourite {
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId  String
+  createdAt DateTime @default(now())
+
+  @@id([userId, recipeId])
+  @@map("favourites")
+}
+
+model Report {
+  id         String    @id @default(uuid())
+  recipe     Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId   String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  reason     String
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@unique([recipeId, userId])
+  @@map("reports")
+}

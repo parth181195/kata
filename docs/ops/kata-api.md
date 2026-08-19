@@ -1,0 +1,44 @@
+# Kata API — operations
+
+Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public **`https://api.kata.parthjansari.dev`**; landing page `https://kata.parthjansari.dev` (static, `/opt/kata/web`); admin SPA `https://admin.kata.parthjansari.dev` (`/opt/kata/admin`).
+
+## One-time setup (sudo/root on the VM)
+1. **DNS:** A records `kata`, `api.kata`, `admin.kata` → `YOUR.VM.IP` (in the zone that `ns-cloud-e1..e4.googledomains.com` serve).
+2. **Postgres role + db**
+   ```bash
+   sudo -u postgres psql -c "create role kata with login password 'CHANGE_ME';"
+   sudo -u postgres psql -c "create database kata owner kata;"
+   sudo -u postgres psql -d kata -c "create extension if not exists pg_trgm;"
+   ```
+3. **Env file** `/opt/kata/api/.env` (never committed):
+   ```
+   PORT=5090
+   NODE_ENV=production
+   DATABASE_URL=postgresql://kata:CHANGE_ME@127.0.0.1:5432/kata
+   JWT_SECRET=<openssl rand -base64 48>
+   GOOGLE_WEB_CLIENT_ID=<web client id>.apps.googleusercontent.com
+   BUNNY_STORAGE_ZONE=<zone>
+   BUNNY_STORAGE_KEY=<storage access key>
+   BUNNY_STORAGE_HOST=storage.bunnycdn.com      # or sg.storage.bunnycdn.com etc. (zone region)
+   BUNNY_PULL_ZONE_HOST=<pullzone>.b-cdn.net
+   ```
+4. **nginx + TLS**
+   ```bash
+   sudo cp /opt/kata/api/deploy/nginx-kata.conf /etc/nginx/sites-available/kata   # or scp from repo: backend/deploy/nginx-kata.conf
+   sudo ln -s /etc/nginx/sites-available/kata /etc/nginx/sites-enabled/kata
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d kata.parthjansari.dev -d api.kata.parthjansari.dev -d admin.kata.parthjansari.dev
+   ```
+5. `mkdir -p /opt/kata/web /opt/kata/admin` (placeholder `index.html` until the landing/admin ship).
+6. First deploy from the dev machine: `backend/deploy.sh` (builds, rsyncs `dist/ prisma/ package*.json ecosystem.config.js`, `npm ci --omit=dev`, `prisma migrate deploy`, pm2 start/reload, curls `/health`).
+7. Promote yourself to admin after first sign-in: `sudo -u postgres psql -d kata -c "update users set role='admin' where email='you@gmail.com';"`
+
+## Day 2
+- Deploy: `backend/deploy.sh` (migrations auto-apply).
+- Logs: `pm2 logs kata-api`, `pm2 status`.
+- Seed recipes: copy `urls.txt` to `/opt/kata/api/`, then `cd /opt/kata/api && source ~/.nvm/nvm.sh && node dist/scripts/seed/index.js import urls.txt --images` (report in `seed/report.json`).
+- Rotate JWT secret: edit `.env`, `pm2 reload kata-api --update-env` (all sessions invalidate; refresh tokens stay valid until used).
+- DB backup: `sudo -u postgres pg_dump -Fc kata > /var/www/backups/kata-$(date +%F).dump`.
+
+## Local dev
+`backend/.env` points at `postgresql://kata:kata@localhost:5432/kata`; tests use `kata_test`. `npm run start:dev`, `npm test`, `npm run test:e2e`, `npm run prisma:migrate` (creates a migration file; edit if raw SQL is needed; `prisma migrate dev` will always report the generated `search` column as drift — that is expected, do not accept its auto-migration).
