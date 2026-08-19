@@ -10,7 +10,7 @@ void main() {
   testWidgets('disconnected shows checklist and Connect; connect → slot grid; slot panel saves to Mine', (t) async {
     final host = FakeUsbHost(FakeFujiBody());
     final c = await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));
-    expect(find.text('Plug in USB-C'), findsOneWidget);
+    expect(find.text('Camera off, plug in USB-C'), findsOneWidget);
     expect(find.text('CONNECT'), findsOneWidget);
     expect(find.text('DISCONNECTED'), findsOneWidget);
 

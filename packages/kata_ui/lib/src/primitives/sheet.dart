@@ -15,7 +15,7 @@ class KataSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: p.bg,
-        border: Border(top: BorderSide(color: p.hairline)),
+        border: Border(top: BorderSide(color: p.hairline, width: KataStroke.hairline)),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(KataRadii.sheet)),
       ),
       padding: padding,

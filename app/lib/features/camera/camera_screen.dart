@@ -73,13 +73,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const ChecklistStep(n: 1, title: 'Plug in USB-C', sub: Text('A data cable, not charge-only. Camera off.'), active: true),
-          const SizedBox(height: 14),
-          const DottedDivider(),
-          const SizedBox(height: 14),
           ChecklistStep(
-            n: 2,
+            n: 1,
             title: 'Set two camera menu items',
+            active: true,
             sub: Padding(
               padding: const EdgeInsets.only(top: 5),
               child: Column(children: [kv('CONNECTION MODE', 'USB RAW CONV./\nBACKUP RESTORE'), const SizedBox(height: 7), kv('USB POWER SUPPLY', 'OFF / COMM ON')]),
@@ -88,7 +85,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           const SizedBox(height: 14),
           const DottedDivider(),
           const SizedBox(height: 14),
-          const ChecklistStep(n: 3, title: 'Power on, then Connect', sub: Text('Kata reads your C-slots first. Nothing is written yet.')),
+          const ChecklistStep(n: 2, title: 'Camera off, plug in USB-C', sub: Text('A data cable, not charge-only. Wait for the small indicator lamp on the camera to light up — that means the phone sees it.')),
+          const SizedBox(height: 14),
+          const DottedDivider(),
+          const SizedBox(height: 14),
+          const ChecklistStep(n: 3, title: 'Lamp lit? Power on, then Connect', sub: Text('Only switch the camera on after the lamp is lit. Kata reads your C-slots first — nothing is written yet.')),
           const SizedBox(height: 16),
           if (failed) ...[
             IssueCard(title: "Couldn't connect", rows: [IssueRow(reasonText(st.reason), st.detail ?? '')]),

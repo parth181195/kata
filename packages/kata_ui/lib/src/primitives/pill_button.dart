@@ -60,7 +60,7 @@ class KataPillButton extends StatelessWidget {
     );
     return Material(
       color: bg,
-      shape: StadiumBorder(side: BorderSide(color: border)),
+      shape: StadiumBorder(side: BorderSide(color: border, width: KataStroke.hairline)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed,
@@ -81,7 +81,7 @@ class KataIconCircle extends StatelessWidget {
     final p = context.kata;
     return Material(
       color: filled ? p.fg : Colors.transparent,
-      shape: CircleBorder(side: BorderSide(color: filled ? Colors.transparent : p.hairline)),
+      shape: CircleBorder(side: BorderSide(color: filled ? Colors.transparent : p.hairline, width: KataStroke.hairline)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed,

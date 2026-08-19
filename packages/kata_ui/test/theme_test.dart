@@ -10,7 +10,7 @@ void main() {
     await t.pumpAndSettle();
     expect(dark.bg, KataColors.black);
     expect(dark.fg, KataColors.white);
-    expect(dark.hairline, KataColors.grey700);
+    expect(dark.hairline, KataColors.hairlineDark);
     expect(light.bg, KataColors.white);
     expect(light.hairline, KataColors.grey300);
     expect(dark.red, KataColors.red);

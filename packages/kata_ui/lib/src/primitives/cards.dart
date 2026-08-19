@@ -11,8 +11,9 @@ class KataCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(14),
     this.radius = KataRadii.card,
     this.outline,
-    this.outlineWidth = 1,
+    this.outlineWidth = KataStroke.hairline,
     this.dashed = false,
+    this.dotted = false,
     this.onTap,
     this.fill,
   });
@@ -22,14 +23,18 @@ class KataCard extends StatelessWidget {
   final Color? outline;
   final double outlineWidth;
   final bool dashed;
+  /// Outline drawn as a chain of square dots (Nothing-style) instead of a solid hairline.
+  /// Solid is used automatically when [outlineWidth] > 1 (selected / emphasised cards).
+  final bool dotted;
   final VoidCallback? onTap;
   final Color? fill;
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
+    final useDots = dotted && !dashed;
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radius),
-      side: dashed ? BorderSide.none : BorderSide(color: outline ?? p.hairline, width: outlineWidth),
+      side: (dashed || useDots) ? BorderSide.none : BorderSide(color: outline ?? p.hairline, width: outlineWidth),
     );
     Widget body = Material(
       color: fill ?? Colors.transparent,
@@ -37,33 +42,36 @@ class KataCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
     );
-    if (dashed) body = CustomPaint(foregroundPainter: _DashedBorder(outline ?? p.hairline, radius), child: body);
+    if (dashed) body = CustomPaint(foregroundPainter: _DottedBorder(outline ?? p.hairline, radius, dot: 2.5, gap: 7), child: body);
+    if (useDots) body = CustomPaint(foregroundPainter: _DottedBorder(outline ?? p.hairline, radius), child: body);
     return body;
   }
 }
 
-class _DashedBorder extends CustomPainter {
-  _DashedBorder(this.color, this.radius);
+/// Square dots (2×2) every 5dp along the rounded-rect outline.
+class _DottedBorder extends CustomPainter {
+  _DottedBorder(this.color, this.radius, {this.dot = 2, this.gap = 5});
   final Color color;
-  final double radius;
+  final double radius, dot, gap;
   @override
   void paint(Canvas c, Size s) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final path = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & s, Radius.circular(radius)));
+    final paint = Paint()..color = color;
+    final inset = dot / 2;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(inset, inset, s.width - dot, s.height - dot), Radius.circular(radius - inset)));
     for (final m in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < m.length) {
-        c.drawPath(m.extractPath(d, d + 4), paint);
-        d += 8;
+      // distribute evenly so the loop closes without a seam
+      final n = (m.length / gap).floor();
+      final step = m.length / n;
+      for (var i = 0; i < n; i++) {
+        final t = m.getTangentForOffset(i * step);
+        if (t == null) continue;
+        c.drawRect(Rect.fromCenter(center: t.position, width: dot, height: dot), paint);
       }
     }
   }
 
   @override
-  bool shouldRepaint(_DashedBorder o) => o.color != color || o.radius != radius;
+  bool shouldRepaint(_DottedBorder o) => o.color != color || o.radius != radius;
 }
 
 class IssueRow {

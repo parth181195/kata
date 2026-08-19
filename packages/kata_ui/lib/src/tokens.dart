@@ -6,10 +6,18 @@ class KataColors {
   static const grey950 = Color(0xFF0A0A0A);
   static const grey900 = Color(0xFF1A1A1A);
   static const grey700 = Color(0xFF2E2E2E);
+  /// Dark-mode hairline: the design's #2E2E2E reads near-black on OLED, so outlines use this.
+  static const hairlineDark = Color(0xFF3A3A3A);
   static const grey500 = Color(0xFF8A8A8A);
   static const grey300 = Color(0xFFD9D9D9);
   static const paper = Color(0xFFF5F5F5);
   static const red = Color(0xFFD71921);
+}
+
+/// Stroke widths. The design says 1dp; on OLED a touch thicker reads better.
+class KataStroke {
+  static const hairline = 1.5;
+  static const emphasis = 2.0;
 }
 
 class KataRadii {

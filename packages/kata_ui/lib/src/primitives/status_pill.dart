@@ -31,7 +31,7 @@ class KataStatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: filled ? p.fg : Colors.transparent,
         borderRadius: BorderRadius.circular(15),
-        border: filled ? null : Border.all(color: p.hairline),
+        border: filled ? null : Border.all(color: p.hairline, width: KataStroke.hairline),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 6, height: 6, decoration: dot),

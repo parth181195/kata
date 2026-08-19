@@ -20,7 +20,7 @@ class KataChip extends StatelessWidget {
     final fg = !enabled ? p.muted : (selected ? p.bg : p.dim);
     return Material(
       color: selected && enabled ? p.fg : Colors.transparent,
-      shape: StadiumBorder(side: BorderSide(color: selected && enabled ? Colors.transparent : p.hairline)),
+      shape: StadiumBorder(side: BorderSide(color: selected && enabled ? Colors.transparent : p.hairline, width: KataStroke.hairline)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -66,7 +66,7 @@ class KataSearchField extends StatelessWidget {
     return Container(
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(21), border: Border.all(color: p.hairline)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(21), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
       child: Row(children: [
         Container(width: 13, height: 13, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.muted, width: 1.5))),
         const SizedBox(width: 10),

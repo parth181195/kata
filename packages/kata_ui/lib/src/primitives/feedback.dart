@@ -16,13 +16,13 @@ class KataBanner extends StatelessWidget {
     final c = outline ?? p.fg;
     return Container(
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: c)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: c, width: KataStroke.hairline)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           width: 26,
           height: 26,
           alignment: Alignment.center,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: c)),
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: c, width: KataStroke.hairline)),
           child: Text(badge, style: KataType.displayStyle(size: 11, color: c, letterSpacing: 0)),
         ),
         const SizedBox(width: 12),
@@ -46,14 +46,14 @@ class KataEmptyState extends StatelessWidget {
     final p = context.kata;
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: dashed ? null : BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline)),
+      decoration: dashed ? null : BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 44,
           height: 44,
           alignment: Alignment.center,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline)),
-          child: Text(glyph, style: KataType.displayStyle(size: 15, color: p.muted, letterSpacing: 0)),
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline, width: KataStroke.hairline)),
+          child: Text(glyph, style: KataType.monoStyle(size: 15, weight: FontWeight.w500, color: p.muted)),
         ),
         const SizedBox(height: 12),
         Text(title.toUpperCase(), textAlign: TextAlign.center, style: KataType.displayStyle(size: 17, color: p.fg, letterSpacing: 0, height: 1.15)),
@@ -79,7 +79,7 @@ Future<bool?> showKataDialog(BuildContext context, {required String title, requi
       final p = c.kata;
       return Dialog(
         backgroundColor: p.bg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: p.hairline)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: p.hairline, width: KataStroke.hairline)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 28),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -111,7 +111,7 @@ class KataSkeletonCard extends StatelessWidget {
     return Container(
       height: height,
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
       child: Row(children: [
         Container(width: 78, height: 78, decoration: BoxDecoration(color: p.surface, borderRadius: BorderRadius.circular(12))),
         const SizedBox(width: 13),

@@ -41,7 +41,7 @@ class KataTextField extends StatelessWidget {
       Container(
         constraints: BoxConstraints(minHeight: maxLines > 1 ? 56 : 42),
         padding: EdgeInsets.symmetric(horizontal: 15, vertical: maxLines > 1 ? 10 : 0),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(21), border: Border.all(color: hasError ? p.red : p.hairline)),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(21), border: Border.all(color: hasError ? p.red : p.hairline, width: KataStroke.hairline)),
         child: Row(crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center, children: [
           Expanded(
             child: TextField(
@@ -87,15 +87,15 @@ class KataSegmented extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.kata;
     return Container(
-      height: 36,
+      height: 40,
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline)),
-      child: Row(children: [
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         for (var i = 0; i < labels.length; i++)
           Expanded(
             child: Material(
               color: i == index ? p.fg : Colors.transparent,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(17),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: () => onChanged(i),
@@ -104,8 +104,8 @@ class KataSegmented extends StatelessWidget {
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Flexible(child: Text(labels[i].toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: i == index ? p.bg : p.dim))),
                     if (counts != null && counts![i] != null) ...[
-                      const SizedBox(width: 6),
-                      Text('${counts![i]}', style: KataType.monoStyle(size: 9.5, color: i == index ? p.bg : p.muted)),
+                      const SizedBox(width: 7),
+                      Text('${counts![i]}', style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: i == index ? p.bg.withValues(alpha: 0.6) : p.muted)),
                     ],
                   ]),
                 ),
@@ -128,7 +128,7 @@ class KataTabs extends StatelessWidget {
     final p = context.kata;
     return Container(
       height: 40,
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.surface))),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.surface, width: KataStroke.hairline))),
       child: Row(children: [
         for (var i = 0; i < labels.length; i++)
           InkWell(

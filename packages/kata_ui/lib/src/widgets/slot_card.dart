@@ -37,7 +37,7 @@ class SlotCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: onDial ? p.fg : Colors.transparent,
         borderRadius: BorderRadius.circular(KataRadii.slot),
-        border: onDial ? null : Border.all(color: empty ? p.muted : p.fg),
+        border: onDial ? null : Border.all(color: empty ? p.muted : p.fg, width: KataStroke.hairline),
       ),
       child: Text('C$slot', style: KataType.displayStyle(size: 12, color: onDial ? p.bg : (empty ? p.muted : p.fg), letterSpacing: 0)),
     );
@@ -47,7 +47,7 @@ class SlotCard extends StatelessWidget {
         height: 20,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         alignment: Alignment.center,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: p.fg)),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: p.fg, width: KataStroke.hairline)),
         child: Text('ON DIAL', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.fg)),
       );
     } else if (selected) {
@@ -64,7 +64,7 @@ class SlotCard extends StatelessWidget {
         child: Container(
           width: 26,
           height: 26,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline)),
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline, width: KataStroke.hairline)),
           alignment: Alignment.center,
           child: Text('↻', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1)),
         ),
@@ -75,7 +75,7 @@ class SlotCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       dashed: empty,
       outline: strong ? p.fg : p.hairline,
-      outlineWidth: strong ? 1.5 : 1,
+      outlineWidth: strong ? KataStroke.emphasis : KataStroke.hairline,
       onTap: onTap,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [badge, trailing]),

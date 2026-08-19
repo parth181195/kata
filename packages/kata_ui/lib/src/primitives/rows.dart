@@ -39,7 +39,7 @@ class KataListRow extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 52),
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline))),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline, width: KataStroke.hairline))),
         child: Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [

@@ -18,7 +18,7 @@ class ChecklistStep extends StatelessWidget {
         width: 26,
         height: 26,
         alignment: Alignment.center,
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: c)),
+        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: c, width: KataStroke.hairline)),
         child: Text('$n', style: KataType.displayStyle(size: 12, color: c, letterSpacing: 0)),
       ),
       const SizedBox(width: 13),

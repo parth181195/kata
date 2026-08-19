@@ -22,7 +22,7 @@ class KataPalette extends ThemeExtension<KataPalette> {
       dark: true,
       bg: KataColors.black,
       fg: KataColors.white,
-      hairline: KataColors.grey700,
+      hairline: KataColors.hairlineDark,
       hairlineStrong: KataColors.grey500,
       muted: KataColors.grey500,
       dim: KataColors.grey300,
