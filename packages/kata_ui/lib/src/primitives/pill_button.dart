@@ -12,7 +12,7 @@ class KataPillButton extends StatelessWidget {
     this.onPressed,
     this.kind = KataButtonKind.primary,
     this.leading,
-    this.height = 56,
+    this.height = 58,
     this.expand = true,
     this.display = true,
   });

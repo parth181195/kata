@@ -39,7 +39,7 @@ Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builde
       isDismissible: dismissible,
       enableDrag: dismissible,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.72),
+      barrierColor: Colors.black.withValues(alpha: 0.60),
       builder: (c) => SafeArea(
         top: false,
         child: SingleChildScrollView(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom), child: builder(c)),

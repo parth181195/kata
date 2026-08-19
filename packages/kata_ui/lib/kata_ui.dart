@@ -16,3 +16,6 @@ export 'src/widgets/checklist_step.dart';
 export 'src/widgets/dot_matrix.dart';
 export 'src/widgets/frame_slot.dart';
 export 'src/widgets/bottom_nav.dart';
+export 'src/primitives/fields.dart';
+export 'src/primitives/rows.dart';
+export 'src/primitives/feedback.dart';
