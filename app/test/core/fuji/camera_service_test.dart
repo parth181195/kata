@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,37 +6,7 @@ import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:fuji_ptp/testing.dart';
 import 'package:kata/core/fuji/camera_service.dart';
 
-class FakeUsbHost implements UsbHost {
-  FakeUsbHost(this.body, {this.present = true, this.grant = true});
-  final FakeFujiBody body;
-  bool present;
-  bool grant;
-  bool opened = false;
-  final ctrl = StreamController<UsbEvent>.broadcast();
-
-  @override
-  Future<List<UsbDeviceInfo>> listDevices() async => present
-      ? [
-          UsbDeviceInfo(
-              name: '/dev/bus/usb/001/002', vid: 0x04CB, pid: 0x02F7, product: 'USB PTP Camera', manufacturer: 'FUJIFILM',
-              hasPermission: grant, interfaces: [UsbInterfaceInfo(0, 6, 1, 1, 0x81, 0x01)])
-        ]
-      : [];
-  @override
-  Future<bool> requestPermission(String name) async => grant;
-  @override
-  Future<Map> open(String name, {int? interfaceId}) async {
-    opened = true;
-    return {'interfaceId': 0, 'epIn': 0x81, 'epOut': 1, 'maxPacketIn': 512, 'maxPacketOut': 512};
-  }
-
-  @override
-  Future<void> close() async => opened = false;
-  @override
-  Stream<UsbEvent> get events => ctrl.stream;
-  @override
-  UsbLink get link => body;
-}
+import '../../helpers.dart';
 
 ProviderContainer make(FakeUsbHost host) => ProviderContainer(overrides: [
       usbHostProvider.overrideWithValue(host),
