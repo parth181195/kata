@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/fuji/camera_service.dart';
-import '../../data/local_library.dart';
+import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import '../camera/write_sheet.dart';
@@ -19,14 +19,14 @@ class RecipeDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.kata;
-    final lib = ref.watch(localLibraryProvider);
-    final recipe = lib.lib.byId(id);
+    final lib = ref.watch(recipeRepositoryProvider);
+    final recipe = lib.byId(id);
     if (recipe == null) {
       return Scaffold(body: SafeArea(child: Center(child: KataEmptyState(glyph: '?', title: 'Kata not found', actionLabel: 'Back', onAction: () => context.pop()))));
     }
     final cam = ref.watch(cameraServiceProvider);
     final ready = cam is CameraReady && !cam.busy;
-    final fav = lib.lib.favourites.contains(recipe.id);
+    final fav = lib.favourites.contains(recipe.id);
     final sw = RecipeSpecs.swatch(recipe.ofr);
 
     final statusPill = cam is CameraReady
@@ -51,7 +51,7 @@ class RecipeDetailScreen extends ConsumerWidget {
           if (recipe.source != RecipeSource.seed)
             KataListRow(title: 'Remove from Mine', value: 'Delete', onTap: () async {
               Navigator.of(c).pop();
-              await ref.read(localLibraryProvider).remove(recipe.id);
+              await ref.read(recipeRepositoryProvider).remove(recipe.id);
               if (context.mounted) context.pop();
             }),
         ]));

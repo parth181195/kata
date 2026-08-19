@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
-import '../../data/local_library.dart';
+import '../../data/recipe.dart';
+import '../../data/recipe_repository.dart';
 import 'recipe_card.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -45,7 +46,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget build(BuildContext context) {
     final p = context.kata;
     final filter = ref.watch(libraryFilterProvider);
-    final lib = ref.watch(localLibraryProvider);
+    final lib = ref.watch(recipeRepositoryProvider);
     final recipes = ref.watch(filteredRecipesProvider);
     final sortLabel = switch (filter.sort) { LibrarySort.newest => 'NEWEST', LibrarySort.popular => 'POPULAR', LibrarySort.az => 'A → Z' };
 
@@ -121,7 +122,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           return RecipeCard(
                             recipe: r,
                             hero: i == 0,
-                            favourite: lib.lib.favourites.contains(r.id),
+                            favourite: lib.favourites.contains(r.id),
                             onTap: () => context.push('/recipe/${r.id}'),
                             onFavourite: () => lib.toggleFavourite(r.id),
                           );

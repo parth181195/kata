@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
-import '../../data/local_library.dart';
+import '../../data/recipe_repository.dart';
 import '../../data/recipe_specs.dart';
 
 /// Paste or pick an OFR JSON, validate, preview, save to Mine.
@@ -100,7 +100,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
             onPressed: blocking
                 ? null
                 : () async {
-                    final lib = ref.read(localLibraryProvider);
+                    final lib = ref.read(recipeRepositoryProvider);
                     final saved = await lib.addImported(r.copyWith(clearHash: true));
                     if (!context.mounted) return;
                     Navigator.of(context).pop(saved.id);

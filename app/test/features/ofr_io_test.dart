@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kata/data/local_library.dart';
+import 'package:kata/data/recipe_repository.dart';
 
 import '../helpers.dart';
 
@@ -38,7 +38,7 @@ void main() {
     expect(find.text('PRO NEG. HI'), findsOneWidget);
     await t.tap(find.text('SAVE TO MINE'));
     await t.pumpAndSettle();
-    expect(c.read(localLibraryProvider).lib.mine.length, 1);
+    expect(c.read(recipeRepositoryProvider).mine.length, 1);
     await t.tap(find.text('MY RECIPES'));
     await t.pumpAndSettle();
     expect(find.text('PORTRA WARM'), findsOneWidget);

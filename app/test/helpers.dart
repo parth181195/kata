@@ -13,16 +13,38 @@ import 'package:kata/core/auth/auth_repository.dart';
 import 'package:kata/core/auth/google_id_token.dart';
 import 'package:kata/core/net/api_client.dart';
 import 'package:kata/core/net/token_store.dart';
-import 'package:kata/data/local_library.dart';
+import 'package:kata/data/local_db.dart';
+import 'package:kata/data/recipe.dart';
+import 'package:kata/data/recipe_api.dart';
+import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/router.dart';
 import 'core/net/api_client_test.dart' show FakeAdapter;
-import 'package:shared_preferences/shared_preferences.dart';
 
-class SeedBundle extends CachingAssetBundle {
-  SeedBundle(this.json);
-  final String json;
+/// In-memory [RecipeApi]: serves [recipes] in pages of [pageSize]; flip [failNetwork] to simulate offline.
+class FakeRecipeApi implements RecipeApi {
+  FakeRecipeApi(this.recipes, {this.pageSize = 50});
+  factory FakeRecipeApi.fromSeed(String json) => FakeRecipeApi([
+    for (final j in (jsonDecode(json) as Map<String, dynamic>)['recipes'] as List) Recipe.fromJson(j as Map<String, dynamic>),
+  ]);
+  List<Recipe> recipes;
+  int pageSize;
+  bool failNetwork = false;
+  int calls = 0;
+
   @override
-  Future<ByteData> load(String key) async => ByteData.sublistView(Uint8List.fromList(utf8.encode(json)));
+  Future<RecipePage> list({String? cursor, int limit = 50}) async {
+    calls++;
+    if (failNetwork) throw ApiException('offline', isNetwork: true);
+    final start = cursor == null ? 0 : int.parse(cursor);
+    final end = (start + pageSize).clamp(0, recipes.length);
+    return RecipePage(items: recipes.sublist(start, end), nextCursor: end < recipes.length ? '$end' : null);
+  }
+
+  @override
+  Future<Recipe> get(String id) async {
+    if (failNetwork) throw ApiException('offline', isNetwork: true);
+    return recipes.firstWhere((r) => r.id == id, orElse: () => throw ApiException('not found', status: 404));
+  }
 }
 
 const seedJson = '''{"recipes":[
@@ -31,7 +53,6 @@ const seedJson = '''{"recipes":[
  {"id":"c","verified":true,"ofr":{"v":1,"name":"Slide Film","sensors":["GFX"],"source_attribution":"Kata sample","film_simulation":"Velvia","dynamic_range":"DR400","d_range_priority":"Off","grain_roughness":"Off","color_chrome_effect":"Strong","color_chrome_fx_blue":"Strong","white_balance":"Daylight","white_balance_red":0,"white_balance_blue":0,"highlight":-0.5,"shadow":-1,"color":4,"sharpness":0,"high_iso_nr":-4,"clarity":0}}
 ]}''';
 
-/// Pumps the full app with fake prefs + seed bundle. Returns the container for reading providers.
 class FakeGoogle implements GoogleIdTokenProvider {
   FakeGoogle({this.token = 'fake-google-id-token-1', this.cancel = false});
   String token;
@@ -58,11 +79,13 @@ FakeAdapter authAdapter() {
   return http;
 }
 
+/// Pumps the full app with an in-memory db + fake API seeded from [seedJson]. Returns the container for reading providers.
 Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google}) async {
-  SharedPreferences.setMockInitialValues({});
-  final prefs = await SharedPreferences.getInstance();
-  final lib = LocalLibraryNotifier(LocalLibrary(prefs, bundle: SeedBundle(seedJson)));
-  await lib.load();
+  final db = KataDb.memory();
+  addTearDown(db.close);
+  final repo = RecipeRepository(db: db, api: FakeRecipeApi.fromSeed(seedJson));
+  await repo.load();
+  await repo.sync();
   final tokens = MemoryTokenStore();
   if (signedIn) {
     await tokens.write(TokenKeys.access, 'A1');
@@ -72,8 +95,8 @@ Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/l
   final adapter = http ?? authAdapter();
   final g = google ?? FakeGoogle();
   final container = ProviderContainer(overrides: [
-    prefsProvider.overrideWithValue(prefs),
-    localLibraryProvider.overrideWith((_) => lib),
+    kataDbProvider.overrideWithValue(db),
+    recipeRepositoryProvider.overrideWith((_) => repo),
     initialLocationProvider.overrideWithValue(initialLocation),
     tokenStoreProvider.overrideWithValue(tokens),
     apiClientProvider.overrideWith((ref) => ApiClient(tokens: tokens, base: 'https://t', adapter: adapter, onSessionLost: () => ref.read(sessionLostProvider.notifier).state++)),
