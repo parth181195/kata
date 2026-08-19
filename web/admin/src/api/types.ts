@@ -27,3 +27,4 @@ export interface CameraProfiles {
   updatedAt: string; fields: string[];
   generations: { id: string; bodies: string[]; slots: number; slotsNote?: string; filmSims: number; usbWrite: 'full' | 'probe' | 'none'; tested: string[]; unsupported: string[]; note?: string }[];
 }
+export interface CameraSeen { model: string; firmware: string; slots: number; users: number; connections: number; lastSeen: string | null }

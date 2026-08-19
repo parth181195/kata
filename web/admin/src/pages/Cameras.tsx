@@ -1,15 +1,34 @@
-import { useCameraProfiles } from '../api/admin';
-import { Dots, Pill } from '../ui';
+import { useCameraProfiles, useCamerasSeen } from '../api/admin';
+import { Dots, Pill, ago } from '../ui';
 import { TopBar } from './Layout';
 
 export function Cameras() {
   const q = useCameraProfiles();
+  const seen = useCamerasSeen();
   const d = q.data;
   return (
     <>
       <TopBar title="Camera profiles" sub={d ? `${d.generations.length} generations · matrix updated ${d.updatedAt}` : undefined} />
       <div className="content" style={{ gridTemplateColumns: '1fr' }}>
         <div className="scroll">
+          <div>
+            <div className="mono" style={{ marginBottom: 10 }}>SEEN IN THE WILD · bodies accounts have connected</div>
+            {!seen.data ? <Dots /> : seen.data.items.length === 0 ? <p className="muted" style={{ margin: 0, fontSize: 12 }}>No connections reported yet — the app sends model + firmware + slot count once per connection.</p> : (
+              <div className="table" style={{ gridTemplateColumns: '160px 120px 100px 90px 120px 120px' }}>
+                <div className="th">Model</div><div className="th">Firmware</div><div className="th">Slots</div><div className="th">Users</div><div className="th">Connections</div><div className="th">Last seen</div>
+                {seen.data.items.map((c) => (
+                  <div key={c.model + c.firmware} style={{ display: 'contents' }}>
+                    <div className="td"><span className="name">{c.model}</span></div>
+                    <div className="td" style={{ fontFamily: 'var(--mono)' }}>{c.firmware || '—'}</div>
+                    <div className="td" style={{ fontFamily: 'var(--mono)' }}>C1–C{c.slots}</div>
+                    <div className="td" style={{ fontFamily: 'var(--mono)' }}>{c.users}</div>
+                    <div className="td" style={{ fontFamily: 'var(--mono)' }}>{c.connections}</div>
+                    <div className="td sub">{c.lastSeen ? `${ago(c.lastSeen)} ago` : '—'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {!d ? <div className="empty"><Dots /></div> : (
             <>
               <div className="table" style={{ gridTemplateColumns: '130px minmax(220px,2fr) 120px 80px 170px minmax(200px,1.5fr)' }}>
