@@ -15,6 +15,10 @@ dependencies:
   ofr:
     path: ../packages/ofr
 
+dependency_overrides:
+  ofr:
+    path: ../packages/ofr
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

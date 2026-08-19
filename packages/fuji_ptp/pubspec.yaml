@@ -11,6 +11,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  ofr: ^0.1.0
+
+dependency_overrides:
+  ofr:
+    path: ../ofr
 
 dev_dependencies:
   flutter_test:
