@@ -10,8 +10,14 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
+  go_router: ^14.6.0
+  shared_preferences: ^2.3.3
+  share_plus: ^10.1.2
+  file_picker: ^8.1.4
   fuji_ptp:
     path: ../packages/fuji_ptp
+  kata_ui:
+    path: ../packages/kata_ui
   ofr:
     path: ../packages/ofr
 
@@ -27,3 +33,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/recipes/

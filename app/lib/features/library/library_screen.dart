@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kata_ui/kata_ui.dart';
+import 'package:ofr/ofr.dart';
+
+import '../../data/local_library.dart';
+import 'recipe_card.dart';
+
+class LibraryScreen extends ConsumerStatefulWidget {
+  const LibraryScreen({super.key});
+  @override
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _setFilter(LibraryFilter Function(LibraryFilter) f) => ref.read(libraryFilterProvider.notifier).update(f);
+
+  Future<void> _pickFilmSim() async {
+    final current = ref.read(libraryFilterProvider).filmSim;
+    final picked = await showKataSheet<String?>(context, builder: (c) => KataSheet(
+      eyebrow: 'Filter',
+      title: 'Film simulation',
+      children: [
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final s in OfrEnums.filmSims) KataChip(label: s, selected: s == current, onTap: () => Navigator.of(c).pop(s)),
+        ]),
+        const SizedBox(height: 16),
+        KataPillButton(label: 'Clear', kind: KataButtonKind.secondary, display: false, height: 50, onPressed: () => Navigator.of(c).pop('')),
+      ],
+    ));
+    if (picked == null) return;
+    _setFilter((f) => picked.isEmpty ? f.copyWith(clearFilmSim: true) : f.copyWith(filmSim: picked));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    final filter = ref.watch(libraryFilterProvider);
+    final lib = ref.watch(localLibraryProvider);
+    final recipes = ref.watch(filteredRecipesProvider);
+    final sortLabel = switch (filter.sort) { LibrarySort.newest => 'NEWEST', LibrarySort.popular => 'POPULAR', LibrarySort.az => 'A → Z' };
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                Expanded(child: Text('KATA 型', style: KataType.displayStyle(size: 24, weight: FontWeight.w900, color: p.fg, letterSpacing: 0.05))),
+                Material(
+                  color: Colors.transparent,
+                  shape: StadiumBorder(side: BorderSide(color: p.hairline)),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => _setFilter((f) => f.copyWith(sort: LibrarySort.values[(f.sort.index + 1) % LibrarySort.values.length])),
+                    child: Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 13),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(sortLabel, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: p.dim)),
+                        const SizedBox(width: 8),
+                        Text('▾', style: KataType.bodyStyle(size: 10, color: p.muted, height: 1)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              KataSearchField(hint: 'Search recipes, film sims, authors', controller: _search, onChanged: (q) => _setFilter((f) => f.copyWith(query: q))),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  KataChip(label: 'Verified', dot: true, selected: filter.verifiedOnly, onTap: () => _setFilter((f) => f.copyWith(verifiedOnly: !f.verifiedOnly))),
+                  const SizedBox(width: 7),
+                  KataChip(label: 'X-Trans V', selected: filter.sensor == 'X-Trans V', onTap: () => _setFilter((f) => f.sensor == 'X-Trans V' ? f.copyWith(clearSensor: true) : f.copyWith(sensor: 'X-Trans V'))),
+                  const SizedBox(width: 7),
+                  KataChip(label: 'B&W', selected: filter.mono == true, onTap: () => _setFilter((f) => f.mono == true ? f.copyWith(clearMono: true) : f.copyWith(mono: true))),
+                  const SizedBox(width: 7),
+                  KataChip(label: filter.filmSim ?? 'Film sim', selected: filter.filmSim != null, onTap: _pickFilmSim, onRemove: filter.filmSim == null ? null : () => _setFilter((f) => f.copyWith(clearFilmSim: true))),
+                ]),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: !lib.loaded
+                ? ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), children: const [KataSkeletonCard(), SizedBox(height: 12), KataSkeletonCard()])
+                : recipes.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        child: KataCard(
+                          dashed: true,
+                          child: KataEmptyState(
+                            glyph: '0',
+                            title: filter.query.isEmpty ? 'No katas match' : 'No katas for “${filter.query}”',
+                            body: 'Try a film sim (Classic Neg) or clear the Verified filter.',
+                            actionLabel: 'Clear filters',
+                            onAction: () {
+                              _search.clear();
+                              ref.read(libraryFilterProvider.notifier).state = const LibraryFilter();
+                            },
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        itemCount: recipes.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) {
+                          final r = recipes[i];
+                          return RecipeCard(
+                            recipe: r,
+                            hero: i == 0,
+                            favourite: lib.lib.favourites.contains(r.id),
+                            onTap: () => context.push('/recipe/${r.id}'),
+                            onFavourite: () => lib.toggleFavourite(r.id),
+                          );
+                        },
+                      ),
+          ),
+        ]),
+      ),
+    );
+  }
+}

@@ -1,0 +1,29 @@
+name: kata_ui
+description: "Nothing-OS-style monochrome widget kit (Doto / Inter / JetBrains Mono) used by the Kata app."
+version: 0.1.0
+repository: https://github.com/parthjansari/kata
+
+environment:
+  sdk: ^3.11.0
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  fonts:
+    - family: Doto
+      fonts:
+        - asset: fonts/Doto.ttf
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter.ttf
+    - family: JetBrains Mono
+      fonts:
+        - asset: fonts/JetBrainsMono.ttf

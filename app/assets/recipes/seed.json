@@ -1,0 +1,172 @@
+{
+ "recipes": [
+  {
+   "id": "seed-kodachrome-64",
+   "verified": true,
+   "ofr": {
+    "v": 1,
+    "name": "Kodachrome 64",
+    "sensors": [
+     "X-Trans IV",
+     "X-Trans V"
+    ],
+    "source_url": "https://fujixweekly.com/2020/05/27/fujifilm-x100v-kodachrome-64-film-simulation-recipe/",
+    "source_attribution": "Fuji X Weekly",
+    "film_simulation": "Classic Chrome",
+    "dynamic_range": "DR400",
+    "d_range_priority": "Off",
+    "grain_roughness": "Weak",
+    "grain_size": "Small",
+    "color_chrome_effect": "Weak",
+    "color_chrome_fx_blue": "Off",
+    "white_balance": "Daylight",
+    "white_balance_red": 2,
+    "white_balance_blue": -5,
+    "highlight": -1,
+    "shadow": 0.5,
+    "color": 2,
+    "sharpness": -2,
+    "high_iso_nr": -4,
+    "clarity": 0
+   }
+  },
+  {
+   "id": "seed-sample-classic-neg",
+   "verified": false,
+   "ofr": {
+    "v": 1,
+    "d_range_priority": "Off",
+    "sensors": [
+     "X-Trans V"
+    ],
+    "source_attribution": "Kata sample",
+    "name": "Sample Classic Neg",
+    "film_simulation": "Classic Negative",
+    "dynamic_range": "DR-Auto",
+    "grain_roughness": "Strong",
+    "grain_size": "Large",
+    "color_chrome_effect": "Strong",
+    "color_chrome_fx_blue": "Weak",
+    "white_balance": "Auto",
+    "white_balance_red": 2,
+    "white_balance_blue": -3,
+    "highlight": -1,
+    "shadow": 1.5,
+    "color": 2,
+    "sharpness": -1,
+    "high_iso_nr": -4,
+    "clarity": 0
+   }
+  },
+  {
+   "id": "seed-sample-acros-push",
+   "verified": true,
+   "ofr": {
+    "v": 1,
+    "d_range_priority": "Off",
+    "sensors": [
+     "X-Trans V"
+    ],
+    "source_attribution": "Kata sample",
+    "name": "Sample Acros Push",
+    "film_simulation": "Acros Red",
+    "dynamic_range": "DR200",
+    "grain_roughness": "Strong",
+    "grain_size": "Large",
+    "white_balance": "Auto",
+    "white_balance_red": 2,
+    "white_balance_blue": -3,
+    "highlight": 2,
+    "shadow": 3,
+    "sharpness": 2,
+    "high_iso_nr": -2,
+    "clarity": -2,
+    "monochromatic_color_warm_cool": 2,
+    "monochromatic_color_magenta_green": -1
+   }
+  },
+  {
+   "id": "seed-sample-velvia",
+   "verified": false,
+   "ofr": {
+    "v": 1,
+    "d_range_priority": "Off",
+    "sensors": [
+     "X-Trans V"
+    ],
+    "source_attribution": "Kata sample",
+    "name": "Sample Velvia",
+    "film_simulation": "Velvia",
+    "dynamic_range": "DR400",
+    "grain_roughness": "Off",
+    "color_chrome_effect": "Strong",
+    "color_chrome_fx_blue": "Strong",
+    "white_balance": "Daylight",
+    "white_balance_red": 0,
+    "white_balance_blue": 0,
+    "highlight": -0.5,
+    "shadow": -1,
+    "color": 4,
+    "sharpness": 0,
+    "high_iso_nr": -4,
+    "clarity": 0
+   }
+  },
+  {
+   "id": "seed-sample-nostalgic",
+   "verified": true,
+   "ofr": {
+    "v": 1,
+    "d_range_priority": "Off",
+    "sensors": [
+     "X-Trans V"
+    ],
+    "source_attribution": "Kata sample",
+    "name": "Sample Nostalgic",
+    "film_simulation": "Nostalgic Negative",
+    "dynamic_range": "DR200",
+    "grain_roughness": "Weak",
+    "grain_size": "Small",
+    "color_chrome_effect": "Weak",
+    "color_chrome_fx_blue": "Weak",
+    "white_balance": "Kelvin",
+    "wb_kelvin": 5800,
+    "white_balance_red": 1,
+    "white_balance_blue": -4,
+    "highlight": 1.5,
+    "shadow": 0,
+    "color": 1,
+    "sharpness": -1,
+    "high_iso_nr": -4,
+    "clarity": -2
+   }
+  },
+  {
+   "id": "seed-sample-eterna",
+   "verified": false,
+   "ofr": {
+    "v": 1,
+    "d_range_priority": "Off",
+    "sensors": [
+     "X-Trans V"
+    ],
+    "source_attribution": "Kata sample",
+    "name": "Sample Eterna",
+    "film_simulation": "Eterna",
+    "dynamic_range": "DR400",
+    "grain_roughness": "Off",
+    "color_chrome_effect": "Off",
+    "color_chrome_fx_blue": "Off",
+    "white_balance": "Auto (ambience priority)",
+    "white_balance_red": 0,
+    "white_balance_blue": 0,
+    "highlight": -2,
+    "shadow": -2,
+    "color": -2,
+    "sharpness": -2,
+    "high_iso_nr": -4,
+    "clarity": 0
+   }
+  }
+ ]
+}
