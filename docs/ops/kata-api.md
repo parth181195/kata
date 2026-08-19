@@ -1,6 +1,6 @@
 # Kata API — operations
 
-Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public `https://kata.parthjansari.dev`.
+Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public **`https://kata.parthjansari.dev/api/`** (nginx strips `/api`; `/` = landing page from `/opt/kata/web`, `/admin/` = admin SPA from `/opt/kata/admin`).
 
 ## One-time setup (sudo/root on the VM)
 1. **DNS:** A record `kata.parthjansari.dev → YOUR.VM.IP`.
@@ -29,8 +29,9 @@ Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot
    sudo nginx -t && sudo systemctl reload nginx
    sudo certbot --nginx -d kata.parthjansari.dev
    ```
-5. First deploy from the dev machine: `backend/deploy.sh` (builds, rsyncs `dist/ prisma/ package*.json ecosystem.config.js`, `npm ci --omit=dev`, `prisma migrate deploy`, pm2 start/reload, curls `/health`).
-6. Promote yourself to admin after first sign-in: `sudo -u postgres psql -d kata -c "update users set role='admin' where email='you@gmail.com';"`
+5. `mkdir -p /opt/kata/web /opt/kata/admin` (placeholder `index.html` until the landing/admin ship).
+6. First deploy from the dev machine: `backend/deploy.sh` (builds, rsyncs `dist/ prisma/ package*.json ecosystem.config.js`, `npm ci --omit=dev`, `prisma migrate deploy`, pm2 start/reload, curls `/health`).
+7. Promote yourself to admin after first sign-in: `sudo -u postgres psql -d kata -c "update users set role='admin' where email='you@gmail.com';"`
 
 ## Day 2
 - Deploy: `backend/deploy.sh` (migrations auto-apply).
