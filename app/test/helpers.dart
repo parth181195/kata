@@ -118,6 +118,13 @@ class FakeRecipeApi implements RecipeApi {
     _net();
     reports.add((id, reason));
   }
+
+  final List<Map<String, dynamic>> cameras = [];
+  @override
+  Future<void> reportCamera(Map<String, dynamic> body) async {
+    _net();
+    cameras.add(body);
+  }
 }
 
 const seedJson = '''{"recipes":[

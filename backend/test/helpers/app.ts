@@ -12,7 +12,7 @@ import { FakeGoogleVerifier } from './fake-google';
 
 export async function resetDb(prisma: PrismaService) {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "reports","favourites","refresh_tokens","recipes","users" RESTART IDENTITY CASCADE',
+    'TRUNCATE "user_cameras","reports","favourites","refresh_tokens","recipes","users" RESTART IDENTITY CASCADE',
   );
 }
 

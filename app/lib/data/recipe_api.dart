@@ -38,6 +38,8 @@ abstract class RecipeApi {
   Future<Recipe> update(String id, OfrRecipe ofr);
   Future<void> delete(String id);
   Future<void> report(String id, String reason);
+  /// Remember which body this account connects (model/firmware/slots) — powers the "seen in the wild" matrix.
+  Future<void> reportCamera(Map<String, dynamic> body);
 }
 
 class HttpRecipeApi implements RecipeApi {
@@ -94,6 +96,9 @@ class HttpRecipeApi implements RecipeApi {
 
   @override
   Future<void> report(String id, String reason) => _api.postJson('/recipes/$id/report', {'reason': reason});
+
+  @override
+  Future<void> reportCamera(Map<String, dynamic> body) => _api.put('/me/cameras', body: body);
 
   static Object _mapWriteError(ApiException e) {
     final b = e.body;

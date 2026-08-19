@@ -276,4 +276,55 @@ export class RecipesService {
     });
     return rows.map((f) => f.recipeId);
   }
+
+  // ---------------------------------------------------------------- cameras
+  async recordCamera(
+    userId: string,
+    c: {
+      model: string;
+      firmware?: string;
+      pid?: number;
+      slots: number;
+      props?: number;
+    },
+  ): Promise<void> {
+    const firmware = c.firmware ?? '';
+    await this.prisma.userCamera.upsert({
+      where: { userId_model_firmware: { userId, model: c.model, firmware } },
+      create: {
+        userId,
+        model: c.model,
+        firmware,
+        pid: c.pid,
+        slots: c.slots,
+        props: c.props ?? 0,
+      },
+      update: {
+        lastSeen: new Date(),
+        seenCount: { increment: 1 },
+        slots: c.slots,
+        props: c.props ?? 0,
+        pid: c.pid,
+      },
+    });
+  }
+
+  async myCameras(userId: string) {
+    const rows = await this.prisma.userCamera.findMany({
+      where: { userId },
+      orderBy: { lastSeen: 'desc' },
+    });
+    return {
+      items: rows.map((r) => ({
+        model: r.model,
+        firmware: r.firmware,
+        pid: r.pid,
+        slots: r.slots,
+        props: r.props,
+        firstSeen: r.firstSeen.toISOString(),
+        lastSeen: r.lastSeen.toISOString(),
+        seenCount: r.seenCount,
+      })),
+    };
+  }
 }

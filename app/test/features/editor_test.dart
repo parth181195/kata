@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kata/data/recipe.dart';
 import 'package:kata/data/recipe_repository.dart';
 
 import '../helpers.dart';

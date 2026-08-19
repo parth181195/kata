@@ -423,4 +423,25 @@ export class AdminService {
     });
     return { id: created.id, duplicate: false };
   }
+
+  /** Bodies seen in the wild: per model + firmware, how many accounts and connections. */
+  async camerasSeen() {
+    const rows = await this.prisma.userCamera.groupBy({
+      by: ['model', 'firmware', 'slots'],
+      _count: { _all: true },
+      _sum: { seenCount: true },
+      _max: { lastSeen: true },
+      orderBy: [{ model: 'asc' }, { firmware: 'desc' }],
+    });
+    return {
+      items: rows.map((r) => ({
+        model: r.model,
+        firmware: r.firmware,
+        slots: r.slots,
+        users: r._count._all,
+        connections: r._sum.seenCount ?? 0,
+        lastSeen: r._max.lastSeen?.toISOString() ?? null,
+      })),
+    };
+  }
 }

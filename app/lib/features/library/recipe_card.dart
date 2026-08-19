@@ -9,7 +9,7 @@ import '../../data/recipe_specs.dart';
 ImageProvider? recipeImage(String? url) => url == null ? null : CachedNetworkImageProvider(url);
 
 String attributionLine(Recipe r) {
-  final who = r.ofr.sourceAttribution ?? (r.source == RecipeSource.camera ? 'From camera' : 'Imported');
+  final who = r.ofr.sourceAttribution ?? switch (r.source) { RecipeSource.camera => 'From camera', RecipeSource.published => 'Yours', RecipeSource.imported => 'Draft', RecipeSource.seed => 'Community' };
   final sensors = r.ofr.sensors.isEmpty ? '' : ' · ${r.ofr.sensors.map((s) => s.replaceFirst('X-Trans ', 'X-Trans ')).join('/')}';
   return '$who$sensors';
 }

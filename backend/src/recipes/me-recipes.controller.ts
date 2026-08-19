@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -11,6 +12,7 @@ import {
 import { CursorDto } from '../admin/dto/queue.dto';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ReportCameraDto } from './dto/camera.dto';
 import { RecipesService } from './recipes.service';
 
 /** /me/recipes + /me/favourites — lives in RecipesModule to avoid an Auth↔Users↔Recipes import cycle. */
@@ -39,5 +41,17 @@ export class MeRecipesController {
   @HttpCode(204)
   unfavourite(@Param('id') id: string, @CurrentUser() u: AuthUser) {
     return this.recipes.setFavourite(u.id, id, false);
+  }
+
+  // ---------------------------------------------------------- cameras
+  @Put('cameras')
+  @HttpCode(204)
+  camera(@Body() dto: ReportCameraDto, @CurrentUser() u: AuthUser) {
+    return this.recipes.recordCamera(u.id, dto);
+  }
+
+  @Get('cameras')
+  cameras(@CurrentUser() u: AuthUser) {
+    return this.recipes.myCameras(u.id);
   }
 }

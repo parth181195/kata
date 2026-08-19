@@ -143,6 +143,47 @@ describe('stage 2: user recipes + favourites', () => {
         .length,
     ).toBe(3);
 
+    // cameras: upsert per (model, firmware), seenCount increments; admin summary
+    await A.put('/me/cameras')
+      .send({
+        model: 'X-S20',
+        firmware: '3.30',
+        pid: 0x02f7,
+        slots: 4,
+        props: 26,
+      })
+      .expect(204);
+    await A.put('/me/cameras')
+      .send({
+        model: 'X-S20',
+        firmware: '3.30',
+        pid: 0x02f7,
+        slots: 4,
+        props: 26,
+      })
+      .expect(204);
+    await B.put('/me/cameras')
+      .send({ model: 'X-S20', firmware: '3.30', slots: 4 })
+      .expect(204);
+    await A.put('/me/cameras').send({ model: 'X-T5', slots: 7 }).expect(204);
+    await A.put('/me/cameras').send({ model: 'X-T5', slots: 9 }).expect(400);
+    const cams = (await A.get('/me/cameras').expect(200)).body as {
+      items: { model: string; seenCount: number; firmware: string }[];
+    };
+    expect(cams.items.map((c) => [c.model, c.seenCount])).toEqual(
+      expect.arrayContaining([
+        ['X-S20', 2],
+        ['X-T5', 1],
+      ]),
+    );
+    const seen = (await ADM.get('/admin/cameras-seen').expect(200)).body as {
+      items: { model: string; users: number; connections: number }[];
+    };
+    expect(seen.items.find((i) => i.model === 'X-S20')).toMatchObject({
+      users: 2,
+      connections: 3,
+    });
+
     // delete own → gone everywhere
     await A.del(`/recipes/${r.id}`).expect(204);
     await B.get(`/recipes/${r.id}`).expect(404);

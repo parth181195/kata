@@ -65,7 +65,13 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                         ),
                       ),
                     )
-                  : ListView.separated(
+                  : RefreshIndicator(
+                      color: p.fg,
+                      backgroundColor: p.surface,
+                      strokeWidth: 2,
+                      onRefresh: lib.sync,
+                      child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
                       itemCount: list.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -111,6 +117,7 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                           child: withStatus,
                         );
                       },
+                    ),
                     ),
             ),
           ]),

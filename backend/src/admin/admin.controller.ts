@@ -53,6 +53,11 @@ export class AdminController {
     return CAMERA_PROFILES;
   }
 
+  @Get('cameras-seen')
+  camerasSeen() {
+    return this.admin.camerasSeen();
+  }
+
   // ---------------------------------------------------------- recipes
   @Get('queue')
   queue(@Query() dto: QueueDto) {

@@ -226,6 +226,13 @@ class RecipeRepository extends ChangeNotifier {
 
   Future<void> report(String id, String reason) => _api.report(id, reason);
 
+  /// Fire-and-forget: failures are irrelevant to the user.
+  Future<void> reportCamera({required String model, required String firmware, required int pid, required int slots, required int props}) async {
+    try {
+      await _api.reportCamera({'model': model, 'firmware': firmware, 'pid': pid, 'slots': slots, 'props': props});
+    } catch (_) {}
+  }
+
   List<Recipe> where(LibraryFilter f) {
     final q = f.query.trim().toLowerCase();
     final out = all.where((r) {
