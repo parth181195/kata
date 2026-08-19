@@ -19,5 +19,5 @@ ssh "$HOST" "source ~/.nvm/nvm.sh >/dev/null && cd $DIR \
   && (pm2 reload kata-api --update-env || pm2 start ecosystem.config.js) \
   && pm2 save"
 
-sleep 2
-curl -fsS https://api.kata.parthjansari.dev/health && echo
+for i in 1 2 3 4 5 6; do sleep 3; curl -fsS https://api.kata.parthjansari.dev/health && echo && exit 0; done
+echo 'health check failed' >&2; exit 1
