@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
-import '../../router.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/auth/google_id_token.dart';
+import '../../core/net/api_client.dart';
 
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
@@ -121,10 +122,17 @@ class SignInScreen extends ConsumerWidget {
                               ),
                             ),
                             onPressed: () async {
-                              await ref
-                                  .read(signedInProvider.notifier)
-                                  .set(true);
-                              if (context.mounted) context.go('/library');
+                              try {
+                                await ref.read(sessionProvider.notifier).signIn();
+                              } on AuthCancelled {
+                                // user dismissed the account picker
+                              } on AuthNotConfigured {
+                                if (context.mounted) KataToast.show(context, "Google sign-in isn't configured in this build");
+                              } on ApiException catch (e) {
+                                if (context.mounted) KataToast.show(context, e.isNetwork ? 'No connection — try again' : 'Sign-in failed: ${e.message}');
+                              } catch (_) {
+                                if (context.mounted) KataToast.show(context, 'Sign-in failed');
+                              }
                             },
                           ),
                           const SizedBox(height: 16),

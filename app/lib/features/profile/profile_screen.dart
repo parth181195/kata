@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
-import '../../router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
+import '../../core/auth/auth_repository.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -22,28 +24,41 @@ class ProfileScreen extends ConsumerWidget {
             ]),
           ),
         );
+    final user = ref.watch(sessionProvider).valueOrNull?.user;
+    final initials = (user?.displayName.isNotEmpty ?? false)
+        ? user!.displayName.trim().split(RegExp(r'\s+')).take(2).map((w) => w[0].toUpperCase()).join()
+        : '型';
     return Scaffold(
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.fromLTRB(20, 14, 20, 20), children: [
           Text('PROFILE', style: KataType.displayStyle(size: 24, color: p.fg)),
           const SizedBox(height: 20),
           Row(children: [
-            Container(width: 54, height: 54, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline)), alignment: Alignment.center,
-                child: Text('型', style: KataType.displayStyle(size: 22, weight: FontWeight.w400, color: p.fg, letterSpacing: 0))),
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline)),
+              alignment: Alignment.center,
+              clipBehavior: Clip.antiAlias,
+              child: user?.photoUrl != null
+                  ? CachedNetworkImage(imageUrl: user!.photoUrl!, fit: BoxFit.cover, width: 54, height: 54, errorWidget: (_, _, _) => Text(initials, style: KataType.displayStyle(size: 16, color: p.fg, letterSpacing: 0)))
+                  : Text(initials, style: KataType.displayStyle(size: user == null ? 22 : 16, weight: user == null ? FontWeight.w400 : FontWeight.w800, color: p.fg, letterSpacing: 0)),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('SIGNED IN', style: KataType.displayStyle(size: 16, color: p.fg)),
+                Text((user?.displayName.isNotEmpty ?? false) ? user!.displayName.toUpperCase() : 'SIGNED IN', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 16, color: p.fg)),
                 const SizedBox(height: 4),
-                Text('Google account · Plan 3 wires real auth', maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.2)),
+                Text(user?.email ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.2)),
+                if (user?.isAdmin ?? false) ...[
+                  const SizedBox(height: 6),
+                  const KataChip(label: 'Admin', selected: true, dot: true),
+                ],
               ]),
             ),
           ]),
           const SizedBox(height: 24),
-          row('Sign out', onTap: () async {
-            await ref.read(signedInProvider.notifier).set(false);
-            if (context.mounted) context.go('/signin');
-          }),
+          row('Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),
           row('About Kata · OFR spec · Licences', trailing: 'MIT'),
           row('Component kit', trailing: '/KIT', onTap: () => context.push('/kit')),
           row('Version', trailing: '0.1.0 · LONG-PRESS FOR PROBE', onLongPress: () => context.push('/probe')),

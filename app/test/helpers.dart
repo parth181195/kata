@@ -9,8 +9,13 @@ import 'package:kata/core/fuji/camera_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/app.dart';
+import 'package:kata/core/auth/auth_repository.dart';
+import 'package:kata/core/auth/google_id_token.dart';
+import 'package:kata/core/net/api_client.dart';
+import 'package:kata/core/net/token_store.dart';
 import 'package:kata/data/local_library.dart';
 import 'package:kata/router.dart';
+import 'core/net/api_client_test.dart' show FakeAdapter;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SeedBundle extends CachingAssetBundle {
@@ -27,15 +32,52 @@ const seedJson = '''{"recipes":[
 ]}''';
 
 /// Pumps the full app with fake prefs + seed bundle. Returns the container for reading providers.
-Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const []}) async {
-  SharedPreferences.setMockInitialValues({'kata.signedIn': signedIn});
+class FakeGoogle implements GoogleIdTokenProvider {
+  FakeGoogle({this.token = 'fake-google-id-token-1', this.cancel = false});
+  String token;
+  bool cancel;
+  int signOuts = 0;
+  @override
+  Future<String> signIn() async {
+    if (cancel) throw AuthCancelled();
+    return token;
+  }
+
+  @override
+  Future<void> signOut() async => signOuts++;
+}
+
+const testUser = {'id': 'u1', 'email': 'parth@example.com', 'displayName': 'Parth Jansari', 'photoUrl': null, 'role': 'user'};
+
+/// Fake HTTP that answers the auth endpoints; add more scripts per test via [http.on].
+FakeAdapter authAdapter() {
+  final http = FakeAdapter();
+  http.on((o) => o.path == '/auth/google', (_) => FakeAdapter.json(200, {'accessToken': 'A1', 'refreshToken': 'R1', 'expiresIn': 900, 'user': testUser}));
+  http.on((o) => o.path == '/auth/logout', (_) => FakeAdapter.json(204, {}));
+  http.on((o) => o.path == '/me', (_) => FakeAdapter.json(200, testUser));
+  return http;
+}
+
+Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google}) async {
+  SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   final lib = LocalLibraryNotifier(LocalLibrary(prefs, bundle: SeedBundle(seedJson)));
   await lib.load();
+  final tokens = MemoryTokenStore();
+  if (signedIn) {
+    await tokens.write(TokenKeys.access, 'A1');
+    await tokens.write(TokenKeys.refresh, 'R1');
+    await tokens.write(TokenKeys.user, jsonEncode(testUser));
+  }
+  final adapter = http ?? authAdapter();
+  final g = google ?? FakeGoogle();
   final container = ProviderContainer(overrides: [
     prefsProvider.overrideWithValue(prefs),
     localLibraryProvider.overrideWith((_) => lib),
     initialLocationProvider.overrideWithValue(initialLocation),
+    tokenStoreProvider.overrideWithValue(tokens),
+    apiClientProvider.overrideWith((ref) => ApiClient(tokens: tokens, base: 'https://t', adapter: adapter, onSessionLost: () => ref.read(sessionLostProvider.notifier).state++)),
+    googleIdTokenProvider.overrideWithValue(g),
     ...overrides,
   ]);
   t.view.physicalSize = const Size(412 * 3, 915 * 3);
