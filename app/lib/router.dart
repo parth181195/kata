@@ -6,6 +6,7 @@ import 'package:kata_ui/kata_ui.dart';
 import 'core/auth/auth_repository.dart';
 import 'features/auth/sign_in_screen.dart';
 import 'features/camera/camera_screen.dart';
+import 'features/camera/supported_cameras_screen.dart';
 import 'features/debug/kit_screen.dart';
 import 'features/editor/recipe_editor_screen.dart';
 import 'features/debug/probe_screen.dart';
@@ -68,6 +69,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/edit/:id', pageBuilder: (_, s) => _page(s, RecipeEditorScreen(id: s.pathParameters['id']!))),
       GoRoute(path: '/probe', pageBuilder: (_, s) => _page(s, const ProbeScreen())),
       GoRoute(path: '/kit', pageBuilder: (_, s) => _page(s, const KitScreen())),
+      GoRoute(path: '/cameras', pageBuilder: (_, s) => _page(s, const SupportedCamerasScreen())),
       StatefulShellRoute.indexedStack(
         pageBuilder: (_, s, shell) => _page(s, ShellScaffold(shell: shell)),
         branches: [

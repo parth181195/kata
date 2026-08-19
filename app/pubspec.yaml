@@ -28,6 +28,7 @@ dependencies:
     path: ../packages/kata_ui
   ofr:
     path: ../packages/ofr
+  flutter_svg: ^2.3.0
 
 dependency_overrides:
   ofr:
@@ -43,3 +44,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/cameras/

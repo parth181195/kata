@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuji_ptp/testing.dart';
 import 'package:kata/core/fuji/camera_service.dart';
@@ -7,6 +8,7 @@ import 'package:kata/data/recipe.dart';
 import '../helpers.dart';
 
 void main() {
+  _supportedCameras();
   testWidgets('disconnected shows checklist and Connect; connect → slot grid; slot panel saves to Mine', (t) async {
     final host = FakeUsbHost(FakeFujiBody());
     final c = await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));
@@ -45,5 +47,28 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('NO CAMERA'), findsOneWidget);
     expect(find.text('CONNECT'), findsOneWidget);
+  });
+}
+
+void _supportedCameras() {
+  testWidgets('supported cameras screen lists tiers; connected body is highlighted', (t) async {
+    final host = FakeUsbHost(FakeFujiBody());
+    await pumpKata(t, initialLocation: '/cameras', overrides: fakeCameraOverrides(host));
+    expect(find.text('CAMERAS'), findsOneWidget);
+    expect(find.text('X-S20'), findsWidgets); // row (+ the caption text inside the art placeholder)
+    expect(find.text('TESTED'), findsOneWidget);
+    expect(find.text('WRITES RECIPES'), findsOneWidget);
+    expect(find.text('WRITES'), findsWidgets);
+    expect(find.text('CONNECTED NOW'), findsNothing);
+    await t.scrollUntilVisible(find.text('CONNECTS, READ ONLY'), 400, scrollable: find.byType(Scrollable).first);
+    expect(find.text('READ'), findsWidgets);
+  });
+
+  testWidgets('camera tab links to the supported list', (t) async {
+    final host = FakeUsbHost(FakeFujiBody());
+    await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));
+    await t.tap(find.text('Which cameras work?'));
+    await t.pumpAndSettle();
+    expect(find.text('CAMERAS'), findsOneWidget);
   });
 }

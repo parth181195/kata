@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
@@ -49,6 +50,7 @@ class ProfileScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 24),
           row('Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),
+          row('Supported cameras', trailing: '${KnownBody.all.length} bodies', onTap: () => context.push('/cameras')),
           row('About Kata · OFR spec · Licences', trailing: 'MIT'),
           row('Component kit', trailing: '/KIT', onTap: () => context.push('/kit')),
           row('Version', trailing: '0.1.0 · LONG-PRESS FOR PROBE', onLongPress: () => context.push('/probe')),
