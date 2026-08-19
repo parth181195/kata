@@ -3,6 +3,7 @@ library;
 
 export 'src/tokens.dart';
 export 'src/theme.dart';
+export 'src/motion.dart';
 export 'src/primitives/pill_button.dart';
 export 'src/primitives/status_pill.dart';
 export 'src/primitives/chips.dart';

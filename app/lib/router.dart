@@ -56,13 +56,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/boot', builder: (_, _) => const BootScreen()),
-      GoRoute(path: '/signin', builder: (_, _) => const SignInScreen()),
-      GoRoute(path: '/recipe/:id', builder: (_, s) => RecipeDetailScreen(id: s.pathParameters['id']!)),
-      GoRoute(path: '/probe', builder: (_, _) => const ProbeScreen()),
-      GoRoute(path: '/kit', builder: (_, _) => const KitScreen()),
+      GoRoute(path: '/boot', pageBuilder: (_, s) => _page(s, const BootScreen())),
+      GoRoute(path: '/signin', pageBuilder: (_, s) => _page(s, const SignInScreen())),
+      GoRoute(path: '/recipe/:id', pageBuilder: (_, s) => _page(s, RecipeDetailScreen(id: s.pathParameters['id']!))),
+      GoRoute(path: '/probe', pageBuilder: (_, s) => _page(s, const ProbeScreen())),
+      GoRoute(path: '/kit', pageBuilder: (_, s) => _page(s, const KitScreen())),
       StatefulShellRoute.indexedStack(
-        builder: (_, _, shell) => ShellScaffold(shell: shell),
+        pageBuilder: (_, s, shell) => _page(s, ShellScaffold(shell: shell)),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/library', builder: (_, _) => const LibraryScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/camera', builder: (_, _) => const CameraScreen())]),
@@ -73,3 +73,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Every route gets the kata_ui fade + rise transition.
+Page<T> _page<T>(GoRouterState s, Widget child) => CustomTransitionPage<T>(
+  key: s.pageKey,
+  name: s.name ?? s.path,
+  child: child,
+  transitionDuration: KataMotion.page,
+  reverseTransitionDuration: KataMotion.pageOut,
+  transitionsBuilder: KataPageTransition.transitionsBuilder,
+);

@@ -137,7 +137,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
           final total = 22;
           final done = (_progress.value * total).round();
           return Column(mainAxisSize: MainAxisSize.min, children: [
-            DotMatrixProgress(progress: _progress.value),
+            DotMatrixProgress(progress: _progress.value, animated: true),
             const SizedBox(height: 34),
             Text('WRITING $done/$total', style: KataType.displayStyle(size: 26, color: p.fg, letterSpacing: 0)),
             const SizedBox(height: 10),

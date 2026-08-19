@@ -140,13 +140,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           separatorBuilder: (_, _) => const SizedBox(height: 12),
                           itemBuilder: (_, i) {
                             final r = recipes[i];
-                            return RecipeCard(
+                            final card = RecipeCard(
                               recipe: r,
                               hero: i == 0,
                               favourite: lib.favourites.contains(r.id),
                               onTap: () => context.push('/recipe/${r.id}'),
                               onFavourite: () => lib.toggleFavourite(r.id),
                             );
+                            // stagger the first screenful on entry; later cards just appear while scrolling
+                            return i < 6 ? KataFadeIn(key: ValueKey('fade-${r.id}'), delay: Duration(milliseconds: 40 * i), child: card) : card;
                           },
                         ),
                       ),

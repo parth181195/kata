@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme.dart';
 import '../tokens.dart';
 
@@ -58,13 +59,16 @@ class KataPillButton extends StatelessWidget {
         Flexible(child: Text(display ? label.toUpperCase() : label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style)),
       ],
     );
-    return Material(
-      color: bg,
-      shape: StadiumBorder(side: BorderSide(color: border, width: KataStroke.hairline)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: Container(height: height, padding: const EdgeInsets.symmetric(horizontal: 26), alignment: Alignment.center, child: child),
+    return KataTapScale(
+      enabled: enabled,
+      child: Material(
+        color: bg,
+        shape: StadiumBorder(side: BorderSide(color: border, width: KataStroke.hairline)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Container(height: height, padding: const EdgeInsets.symmetric(horizontal: 26), alignment: Alignment.center, child: child),
+        ),
       ),
     );
   }
@@ -79,17 +83,21 @@ class KataIconCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    return Material(
-      color: filled ? p.fg : Colors.transparent,
-      shape: CircleBorder(side: BorderSide(color: filled ? Colors.transparent : p.hairline, width: KataStroke.hairline)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Center(
-            child: IconTheme(data: IconThemeData(color: filled ? p.bg : p.dim, size: size * 0.4), child: DefaultTextStyle(style: KataType.bodyStyle(size: size * 0.36, color: filled ? p.bg : p.dim, height: 1), child: child)),
+    return KataTapScale(
+      enabled: onPressed != null,
+      pressedScale: 0.94,
+      child: Material(
+        color: filled ? p.fg : Colors.transparent,
+        shape: CircleBorder(side: BorderSide(color: filled ? Colors.transparent : p.hairline, width: KataStroke.hairline)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(
+              child: IconTheme(data: IconThemeData(color: filled ? p.bg : p.dim, size: size * 0.4), child: DefaultTextStyle(style: KataType.bodyStyle(size: size * 0.36, color: filled ? p.bg : p.dim, height: 1), child: child)),
+            ),
           ),
         ),
       ),
@@ -107,22 +115,26 @@ class KataBigRound extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    return Material(
-      color: onPressed == null ? p.surface : p.fg,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(label.toUpperCase(), style: KataType.displayStyle(size: 15, color: onPressed == null ? p.muted : p.bg)),
-            if (sub != null) ...[
-              const SizedBox(height: 5),
-              Text(sub!, style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
-            ],
-          ]),
+    return KataTapScale(
+      enabled: onPressed != null,
+      pressedScale: 0.96,
+      child: Material(
+        color: onPressed == null ? p.surface : p.fg,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text(label.toUpperCase(), style: KataType.displayStyle(size: 15, color: onPressed == null ? p.muted : p.bg)),
+              if (sub != null) ...[
+                const SizedBox(height: 5),
+                Text(sub!, style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
+              ],
+            ]),
+          ),
         ),
       ),
     );
