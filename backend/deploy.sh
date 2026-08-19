@@ -10,7 +10,7 @@ npm run build
 npx prisma generate >/dev/null
 
 rsync -az --delete \
-  --exclude node_modules --exclude .env --exclude seed \
+  --exclude node_modules --exclude .env --exclude /seed \
   dist prisma package.json package-lock.json ecosystem.config.js "$HOST:$DIR/"
 
 ssh "$HOST" "source ~/.nvm/nvm.sh >/dev/null && cd $DIR \
