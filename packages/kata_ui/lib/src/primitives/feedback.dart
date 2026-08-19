@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme.dart';
 import '../tokens.dart';
 import 'pill_button.dart';
@@ -108,7 +109,8 @@ class KataSkeletonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.kata;
     Widget bar(double w, double h) => Container(width: w, height: h, decoration: BoxDecoration(color: p.surface, borderRadius: BorderRadius.circular(4)));
-    return Container(
+    return KataPulse(
+      child: Container(
       height: height,
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
@@ -117,6 +119,7 @@ class KataSkeletonCard extends StatelessWidget {
         const SizedBox(width: 13),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [bar(140, 14), const SizedBox(height: 8), bar(180, 10), const SizedBox(height: 6), bar(100, 10)])),
       ]),
+    ),
     );
   }
 }

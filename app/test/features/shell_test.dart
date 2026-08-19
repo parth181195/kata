@@ -21,6 +21,17 @@ void main() {
     expect(find.text('Continue with Google'), findsOneWidget);
   });
 
+  testWidgets('sign-in button shows the busy state while Google is up', (t) async {
+    await pumpKata(t, signedIn: false, google: FakeGoogle(delay: const Duration(seconds: 1)));
+    await t.tap(find.text('Continue with Google'));
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.text('Signing in…'), findsOneWidget);
+    await t.tap(find.text('Signing in…')); // ignored while busy
+    await t.pump(const Duration(seconds: 2));
+    await t.pumpAndSettle();
+    expect(find.text('KATA 型'), findsOneWidget);
+  });
+
   testWidgets('cancelled Google picker stays on sign-in', (t) async {
     await pumpKata(t, signedIn: false, google: FakeGoogle(cancel: true));
     await t.tap(find.text('Continue with Google'));

@@ -8,10 +8,35 @@ import '../../core/auth/google_id_token.dart';
 import '../../core/net/api_client.dart';
 import 'google_mark.dart';
 
-class SignInScreen extends ConsumerWidget {
+class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends ConsumerState<SignInScreen> {
+  bool _busy = false;
+
+  Future<void> _signIn() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(sessionProvider.notifier).signIn();
+    } on AuthCancelled {
+      // user dismissed the account picker
+    } on AuthNotConfigured {
+      if (mounted) KataToast.show(context, "Google sign-in isn't configured in this build");
+    } on ApiException catch (e) {
+      if (mounted) KataToast.show(context, e.isNetwork ? 'No connection — try again' : 'Sign-in failed: ${e.message}');
+    } catch (_) {
+      if (mounted) KataToast.show(context, 'Sign-in failed');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final p = context.kata;
     return Scaffold(
       body: LayoutBuilder(
@@ -109,22 +134,11 @@ class SignInScreen extends ConsumerWidget {
                           ),
                           const Spacer(),
                           KataPillButton(
-                            label: 'Continue with Google',
+                            label: _busy ? 'Signing in…' : 'Continue with Google',
                             display: false,
+                            loading: _busy,
                             leading: const GoogleMark(size: 18),
-                            onPressed: () async {
-                              try {
-                                await ref.read(sessionProvider.notifier).signIn();
-                              } on AuthCancelled {
-                                // user dismissed the account picker
-                              } on AuthNotConfigured {
-                                if (context.mounted) KataToast.show(context, "Google sign-in isn't configured in this build");
-                              } on ApiException catch (e) {
-                                if (context.mounted) KataToast.show(context, e.isNetwork ? 'No connection — try again' : 'Sign-in failed: ${e.message}');
-                              } catch (_) {
-                                if (context.mounted) KataToast.show(context, 'Sign-in failed');
-                              }
-                            },
+                            onPressed: _signIn,
                           ),
                           const SizedBox(height: 16),
                           Row(

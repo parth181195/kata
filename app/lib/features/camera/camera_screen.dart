@@ -121,6 +121,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         child: KataBigRound(
           label: connecting ? st.step : (failed ? 'Retry' : 'Connect'),
           sub: connecting ? null : 'USB-C',
+          loading: connecting,
           onPressed: connecting ? null : svc.connect,
         ),
       ),

@@ -24,13 +24,17 @@ class BootScreen extends StatelessWidget {
     final p = context.kata;
     return Scaffold(
       body: Center(
-        child: Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline)),
-          alignment: Alignment.center,
-          child: Text('型', style: KataType.displayStyle(size: 22, weight: FontWeight.w400, color: p.fg, letterSpacing: 0)),
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.hairline)),
+            alignment: Alignment.center,
+            child: Text('型', style: KataType.displayStyle(size: 22, weight: FontWeight.w400, color: p.fg, letterSpacing: 0)),
+          ),
+          const SizedBox(height: 22),
+          KataDotsLoader(color: p.muted),
+        ]),
       ),
     );
   }

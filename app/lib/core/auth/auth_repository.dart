@@ -103,6 +103,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   }
 
   Future<void> signOut() async {
+    if (state.isLoading) return;
+    state = const AsyncLoading(); // router shows the boot loader while /auth/logout runs
     await ref.read(authRepositoryProvider).signOut();
     state = const AsyncData(null);
   }

@@ -30,11 +30,13 @@ class FakeRecipeApi implements RecipeApi {
   int pageSize;
   bool failNetwork = false;
   int? failStatus;
+  Duration delay = Duration.zero;
   int calls = 0;
 
   @override
   Future<RecipePage> list({String? cursor, int limit = 50}) async {
     calls++;
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
     if (failNetwork) throw ApiException('offline', isNetwork: true);
     if (failStatus != null) throw ApiException('HTTP $failStatus', status: failStatus);
     final start = cursor == null ? 0 : int.parse(cursor);
@@ -56,12 +58,14 @@ const seedJson = '''{"recipes":[
 ]}''';
 
 class FakeGoogle implements GoogleIdTokenProvider {
-  FakeGoogle({this.token = 'fake-google-id-token-1', this.cancel = false});
+  FakeGoogle({this.token = 'fake-google-id-token-1', this.cancel = false, this.delay = Duration.zero});
   String token;
   bool cancel;
+  Duration delay;
   int signOuts = 0;
   @override
   Future<String> signIn() async {
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
     if (cancel) throw AuthCancelled();
     return token;
   }
@@ -82,12 +86,17 @@ FakeAdapter authAdapter() {
 }
 
 /// Pumps the full app with an in-memory db + fake API seeded from [seedJson]. Returns the container for reading providers.
-Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google, FakeRecipeApi? api}) async {
+Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google, FakeRecipeApi? api, bool reduceMotion = true, bool awaitSync = true}) async {
+  // looping loaders (dots, skeleton pulse) never settle; run under reduce-motion unless a test wants motion
+  if (reduceMotion) {
+    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  }
   final db = KataDb.memory();
   addTearDown(db.close);
   final repo = RecipeRepository(db: db, api: api ?? FakeRecipeApi.fromSeed(seedJson));
   await repo.load();
-  await repo.sync();
+  if (awaitSync) await repo.sync();
   final tokens = MemoryTokenStore();
   if (signedIn) {
     await tokens.write(TokenKeys.access, 'A1');

@@ -16,6 +16,7 @@ class KataPillButton extends StatelessWidget {
     this.height = 58,
     this.expand = true,
     this.display = true,
+    this.loading = false,
   });
   final String label;
   final VoidCallback? onPressed;
@@ -24,11 +25,13 @@ class KataPillButton extends StatelessWidget {
   final double height;
   final bool expand;
   final bool display;
+  /// Keeps the enabled look, swaps [leading] for a dots loader and ignores taps.
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    final enabled = onPressed != null;
+    final enabled = onPressed != null || loading;
     final Color bg, fg, border;
     switch (kind) {
       case KataButtonKind.primary:
@@ -55,18 +58,18 @@ class KataPillButton extends StatelessWidget {
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (leading != null) ...[leading!, const SizedBox(width: 12)],
+        if (loading) ...[KataDotsLoader(color: fg, dot: 5, gap: 4), const SizedBox(width: 12)] else if (leading != null) ...[leading!, const SizedBox(width: 12)],
         Flexible(child: Text(display ? label.toUpperCase() : label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style)),
       ],
     );
     return KataTapScale(
-      enabled: enabled,
+      enabled: enabled && !loading,
       child: Material(
         color: bg,
         shape: StadiumBorder(side: BorderSide(color: border, width: KataStroke.hairline)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onPressed,
+          onTap: loading ? null : onPressed,
           child: Container(height: height, padding: const EdgeInsets.symmetric(horizontal: 26), alignment: Alignment.center, child: child),
         ),
       ),
@@ -107,11 +110,13 @@ class KataIconCircle extends StatelessWidget {
 
 /// The big round primary control (Connect).
 class KataBigRound extends StatelessWidget {
-  const KataBigRound({super.key, required this.label, this.sub, this.onPressed, this.size = 108});
+  const KataBigRound({super.key, required this.label, this.sub, this.onPressed, this.size = 108, this.loading = false});
   final String label;
   final String? sub;
   final VoidCallback? onPressed;
   final double size;
+  /// Shows a dots loader under the label (e.g. while connecting). Usually paired with `onPressed: null`.
+  final bool loading;
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
@@ -129,7 +134,7 @@ class KataBigRound extends StatelessWidget {
             height: size,
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Text(label.toUpperCase(), style: KataType.displayStyle(size: 15, color: onPressed == null ? p.muted : p.bg)),
-              if (sub != null) ...[
+              if (loading) ...[const SizedBox(height: 8), KataDotsLoader(color: onPressed == null ? p.muted : p.bg, dot: 4, gap: 4)] else if (sub != null) ...[
                 const SizedBox(height: 5),
                 Text(sub!, style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
               ],

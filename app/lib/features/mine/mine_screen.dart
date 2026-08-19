@@ -44,7 +44,9 @@ class _MineScreenState extends ConsumerState<MineScreen> {
               ]),
             ),
             Expanded(
-              child: list.isEmpty
+              child: !lib.loaded
+                  ? ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), children: const [KataSkeletonCard(), SizedBox(height: 12), KataSkeletonCard()])
+                  : list.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                       child: KataCard(

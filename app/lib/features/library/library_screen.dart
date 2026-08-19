@@ -104,28 +104,51 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   const SizedBox(width: 10),
                   Expanded(child: Text(lib.offlineIsNetwork ? 'Offline — showing cached library' : 'Library unreachable — showing cached copy', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 12, color: p.dim, height: 1.2))),
                   const SizedBox(width: 8),
-                  KataPillButton(label: lib.syncing ? 'RETRYING' : 'RETRY', kind: KataButtonKind.secondary, height: 32, expand: false, display: false, onPressed: lib.syncing ? null : () => lib.sync()),
+                  KataPillButton(label: 'RETRY', kind: KataButtonKind.secondary, height: 32, expand: false, display: false, loading: lib.syncing, onPressed: () => lib.sync()),
                 ]),
               ),
             ),
           Expanded(
-            child: !lib.loaded
-                ? ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), children: const [KataSkeletonCard(), SizedBox(height: 12), KataSkeletonCard()])
+            // loading: db not read yet, or first-ever sync still running with nothing cached
+            child: !lib.loaded || (lib.syncing && lib.all.isEmpty)
+                ? ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), children: [
+                    if (lib.loaded) ...[
+                      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        KataDotsLoader(color: p.muted, dot: 4, gap: 4),
+                        const SizedBox(width: 10),
+                        Text('SYNCING LIBRARY', style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
+                      ]),
+                      const SizedBox(height: 14),
+                    ],
+                    const KataSkeletonCard(),
+                    const SizedBox(height: 12),
+                    const KataSkeletonCard(),
+                    const SizedBox(height: 12),
+                    const KataSkeletonCard(),
+                  ])
                 : recipes.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                         child: KataCard(
                           dashed: true,
-                          child: KataEmptyState(
-                            glyph: '0',
-                            title: filter.query.isEmpty ? 'No katas match' : 'No katas for “${filter.query}”',
-                            body: 'Try a film sim (Classic Neg) or clear the Verified filter.',
-                            actionLabel: 'Clear filters',
-                            onAction: () {
-                              _search.clear();
-                              ref.read(libraryFilterProvider.notifier).state = const LibraryFilter();
-                            },
-                          ),
+                          child: lib.all.isEmpty && lib.offline
+                              ? KataEmptyState(
+                                  glyph: '!',
+                                  title: 'Nothing cached yet',
+                                  body: lib.offlineIsNetwork ? 'Connect to the internet once to load the library.' : 'The library server is unreachable right now.',
+                                  actionLabel: 'Retry',
+                                  onAction: () => lib.sync(),
+                                )
+                              : KataEmptyState(
+                                  glyph: '0',
+                                  title: filter.query.isEmpty ? 'No katas match' : 'No katas for “${filter.query}”',
+                                  body: 'Try a film sim (Classic Neg) or clear the Verified filter.',
+                                  actionLabel: 'Clear filters',
+                                  onAction: () {
+                                    _search.clear();
+                                    ref.read(libraryFilterProvider.notifier).state = const LibraryFilter();
+                                  },
+                                ),
                         ),
                       )
                     : RefreshIndicator(

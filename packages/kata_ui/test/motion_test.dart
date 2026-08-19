@@ -5,6 +5,7 @@ import 'package:kata_ui/kata_ui.dart';
 Widget _wrap(Widget child) => MaterialApp(theme: KataTheme.dark(), home: Scaffold(body: Center(child: child)));
 
 void main() {
+  _loaderTests();
   testWidgets('KataTapScale scales to 0.98 while pressed and back on release', (t) async {
     await t.pumpWidget(_wrap(const KataTapScale(child: ColoredBox(color: Colors.white, child: SizedBox(width: 100, height: 40)))));
     final g = await t.startGesture(t.getCenter(find.byType(KataTapScale)));
@@ -37,5 +38,27 @@ void main() {
     await t.pump(KataMotion.page);
     await t.pump();
     expect(t.widget<Opacity>(op).opacity, 1);
+  });
+}
+
+void _loaderTests() {
+  testWidgets('KataDotsLoader animates; pill button loading ignores taps and shows the loader', (t) async {
+    var taps = 0;
+    await t.pumpWidget(_wrap(KataPillButton(label: 'Signing in…', loading: true, onPressed: () => taps++)));
+    expect(find.byType(KataDotsLoader), findsOneWidget);
+    await t.tap(find.text('SIGNING IN…'));
+    await t.pump(const Duration(milliseconds: 300));
+    expect(taps, 0);
+    // opacity of the first dot changes over time
+    double op() => t.widgetList<Opacity>(find.descendant(of: find.byType(KataDotsLoader), matching: find.byType(Opacity))).first.opacity;
+    final a = op();
+    await t.pump(const Duration(milliseconds: 200));
+    expect(op(), isNot(a));
+  });
+
+  testWidgets('skeleton card pulses (FadeTransition present)', (t) async {
+    await t.pumpWidget(_wrap(const KataSkeletonCard()));
+    expect(find.byType(KataPulse), findsOneWidget);
+    await t.pump(const Duration(milliseconds: 700));
   });
 }

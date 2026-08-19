@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kata_ui/kata_ui.dart';
 
 import 'package:kata/data/recipe_repository.dart';
 
@@ -42,12 +43,23 @@ void _offlineTests() {
     final api = FakeRecipeApi.fromSeed(seedJson)..failNetwork = true;
     final c = await pumpKata(t, api: api);
     expect(find.text('Offline — showing cached library'), findsOneWidget);
-    expect(find.text('NO KATAS MATCH'), findsOneWidget); // nothing cached yet
+    expect(find.text('NOTHING CACHED YET'), findsOneWidget); // empty cache + offline → dedicated empty state
     api.failNetwork = false;
     await t.tap(find.text('RETRY'));
     await t.pumpAndSettle();
     expect(find.text('Offline — showing cached library'), findsNothing);
     expect(c.read(recipeRepositoryProvider).all.length, 3);
+    expect(find.text('KODACHROME 64'), findsOneWidget);
+  });
+
+  testWidgets('first sync with an empty cache shows the syncing skeletons, then the list', (t) async {
+    final api = FakeRecipeApi.fromSeed(seedJson)..delay = const Duration(seconds: 2);
+    await pumpKata(t, api: api, awaitSync: false);
+    expect(find.text('SYNCING LIBRARY'), findsOneWidget);
+    expect(find.byType(KataSkeletonCard), findsNWidgets(3));
+    await t.pump(const Duration(seconds: 3));
+    await t.pumpAndSettle();
+    expect(find.text('SYNCING LIBRARY'), findsNothing);
     expect(find.text('KODACHROME 64'), findsOneWidget);
   });
 

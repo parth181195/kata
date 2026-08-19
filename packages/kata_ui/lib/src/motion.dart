@@ -110,3 +110,108 @@ class KataPageTransition {
     transitionsBuilder: transitionsBuilder,
   );
 }
+
+/// Indeterminate loader: three dots pulsing in sequence. Static (middle dot lit) under reduce-motion.
+class KataDotsLoader extends StatefulWidget {
+  const KataDotsLoader({super.key, this.color, this.dot = 5, this.gap = 5, this.period = const Duration(milliseconds: 900)});
+  final Color? color;
+  final double dot, gap;
+  final Duration period;
+  @override
+  State<KataDotsLoader> createState() => _KataDotsLoaderState();
+}
+
+class _KataDotsLoaderState extends State<KataDotsLoader> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: widget.period);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // no ticker under reduce-motion (also lets widget tests settle)
+    if (KataMotion.reduced(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.color ?? DefaultTextStyle.of(context).style.color ?? Colors.white;
+    final reduced = KataMotion.reduced(context);
+    Widget dot(double opacity) => Opacity(
+      opacity: opacity,
+      child: Container(width: widget.dot, height: widget.dot, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+    );
+    return Semantics(
+      label: 'Loading',
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, _) => Row(mainAxisSize: MainAxisSize.min, children: [
+          for (var i = 0; i < 3; i++) ...[
+            if (i > 0) SizedBox(width: widget.gap),
+            dot(reduced ? (i == 1 ? 1 : 0.35) : _pulse((_c.value - i / 3) % 1)),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  // 0.3 → 1 → 0.3 over one cycle, peak sharp-ish
+  static double _pulse(double t) {
+    final x = (t < 0.5 ? t * 2 : (1 - t) * 2);
+    return 0.3 + 0.7 * Curves.easeOut.transform(x);
+  }
+}
+
+/// Slow opacity breathe for placeholders (skeletons). Static under reduce-motion.
+class KataPulse extends StatefulWidget {
+  const KataPulse({super.key, required this.child, this.min = 0.55, this.period = const Duration(milliseconds: 1400)});
+  final Widget child;
+  final double min;
+  final Duration period;
+  @override
+  State<KataPulse> createState() => _KataPulseState();
+}
+
+class _KataPulseState extends State<KataPulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: widget.period);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (KataMotion.reduced(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (KataMotion.reduced(context)) return widget.child;
+    return FadeTransition(opacity: Tween(begin: 1.0, end: widget.min).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)), child: widget.child);
+  }
+}
