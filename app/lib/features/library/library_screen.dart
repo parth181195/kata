@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
+import '../../core/prefs/settings.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_repository.dart';
 import 'recipe_card.dart';
@@ -48,6 +49,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final filter = ref.watch(libraryFilterProvider);
     final lib = ref.watch(recipeRepositoryProvider);
     final recipes = ref.watch(filteredRecipesProvider);
+    final layout = ref.watch(libraryLayoutProvider);
     final sortLabel = switch (filter.sort) { LibrarySort.newest => 'NEWEST', LibrarySort.popular => 'POPULAR', LibrarySort.az => 'A → Z' };
 
     return Scaffold(
@@ -58,6 +60,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
                 Expanded(child: Text('KATA 型', style: KataType.displayStyle(size: 24, weight: FontWeight.w900, color: p.fg, letterSpacing: 0.05))),
+                _LayoutToggle(layout: layout, onTap: () => ref.read(libraryLayoutProvider.notifier).cycle()),
+                const SizedBox(width: 8),
                 Material(
                   color: Colors.transparent,
                   shape: StadiumBorder(side: BorderSide(color: p.hairline)),
@@ -156,28 +160,100 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         backgroundColor: p.surface,
                         strokeWidth: 2,
                         onRefresh: lib.sync,
-                        child: ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                          itemCount: recipes.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
-                          itemBuilder: (_, i) {
-                            final r = recipes[i];
-                            final card = RecipeCard(
-                              recipe: r,
-                              hero: i == 0,
-                              favourite: lib.favourites.contains(r.id),
-                              onTap: () => context.push('/recipe/${r.id}'),
-                              onFavourite: () => lib.toggleFavourite(r.id),
-                            );
-                            // stagger the first screenful on entry; later cards just appear while scrolling
-                            return i < 6 ? KataFadeIn(key: ValueKey('fade-${r.id}'), delay: Duration(milliseconds: 40 * i), child: card) : card;
-                          },
-                        ),
+                        child: layout == LibraryLayout.grid
+                            ? GridView.builder(
+                                key: const ValueKey('library-grid'),
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.78),
+                                itemCount: recipes.length,
+                                itemBuilder: (_, i) {
+                                  final r = recipes[i];
+                                  final tile = RecipeGridTile(recipe: r, favourite: lib.favourites.contains(r.id), onTap: () => context.push('/recipe/${r.id}'), onFavourite: () => lib.toggleFavourite(r.id));
+                                  return i < 6 ? KataFadeIn(key: ValueKey('fade-${r.id}'), delay: Duration(milliseconds: 40 * i), child: tile) : tile;
+                                },
+                              )
+                            : ListView.separated(
+                                key: const ValueKey('library-list'),
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                                itemCount: recipes.length,
+                                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                                itemBuilder: (_, i) {
+                                  final r = recipes[i];
+                                  final card = RecipeCard(
+                                    recipe: r,
+                                    hero: layout == LibraryLayout.hero && i == 0,
+                                    favourite: lib.favourites.contains(r.id),
+                                    onTap: () => context.push('/recipe/${r.id}'),
+                                    onFavourite: () => lib.toggleFavourite(r.id),
+                                  );
+                                  // stagger the first screenful on entry; later cards just appear while scrolling
+                                  return i < 6 ? KataFadeIn(key: ValueKey('fade-${r.id}'), delay: Duration(milliseconds: 40 * i), child: card) : card;
+                                },
+                              ),
                       ),
           ),
         ]),
       ),
     );
   }
+}
+
+/// Cycles HERO → LIST → GRID; glyph drawn with hairlines like the bottom nav.
+class _LayoutToggle extends StatelessWidget {
+  const _LayoutToggle({required this.layout, required this.onTap});
+  final LibraryLayout layout;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    return Material(
+      color: Colors.transparent,
+      shape: StadiumBorder(side: BorderSide(color: p.hairline)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('layout-toggle'),
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            CustomPaint(size: const Size(14, 12), painter: _LayoutGlyph(layout, p.dim)),
+            const SizedBox(width: 7),
+            Text(layout.label, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: p.dim)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _LayoutGlyph extends CustomPainter {
+  _LayoutGlyph(this.layout, this.color);
+  final LibraryLayout layout;
+  final Color color;
+  @override
+  void paint(Canvas c, Size s) {
+    final st = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 1.5;
+    const r = Radius.circular(1.5);
+    switch (layout) {
+      case LibraryLayout.hero:
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0.75, 0.75, s.width - 1.5, s.height * 0.55), r), st);
+        c.drawLine(Offset(0.75, s.height - 0.75), Offset(s.width - 0.75, s.height - 0.75), st);
+      case LibraryLayout.list:
+        for (var i = 0; i < 3; i++) {
+          final y = 0.75 + i * (s.height - 1.5) / 2;
+          c.drawLine(Offset(0.75, y), Offset(s.width - 0.75, y), st);
+        }
+      case LibraryLayout.grid:
+        final w = (s.width - 1.5 - 3) / 2, h = (s.height - 1.5 - 3) / 2;
+        for (final (x, y) in [(0.0, 0.0), (w + 3, 0.0), (0.0, h + 3), (w + 3, h + 3)]) {
+          c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0.75 + x, 0.75 + y, w, h), r), st);
+        }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LayoutGlyph o) => o.layout != layout || o.color != color;
 }

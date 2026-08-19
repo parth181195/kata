@@ -12,18 +12,8 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.kata;
-    Widget row(String title, {String? trailing, VoidCallback? onTap, VoidCallback? onLongPress}) => InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline))),
-            child: Row(children: [
-              Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 13, weight: FontWeight.w600, color: p.fg, height: 1))),
-              if (trailing != null) Flexible(child: Text(trailing, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.right, style: KataType.monoStyle(size: 10.5, color: p.muted))),
-            ]),
-          ),
-        );
+    Widget row(String title, {String? trailing, VoidCallback? onTap, VoidCallback? onLongPress}) =>
+        KataListRow(title: title, value: trailing, onTap: onTap, onLongPress: onLongPress);
     final user = ref.watch(sessionProvider).valueOrNull?.user;
     final initials = (user?.displayName.isNotEmpty ?? false)
         ? user!.displayName.trim().split(RegExp(r'\s+')).take(2).map((w) => w[0].toUpperCase()).join()

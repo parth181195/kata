@@ -12,6 +12,7 @@ import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import '../camera/write_sheet.dart';
 import '../ofr_io/export_sheet.dart';
+import 'image_viewer.dart';
 import 'recipe_card.dart';
 
 class RecipeDetailScreen extends ConsumerWidget {
@@ -36,8 +37,8 @@ class RecipeDetailScreen extends ConsumerWidget {
         : const KataStatusPill(KataStatus.noCamera);
 
     Widget circle(Widget child, {VoidCallback? onTap}) => Material(
-          color: Colors.black.withValues(alpha: 0.4),
-          shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: 0.4))),
+          color: Colors.black.withValues(alpha: 0.6),
+          shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: 0.55))),
           clipBehavior: Clip.antiAlias,
           child: InkWell(onTap: onTap, child: SizedBox(width: 36, height: 36, child: Center(child: child))),
         );
@@ -88,14 +89,23 @@ class RecipeDetailScreen extends ConsumerWidget {
                       gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: [0, 0.12, 0.4, 1], colors: [Color(0x99000000), Color(0x99000000), Color(0x00000000), Color(0xD9000000)]),
                     ),
                   ),
+                  // tap the hero to open the viewer (photos only)
+                  if (recipe.imageUrls.isNotEmpty)
+                    Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: () => showImageViewer(context, urls: recipe.imageUrls, credit: attributionLine(recipe)))),
                   SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        circle(Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.white), onTap: () => context.pop()),
-                        statusPill,
-                        circle(Icon(Icons.more_vert, size: 16, color: Colors.white), onTap: overflow),
-                      ]),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          circle(Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.white), onTap: () => context.pop()),
+                          DecoratedBox(
+                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(15)),
+                            child: statusPill,
+                          ),
+                          circle(Icon(Icons.more_vert, size: 16, color: Colors.white), onTap: overflow),
+                        ]),
+                      ),
                     ),
                   ),
                   Positioned(
@@ -151,7 +161,12 @@ class RecipeDetailScreen extends ConsumerWidget {
                   child: Row(children: [
                     for (var i = 0; i < 3; i++) ...[
                       if (i > 0) const SizedBox(width: 6),
-                      Expanded(child: FrameSlot(radius: 8, placeholder: 'frame', image: recipeImage(recipe.imageUrls.skip(1 + i).firstOrNull))),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: recipe.imageUrls.length > 1 + i ? () => showImageViewer(context, urls: recipe.imageUrls, initialIndex: 1 + i, credit: attributionLine(recipe)) : null,
+                          child: FrameSlot(radius: 8, placeholder: 'frame', image: recipeImage(recipe.imageUrls.skip(1 + i).firstOrNull)),
+                        ),
+                      ),
                     ],
                   ]),
                 ),

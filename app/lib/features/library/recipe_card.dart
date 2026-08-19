@@ -97,3 +97,50 @@ class RecipeCard extends StatelessWidget {
     return dimmed ? Opacity(opacity: 0.5, child: card) : card;
   }
 }
+
+/// 2-up grid tile: photo (or dot grid), name, film sim · DR, heart. Square-ish; used by the GRID library layout.
+class RecipeGridTile extends StatelessWidget {
+  const RecipeGridTile({super.key, required this.recipe, required this.favourite, required this.onTap, required this.onFavourite});
+  final Recipe recipe;
+  final bool favourite;
+  final VoidCallback onTap;
+  final VoidCallback onFavourite;
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    final r = recipe;
+    return KataCard(
+      padding: EdgeInsets.zero,
+      onTap: onTap,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        AspectRatio(
+          aspectRatio: 4 / 3,
+          child: Stack(fit: StackFit.expand, children: [
+            FrameSlot(radius: 0, placeholder: 'frame', image: recipeImage(r.imageUrls.firstOrNull)),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: KataIconCircle(
+                size: 30,
+                filled: favourite,
+                onPressed: onFavourite,
+                child: Text(favourite ? '♥' : '♡', style: KataType.bodyStyle(size: 12, color: favourite ? p.bg : Colors.white, height: 1)),
+              ),
+            ),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(child: Text(r.name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 13.5, color: p.fg, letterSpacing: 0))),
+              if (r.verified) ...[const SizedBox(width: 5), const VerifiedBadge(size: 13)],
+            ]),
+            const SizedBox(height: 3),
+            Text(RecipeSpecs.summary(r.ofr), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9.5, color: p.dim, height: 1.3)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}

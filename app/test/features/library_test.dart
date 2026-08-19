@@ -3,11 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import 'package:kata/data/recipe_repository.dart';
+import 'package:kata/features/library/recipe_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
 
 void main() {
   _offlineTests();
+  _layoutTests();
   testWidgets('library lists seed recipes, search filters, B&W chip filters', (t) async {
     await pumpKata(t);
     expect(find.text('KODACHROME 64'), findsOneWidget);
@@ -72,5 +75,37 @@ void _offlineTests() {
     await t.pump(const Duration(seconds: 1));
     await t.pumpAndSettle();
     expect(api.calls, greaterThan(before));
+  });
+}
+
+void _layoutTests() {
+  testWidgets('layout toggle cycles HERO → LIST → GRID and persists', (t) async {
+    await pumpKata(t);
+    expect(find.text('HERO'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-list')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('layout-toggle')));
+    await t.pumpAndSettle();
+    expect(find.text('LIST'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('layout-toggle')));
+    await t.pumpAndSettle();
+    expect(find.text('GRID'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-grid')), findsOneWidget);
+    expect(find.byType(RecipeGridTile), findsWidgets);
+    // persisted
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('kata.libraryLayout'), 'grid');
+  });
+
+  testWidgets('detail: tapping the hero opens the image viewer when photos exist', (t) async {
+    final api = FakeRecipeApi.fromSeed(seedJson);
+    api.recipes[0] = api.recipes[0].copyWith(imageUrls: ['https://cdn.test/a.jpg', 'https://cdn.test/b.jpg']);
+    await pumpKata(t, initialLocation: '/recipe/a', api: api);
+    await t.tapAt(const Offset(200, 150)); // hero area
+    await t.pumpAndSettle();
+    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('viewer-0')), findsOneWidget);
+    await t.tap(find.byIcon(Icons.close));
+    await t.pumpAndSettle();
+    expect(find.text('1 / 2'), findsNothing);
   });
 }

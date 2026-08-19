@@ -19,6 +19,7 @@ import 'package:kata/data/recipe_api.dart';
 import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/router.dart';
 import 'package:ofr/ofr.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/net/api_client_test.dart' show FakeAdapter;
 
 /// In-memory [RecipeApi]: serves [recipes] in pages of [pageSize]; flip [failNetwork] to simulate offline.
@@ -168,6 +169,7 @@ Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/l
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
   }
+  SharedPreferences.setMockInitialValues({});
   final db = KataDb.memory();
   addTearDown(db.close);
   final repo = RecipeRepository(db: db, api: api ?? FakeRecipeApi.fromSeed(seedJson));
