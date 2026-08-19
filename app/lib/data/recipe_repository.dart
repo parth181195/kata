@@ -20,7 +20,10 @@ class RecipeRepository extends ChangeNotifier {
 
   bool loaded = false;
   bool syncing = false;
+  /// True when the last sync couldn't reach the API: no network, or the API is down (5xx).
   bool offline = false;
+  /// True when [offline] is because the device has no connectivity (vs. the server failing).
+  bool offlineIsNetwork = false;
   String? syncError;
   DateTime? lastSyncedAt;
 
@@ -91,8 +94,10 @@ class RecipeRepository extends ChangeNotifier {
         ..addAll(fresh);
       lastSyncedAt = now;
       offline = false;
+      offlineIsNetwork = false;
     } on ApiException catch (e) {
-      offline = e.isNetwork;
+      offlineIsNetwork = e.isNetwork;
+      offline = e.isNetwork || (e.status ?? 0) >= 500;
       syncError = e.message;
     } catch (e) {
       syncError = e.toString();

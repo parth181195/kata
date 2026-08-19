@@ -29,12 +29,14 @@ class FakeRecipeApi implements RecipeApi {
   List<Recipe> recipes;
   int pageSize;
   bool failNetwork = false;
+  int? failStatus;
   int calls = 0;
 
   @override
   Future<RecipePage> list({String? cursor, int limit = 50}) async {
     calls++;
     if (failNetwork) throw ApiException('offline', isNetwork: true);
+    if (failStatus != null) throw ApiException('HTTP $failStatus', status: failStatus);
     final start = cursor == null ? 0 : int.parse(cursor);
     final end = (start + pageSize).clamp(0, recipes.length);
     return RecipePage(items: recipes.sublist(start, end), nextCursor: end < recipes.length ? '$end' : null);

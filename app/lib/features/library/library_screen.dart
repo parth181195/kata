@@ -102,7 +102,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 child: Row(children: [
                   Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.dim, width: 1.5))),
                   const SizedBox(width: 10),
-                  Expanded(child: Text('Offline — showing cached library', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 12, color: p.dim, height: 1.2))),
+                  Expanded(child: Text(lib.offlineIsNetwork ? 'Offline — showing cached library' : 'Library unreachable — showing cached copy', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 12, color: p.dim, height: 1.2))),
                   const SizedBox(width: 8),
                   KataPillButton(label: lib.syncing ? 'RETRYING' : 'RETRY', kind: KataButtonKind.secondary, height: 32, expand: false, display: false, onPressed: lib.syncing ? null : () => lib.sync()),
                 ]),

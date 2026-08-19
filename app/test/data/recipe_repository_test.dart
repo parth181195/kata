@@ -49,6 +49,17 @@ void main() {
     expect(repo2.lastSyncedAt, isNotNull);
   });
 
+  test('API 5xx → offline (server) but cached data served', () async {
+    api.failStatus = 502;
+    await repo.sync();
+    expect(repo.offline, isTrue);
+    expect(repo.offlineIsNetwork, isFalse);
+    expect(repo.all.length, 3);
+    api.failStatus = null;
+    await repo.sync();
+    expect(repo.offline, isFalse);
+  });
+
   test('filters and sorts', () {
     expect(repo.where(const LibraryFilter(query: 'koda')).map((r) => r.id), ['a']);
     expect(repo.where(const LibraryFilter(mono: true)).map((r) => r.id), ['b']);
