@@ -27,3 +27,6 @@ tools/seed/seed/failed.json
 .remember/
 *.apk
 .playwright-mcp/
+
+# web builds
+web/admin/dist/
