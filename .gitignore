@@ -1,0 +1,28 @@
+# secrets
+**/google-services.json
+**/serviceAccount*.json
+**/*.keystore
+**/key.properties
+.env*
+
+# flutter / dart
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock.bak
+*.iml
+.idea/
+**/android/.gradle/
+**/android/local.properties
+**/android/app/.cxx/
+**/ios/Pods/
+
+# node
+**/node_modules/
+tools/seed/seed/failed.json
+
+# session tooling
+.remember/
+*.apk
