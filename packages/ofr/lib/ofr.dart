@@ -3,3 +3,5 @@ library;
 
 export 'src/ofr_enums.dart';
 export 'src/ofr_recipe.dart';
+export 'src/ofr_validator.dart';
+export 'src/ofr_hasher.dart';
