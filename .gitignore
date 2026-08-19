@@ -26,3 +26,4 @@ tools/seed/seed/failed.json
 # session tooling
 .remember/
 *.apk
+.playwright-mcp/
