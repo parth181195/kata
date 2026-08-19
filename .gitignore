@@ -30,3 +30,6 @@ tools/seed/seed/failed.json
 
 # web builds
 web/admin/dist/
+
+# seeder run output
+backend/seed/
