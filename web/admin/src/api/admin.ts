@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
-import type { AdminRecipe, AdminUser, BulkAction, CameraProfiles, Page, QueueTab, ReportDto, Stats } from './types';
+import type { AdminRecipe, AdminUser, BulkAction, CameraProfiles, CameraSeen, Page, QueueTab, ReportDto, Stats } from './types';
 
 const qs = (o: Record<string, string | number | undefined | null>) => {
   const p = new URLSearchParams();
@@ -71,3 +71,4 @@ export function useReportMutations() {
 }
 
 export const useCameraProfiles = () => { const { client: api } = useAuth(); return useQuery({ queryKey: ['camera-profiles'], queryFn: () => api.get<CameraProfiles>('/admin/camera-profiles'), staleTime: Infinity }); };
+export const useCamerasSeen = () => { const { client: api } = useAuth(); return useQuery({ queryKey: ['cameras-seen'], queryFn: () => api.get<{ items: CameraSeen[] }>('/admin/cameras-seen'), refetchInterval: 60_000 }); };

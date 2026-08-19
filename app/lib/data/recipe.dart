@@ -1,6 +1,7 @@
 import 'package:ofr/ofr.dart';
 
-enum RecipeSource { seed, imported, camera }
+/// seed = library (API) · imported/camera = device-local drafts · published = mine, on the server
+enum RecipeSource { seed, imported, camera, published }
 
 enum LibrarySort { newest, popular, az }
 
@@ -43,6 +44,8 @@ class Recipe {
     this.source = RecipeSource.seed,
     this.createdAt,
     this.favouritesCount = 0,
+    this.authorId,
+    this.hidden = false,
   });
   final String id;
   final OfrRecipe ofr;
@@ -51,12 +54,17 @@ class Recipe {
   final RecipeSource source;
   final DateTime? createdAt;
   final int favouritesCount;
+  final String? authorId;
+  final bool hidden;
+
+  /// Device-local draft (not on the server yet).
+  bool get isDraft => source == RecipeSource.imported || source == RecipeSource.camera;
 
   String get name => ofr.name ?? 'Untitled';
   String get hash => ofr.hash ?? OfrHasher.compute(ofr);
   bool get isMono => ofr.isMono;
 
-  Recipe copyWith({OfrRecipe? ofr, bool? verified, List<String>? imageUrls, RecipeSource? source, int? favouritesCount}) => Recipe(
+  Recipe copyWith({OfrRecipe? ofr, bool? verified, List<String>? imageUrls, RecipeSource? source, int? favouritesCount, bool? hidden}) => Recipe(
     id: id,
     ofr: ofr ?? this.ofr,
     verified: verified ?? this.verified,
@@ -64,6 +72,8 @@ class Recipe {
     source: source ?? this.source,
     createdAt: createdAt,
     favouritesCount: favouritesCount ?? this.favouritesCount,
+    authorId: authorId,
+    hidden: hidden ?? this.hidden,
   );
 
   Map<String, dynamic> toJson() => {
@@ -73,6 +83,8 @@ class Recipe {
         'source': source.name,
         if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
         if (favouritesCount != 0) 'favourites_count': favouritesCount,
+        if (authorId != null) 'author_id': authorId,
+        if (hidden) 'hidden': true,
         'ofr': ofr.toJson(),
       };
 
@@ -87,11 +99,13 @@ class Recipe {
       source: RecipeSource.values.firstWhere((s) => s.name == j['source'], orElse: () => RecipeSource.seed),
       createdAt: j['created_at'] == null ? null : DateTime.tryParse(j['created_at'] as String),
       favouritesCount: (j['favourites_count'] as num?)?.toInt() ?? 0,
+      authorId: j['author_id'] as String?,
+      hidden: j['hidden'] as bool? ?? false,
     );
   }
 
   /// From the Kata API `RecipeDto` (camelCase envelope around the OFR json).
-  factory Recipe.fromApi(Map<String, dynamic> j) {
+  factory Recipe.fromApi(Map<String, dynamic> j, {RecipeSource source = RecipeSource.seed}) {
     var ofr = OfrRecipe.fromJson(j['ofr'] as Map<String, dynamic>);
     final hash = j['hash'] as String?;
     if (ofr.hash == null) ofr = ofr.copyWith(hash: hash ?? OfrHasher.compute(ofr));
@@ -100,9 +114,11 @@ class Recipe {
       ofr: ofr,
       verified: j['reviewed'] as bool? ?? false,
       imageUrls: (j['imageUrls'] as List?)?.cast<String>() ?? const [],
-      source: RecipeSource.seed,
+      source: source,
       createdAt: j['createdAt'] == null ? null : DateTime.tryParse(j['createdAt'] as String),
       favouritesCount: (j['favouritesCount'] as num?)?.toInt() ?? 0,
+      authorId: j['authorId'] as String?,
+      hidden: j['hidden'] as bool? ?? false,
     );
   }
 }

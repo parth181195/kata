@@ -12,5 +12,6 @@ export 'src/fuji/fuji_props.dart';
 export 'src/fuji/camera_preset.dart';
 export 'src/fuji/preset_codec.dart';
 export 'src/fuji/preset_writer.dart';
+export 'src/fuji/known_bodies.dart';
 export 'src/fuji/fuji_camera.dart';
 export 'src/ofr_mapper.dart';

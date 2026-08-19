@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import { env } from '../../src/config/env';
 import { HttpBunnyClient } from '../../src/images/http-bunny.client';
 import { hasErrors, isMonoFilmSim, ofrHash, str, strList, validateOfr } from '../../src/ofr';
+import { cmdPhotos, cmdPhotosApply } from './photos';
 import { parseFxwPost } from './scrape-fxw';
 
 const UA = 'Mozilla/5.0 (compatible; KataSeeder/1.0; +https://kata.parthjansari.dev)';
@@ -147,7 +148,9 @@ async function main() {
   const [cmd, arg, ...flags] = process.argv.slice(2);
   if (cmd === 'scrape' && arg) return cmdScrape(arg);
   if (cmd === 'import' && arg) return cmdImport(arg, flags.includes('--images'), flags.includes('--update'));
-  console.error('usage: seed scrape <url> | seed import <urls.txt> [--images] [--update]');
+  if (cmd === 'photos' && arg) return cmdPhotos(arg, flags);
+  if (cmd === 'photos-apply' && arg && flags[0]) return cmdPhotosApply(arg, flags[0], flags.slice(1));
+  console.error('usage: seed scrape <url> | seed import <urls.txt> [--images] [--update] | seed photos <library.json> --root <dir> [--per 3] [--dry] | seed photos-apply <api> <token>');
   process.exit(1);
 }
 void main();

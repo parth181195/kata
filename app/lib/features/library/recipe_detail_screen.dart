@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
+import '../../core/auth/auth_repository.dart';
 import '../../core/fuji/camera_service.dart';
+import '../../core/net/api_client.dart';
 import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import '../camera/write_sheet.dart';
 import '../ofr_io/export_sheet.dart';
+import 'image_viewer.dart';
 import 'recipe_card.dart';
 
 class RecipeDetailScreen extends ConsumerWidget {
@@ -34,8 +37,8 @@ class RecipeDetailScreen extends ConsumerWidget {
         : const KataStatusPill(KataStatus.noCamera);
 
     Widget circle(Widget child, {VoidCallback? onTap}) => Material(
-          color: Colors.black.withValues(alpha: 0.4),
-          shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: 0.4))),
+          color: Colors.black.withValues(alpha: 0.6),
+          shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: 0.55))),
           clipBehavior: Clip.antiAlias,
           child: InkWell(onTap: onTap, child: SizedBox(width: 36, height: 36, child: Center(child: child))),
         );
@@ -47,8 +50,24 @@ class RecipeDetailScreen extends ConsumerWidget {
             if (c.mounted) Navigator.of(c).pop();
             if (context.mounted) KataToast.show(context, 'Link copied');
           }),
-          const KataListRow(title: 'Report', value: 'Stage 3', enabled: false),
-          if (recipe.source != RecipeSource.seed)
+          KataListRow(title: 'Duplicate & edit', value: 'New draft', onTap: () { Navigator.of(c).pop(); context.push('/new?from=${recipe.id}'); }),
+          if (recipe.source == RecipeSource.published || recipe.isDraft)
+            KataListRow(title: 'Edit', value: recipe.source == RecipeSource.published ? 'Re-review' : 'Draft', onTap: () { Navigator.of(c).pop(); context.push('/edit/${recipe.id}'); }),
+          if (recipe.source == RecipeSource.published)
+            KataListRow(title: 'Unpublish', value: 'Remove from library', onTap: () async {
+              Navigator.of(c).pop();
+              final ok = await showKataDialog(context, title: 'Unpublish “${recipe.name}”?', body: 'It disappears from the community library for everyone. Favourites on it are lost.', confirmLabel: 'Unpublish', destructive: true);
+              if (ok != true) return;
+              try {
+                await ref.read(recipeRepositoryProvider).unpublish(recipe.id);
+                if (context.mounted) { KataToast.show(context, 'Unpublished'); context.pop(); }
+              } on ApiException catch (e) {
+                if (context.mounted) KataToast.show(context, e.isNetwork ? 'No connection' : e.message);
+              }
+            }),
+          if (recipe.source == RecipeSource.seed && !(recipe.authorId != null && recipe.authorId == ref.read(sessionProvider).valueOrNull?.user.id))
+            KataListRow(title: 'Report', value: 'Flag to curators', onTap: () { Navigator.of(c).pop(); _report(context, ref, recipe); }),
+          if (recipe.isDraft)
             KataListRow(title: 'Remove from Mine', value: 'Delete', onTap: () async {
               Navigator.of(c).pop();
               await ref.read(recipeRepositoryProvider).remove(recipe.id);
@@ -70,14 +89,23 @@ class RecipeDetailScreen extends ConsumerWidget {
                       gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: [0, 0.12, 0.4, 1], colors: [Color(0x99000000), Color(0x99000000), Color(0x00000000), Color(0xD9000000)]),
                     ),
                   ),
+                  // tap the hero to open the viewer (photos only)
+                  if (recipe.imageUrls.isNotEmpty)
+                    Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: () => showImageViewer(context, urls: recipe.imageUrls, credit: attributionLine(recipe)))),
                   SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        circle(Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.white), onTap: () => context.pop()),
-                        statusPill,
-                        circle(Icon(Icons.more_vert, size: 16, color: Colors.white), onTap: overflow),
-                      ]),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          circle(Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.white), onTap: () => context.pop()),
+                          DecoratedBox(
+                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(15)),
+                            child: statusPill,
+                          ),
+                          circle(Icon(Icons.more_vert, size: 16, color: Colors.white), onTap: overflow),
+                        ]),
+                      ),
                     ),
                   ),
                   Positioned(
@@ -133,7 +161,12 @@ class RecipeDetailScreen extends ConsumerWidget {
                   child: Row(children: [
                     for (var i = 0; i < 3; i++) ...[
                       if (i > 0) const SizedBox(width: 6),
-                      Expanded(child: FrameSlot(radius: 8, placeholder: 'frame', image: recipeImage(recipe.imageUrls.skip(1 + i).firstOrNull))),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: recipe.imageUrls.length > 1 + i ? () => showImageViewer(context, urls: recipe.imageUrls, initialIndex: 1 + i, credit: attributionLine(recipe)) : null,
+                          child: FrameSlot(radius: 8, placeholder: 'frame', image: recipeImage(recipe.imageUrls.skip(1 + i).firstOrNull)),
+                        ),
+                      ),
                     ],
                   ]),
                 ),
@@ -178,5 +211,18 @@ class RecipeDetailScreen extends ConsumerWidget {
         ),
       ]),
     );
+  }
+}
+
+const _reportReasons = ['Wrong attribution or missing credit', 'Settings are wrong / not what the source says', 'Duplicate of another kata', 'Spam or not a recipe', 'Something else'];
+
+Future<void> _report(BuildContext context, WidgetRef ref, Recipe recipe) async {
+  final reason = await showKataPicker(context, eyebrow: 'Report', title: recipe.name, options: _reportReasons);
+  if (reason == null || !context.mounted) return;
+  try {
+    await ref.read(recipeRepositoryProvider).report(recipe.id, reason);
+    if (context.mounted) KataToast.show(context, 'Thanks — sent to the curators');
+  } on ApiException catch (e) {
+    if (context.mounted) KataToast.show(context, e.isNetwork ? 'No connection — try again later' : e.message);
   }
 }

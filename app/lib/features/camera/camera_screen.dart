@@ -6,6 +6,7 @@ import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/fuji/camera_service.dart';
 import '../../data/recipe_repository.dart';
+import 'camera_art.dart';
 import '../../data/recipe.dart';
 import 'slot_panel.dart';
 
@@ -63,13 +64,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       ),
       Expanded(
         child: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 0), children: [
-          Container(
-            height: 158,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: p.hairline)),
-            child: CustomPaint(
-              painter: _HatchPainter(p.surface),
-              child: Center(child: Text('[ LINE-ART PLACEHOLDER ]\nMIRRORLESS BODY · USB-C PORT HIGHLIGHTED', textAlign: TextAlign.center, style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.1, height: 1.6))),
+          const CameraArt(caption: 'LINE ART · MIRRORLESS BODY\nUSB-C PORT HIGHLIGHTED'),
+          const SizedBox(height: 10),
+          Center(
+            child: KataPillButton(
+              label: 'Which cameras work?',
+              kind: KataButtonKind.secondary,
+              display: false,
+              height: 34,
+              expand: false,
+              onPressed: () => context.push('/cameras'),
             ),
           ),
           const SizedBox(height: 16),
@@ -205,19 +209,3 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   }
 }
 
-class _HatchPainter extends CustomPainter {
-  _HatchPainter(this.color);
-  final Color color;
-  @override
-  void paint(Canvas c, Size s) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 6;
-    for (var x = -s.height; x < s.width; x += 12) {
-      c.drawLine(Offset(x, s.height), Offset(x + s.height, 0), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_HatchPainter o) => o.color != color;
-}

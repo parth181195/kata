@@ -18,6 +18,8 @@ import 'package:kata/data/recipe.dart';
 import 'package:kata/data/recipe_api.dart';
 import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/router.dart';
+import 'package:ofr/ofr.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/net/api_client_test.dart' show FakeAdapter;
 
 /// In-memory [RecipeApi]: serves [recipes] in pages of [pageSize]; flip [failNetwork] to simulate offline.
@@ -48,6 +50,81 @@ class FakeRecipeApi implements RecipeApi {
   Future<Recipe> get(String id) async {
     if (failNetwork) throw ApiException('offline', isNetwork: true);
     return recipes.firstWhere((r) => r.id == id, orElse: () => throw ApiException('not found', status: 404));
+  }
+
+  // ---- Stage 2 state
+  final Set<String> serverFavourites = {};
+  final List<Recipe> published = []; // "my" recipes on the fake server
+  final List<(String, String)> reports = [];
+  int _seq = 0;
+  void _net() {
+    if (failNetwork) throw ApiException('offline', isNetwork: true);
+  }
+
+  @override
+  Future<RecipePage> mine({String? cursor}) async {
+    _net();
+    return RecipePage(items: List.of(published));
+  }
+
+  @override
+  Future<Set<String>> favourites() async {
+    _net();
+    return Set.of(serverFavourites);
+  }
+
+  @override
+  Future<void> setFavourite(String id, bool on) async {
+    _net();
+    if (on) {
+      serverFavourites.add(id);
+    } else {
+      serverFavourites.remove(id);
+    }
+  }
+
+  @override
+  Future<Recipe> publish(OfrRecipe ofr) async {
+    _net();
+    final hash = OfrHasher.compute(ofr);
+    final dup = [...recipes, ...published].where((r) => r.hash == hash).firstOrNull;
+    if (dup != null) throw RecipeConflict(dup.id);
+    final r = Recipe(id: 'srv-${++_seq}', ofr: ofr.copyWith(hash: hash), source: RecipeSource.published, createdAt: DateTime.now(), authorId: 'u1');
+    published.insert(0, r);
+    recipes.insert(0, r.copyWith(source: RecipeSource.seed));
+    return r;
+  }
+
+  @override
+  Future<Recipe> update(String id, OfrRecipe ofr) async {
+    _net();
+    final i = published.indexWhere((r) => r.id == id);
+    if (i < 0) throw ApiException('not found', status: 404);
+    final r = published[i].copyWith(ofr: ofr.copyWith(hash: OfrHasher.compute(ofr)), verified: false);
+    published[i] = r;
+    final ci = recipes.indexWhere((x) => x.id == id);
+    if (ci >= 0) recipes[ci] = r.copyWith(source: RecipeSource.seed);
+    return r;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    _net();
+    published.removeWhere((r) => r.id == id);
+    recipes.removeWhere((r) => r.id == id);
+  }
+
+  @override
+  Future<void> report(String id, String reason) async {
+    _net();
+    reports.add((id, reason));
+  }
+
+  final List<Map<String, dynamic>> cameras = [];
+  @override
+  Future<void> reportCamera(Map<String, dynamic> body) async {
+    _net();
+    cameras.add(body);
   }
 }
 
@@ -92,6 +169,7 @@ Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/l
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
   }
+  SharedPreferences.setMockInitialValues({});
   final db = KataDb.memory();
   addTearDown(db.close);
   final repo = RecipeRepository(db: db, api: api ?? FakeRecipeApi.fromSeed(seedJson));

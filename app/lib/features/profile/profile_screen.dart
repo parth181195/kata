@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
@@ -12,18 +13,8 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.kata;
-    Widget row(String title, {String? trailing, VoidCallback? onTap, VoidCallback? onLongPress}) => InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline))),
-            child: Row(children: [
-              Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 13, weight: FontWeight.w600, color: p.fg, height: 1))),
-              if (trailing != null) Flexible(child: Text(trailing, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.right, style: KataType.monoStyle(size: 10.5, color: p.muted))),
-            ]),
-          ),
-        );
+    Widget row(String title, {String? trailing, VoidCallback? onTap, VoidCallback? onLongPress}) =>
+        KataListRow(title: title, value: trailing, onTap: onTap, onLongPress: onLongPress);
     final user = ref.watch(sessionProvider).valueOrNull?.user;
     final initials = (user?.displayName.isNotEmpty ?? false)
         ? user!.displayName.trim().split(RegExp(r'\s+')).take(2).map((w) => w[0].toUpperCase()).join()
@@ -59,6 +50,7 @@ class ProfileScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 24),
           row('Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),
+          row('Supported cameras', trailing: '${KnownBody.all.length} bodies', onTap: () => context.push('/cameras')),
           row('About Kata · OFR spec · Licences', trailing: 'MIT'),
           row('Component kit', trailing: '/KIT', onTap: () => context.push('/kit')),
           row('Version', trailing: '0.1.0 · LONG-PRESS FOR PROBE', onLongPress: () => context.push('/probe')),

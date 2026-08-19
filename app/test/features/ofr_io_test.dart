@@ -26,6 +26,8 @@ void main() {
     expect(find.text('NOTHING SAVED YET'), findsOneWidget);
     await t.tap(find.text('+'));
     await t.pumpAndSettle();
+    await t.tap(find.text('Import OFR'));
+    await t.pumpAndSettle();
     await t.enterText(find.byType(TextField), _badJson);
     await t.pumpAndSettle();
     expect(find.textContaining('clarity: 9'), findsOneWidget);

@@ -17,7 +17,7 @@ Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot
    DATABASE_URL=postgresql://kata:CHANGE_ME@127.0.0.1:5432/kata
    JWT_SECRET=<openssl rand -base64 48>
    GOOGLE_WEB_CLIENT_ID=<web client id>.apps.googleusercontent.com
-   BUNNY_STORAGE_ZONE=<zone>
+   BUNNY_STORAGE_ZONE=onfrm                      # shared with onframe; Kata writes under BUNNY_PREFIX=kata/
    BUNNY_STORAGE_KEY=<storage access key>
    BUNNY_STORAGE_HOST=storage.bunnycdn.com      # or sg.storage.bunnycdn.com etc. (zone region)
    BUNNY_PULL_ZONE_HOST=<pullzone>.b-cdn.net

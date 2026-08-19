@@ -5,6 +5,7 @@ import 'package:kata_ui/kata_ui.dart';
 Widget wrap(Widget w) => MaterialApp(theme: KataTheme.dark(), home: Scaffold(body: SingleChildScrollView(child: w)));
 
 void main() {
+  _editing();
   testWidgets('text field, segmented, tabs, chips variants', (t) async {
     var seg = 0, tab = 0, removed = 0;
     await t.pumpWidget(wrap(StatefulBuilder(builder: (c, set) => Column(children: [
@@ -51,5 +52,26 @@ void main() {
     await t.tap(find.text('Overwrite'));
     await t.pumpAndSettle();
     expect(result, isTrue);
+  });
+}
+
+void _editing() {
+  testWidgets('KataStepper steps within range and snaps; picker returns a choice', (t) async {
+    num v = 0;
+    await t.pumpWidget(MaterialApp(theme: KataTheme.dark(), home: Scaffold(body: StatefulBuilder(builder: (c, set) => Column(children: [
+      KataStepper(label: 'Highlight', value: v, min: -2, max: 4, step: 0.5, onChanged: (n) => set(() => v = n)),
+      KataPickerRow(label: 'Film sim', value: 'Provia', options: const ['Provia', 'Velvia'], onChanged: (s) => set(() => v = s == 'Velvia' ? 99 : -99)),
+    ])))));
+    await t.tap(find.text('+'));
+    await t.pump();
+    expect(v, 0.5);
+    expect(find.text('+0.5'), findsOneWidget);
+    for (var i = 0; i < 10; i++) { await t.tap(find.text('+')); await t.pump(); }
+    expect(v, 4); // clamped at max
+    await t.tap(find.text('Film sim'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Velvia'));
+    await t.pumpAndSettle();
+    expect(v, 99);
   });
 }

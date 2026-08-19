@@ -24,8 +24,28 @@ model User {
   favourites    Favourite[]
   refreshTokens RefreshToken[]
   reports       Report[]
+  cameras       UserCamera[]
 
   @@map("users")
+}
+
+/// A camera body an account has connected over USB (model + firmware, no serials). Upserted on each connection.
+model UserCamera {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  model      String
+  firmware   String
+  pid        Int?
+  slots      Int
+  props      Int      @default(0)
+  firstSeen  DateTime @default(now())
+  lastSeen   DateTime @default(now())
+  seenCount  Int      @default(1)
+
+  @@unique([userId, model, firmware])
+  @@index([model])
+  @@map("user_cameras")
 }
 
 model RefreshToken {
