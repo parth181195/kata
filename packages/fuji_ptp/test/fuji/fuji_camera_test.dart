@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kata/core/fuji/camera_preset.dart';
-import 'package:kata/core/fuji/fuji_camera.dart';
-import 'package:kata/core/fuji/fuji_props.dart';
-import 'package:kata/core/ptp/transport.dart';
+import 'package:fuji_ptp/src/fuji/camera_preset.dart';
+import 'package:fuji_ptp/src/fuji/fuji_camera.dart';
+import 'package:fuji_ptp/src/fuji/fuji_props.dart';
+import 'package:fuji_ptp/src/ptp/transport.dart';
 
 import 'fake_fuji_body.dart';
 

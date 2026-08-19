@@ -34,7 +34,7 @@ packages:
     source: hosted
     version: "1.1.2"
   collection:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: collection
       sha256: "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76"
@@ -42,7 +42,7 @@ packages:
     source: hosted
     version: "1.19.1"
   crypto:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
@@ -83,6 +83,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  fuji_ptp:
+    dependency: "direct main"
+    description:
+      path: "../packages/fuji_ptp"
+      relative: true
+    source: path
+    version: "0.1.0"
   leak_tracker:
     dependency: transitive
     description:
@@ -147,6 +154,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  ofr:
+    dependency: "direct main"
+    description:
+      path: "../packages/ofr"
+      relative: true
+    source: path
+    version: "0.1.0"
   path:
     dependency: transitive
     description:

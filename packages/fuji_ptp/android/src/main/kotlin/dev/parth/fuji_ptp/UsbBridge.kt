@@ -1,4 +1,4 @@
-package dev.parth.kata
+package dev.parth.fuji_ptp
 
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -30,7 +30,7 @@ import java.util.concurrent.Executors
 class UsbBridge(private val context: Context) : MethodChannel.MethodCallHandler {
     companion object {
         const val CHANNEL = "fuji/usb"
-        private const val ACTION_USB_PERMISSION = "dev.parth.kata.USB_PERMISSION"
+        private const val ACTION_USB_PERMISSION = "dev.parth.fuji_ptp.USB_PERMISSION"
     }
 
     private val usb: UsbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager

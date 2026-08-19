@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kata/core/ptp/binary.dart';
-import 'package:kata/core/ptp/codes.dart';
-import 'package:kata/core/ptp/container.dart';
-import 'package:kata/core/ptp/device_info.dart';
-import 'package:kata/core/ptp/transport.dart';
+import 'package:fuji_ptp/src/ptp/binary.dart';
+import 'package:fuji_ptp/src/ptp/codes.dart';
+import 'package:fuji_ptp/src/ptp/container.dart';
+import 'package:fuji_ptp/src/ptp/device_info.dart';
+import 'package:fuji_ptp/src/ptp/transport.dart';
 
 Uint8List bytes(List<int> l) => Uint8List.fromList(l);
 

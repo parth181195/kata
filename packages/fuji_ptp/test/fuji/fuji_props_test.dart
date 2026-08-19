@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kata/core/fuji/fuji_props.dart';
+import 'package:fuji_ptp/src/fuji/fuji_props.dart';
 
 void main() {
   test('film sim codes and mono set', () {

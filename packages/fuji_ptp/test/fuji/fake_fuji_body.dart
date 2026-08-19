@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:kata/core/ptp/binary.dart';
-import 'package:kata/core/ptp/codes.dart';
-import 'package:kata/core/ptp/container.dart';
-import 'package:kata/core/ptp/transport.dart';
+import 'package:fuji_ptp/src/ptp/binary.dart';
+import 'package:fuji_ptp/src/ptp/codes.dart';
+import 'package:fuji_ptp/src/ptp/container.dart';
+import 'package:fuji_ptp/src/ptp/transport.dart';
 
 /// Scripted Fujifilm body: answers PTP over a fake UsbLink. Models slots, props, session state.
 class FakeFujiBody implements UsbLink {

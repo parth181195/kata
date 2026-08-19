@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kata/core/fuji/fuji_props.dart';
-import 'package:kata/core/fuji/preset_codec.dart';
+import 'package:fuji_ptp/src/fuji/fuji_props.dart';
+import 'package:fuji_ptp/src/fuji/preset_codec.dart';
 
 Uint8List b(List<int> l) => Uint8List.fromList(l);
 

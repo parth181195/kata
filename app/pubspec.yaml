@@ -10,8 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
-  crypto: ^3.0.6
-  collection: ^1.19.1
+  fuji_ptp:
+    path: ../packages/fuji_ptp
+  ofr:
+    path: ../packages/ofr
 
 dev_dependencies:
   flutter_test:
