@@ -1,9 +1,9 @@
 # Kata API — operations
 
-Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public **`https://kata.parthjansari.dev/api/`** (nginx strips `/api`; `/` = landing page from `/opt/kata/web`, `/admin/` = admin SPA from `/opt/kata/admin`).
+Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public **`https://api.kata.parthjansari.dev`**; landing page `https://kata.parthjansari.dev` (static, `/opt/kata/web`); admin SPA `https://admin.kata.parthjansari.dev` (`/opt/kata/admin`).
 
 ## One-time setup (sudo/root on the VM)
-1. **DNS:** A record `kata.parthjansari.dev → YOUR.VM.IP`.
+1. **DNS:** A records `kata`, `api.kata`, `admin.kata` → `YOUR.VM.IP` (in the zone that `ns-cloud-e1..e4.googledomains.com` serve).
 2. **Postgres role + db**
    ```bash
    sudo -u postgres psql -c "create role kata with login password 'CHANGE_ME';"
@@ -27,7 +27,7 @@ Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot
    sudo cp /opt/kata/api/deploy/nginx-kata.conf /etc/nginx/sites-available/kata   # or scp from repo: backend/deploy/nginx-kata.conf
    sudo ln -s /etc/nginx/sites-available/kata /etc/nginx/sites-enabled/kata
    sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d kata.parthjansari.dev
+   sudo certbot --nginx -d kata.parthjansari.dev -d api.kata.parthjansari.dev -d admin.kata.parthjansari.dev
    ```
 5. `mkdir -p /opt/kata/web /opt/kata/admin` (placeholder `index.html` until the landing/admin ship).
 6. First deploy from the dev machine: `backend/deploy.sh` (builds, rsyncs `dist/ prisma/ package*.json ecosystem.config.js`, `npm ci --omit=dev`, `prisma migrate deploy`, pm2 start/reload, curls `/health`).

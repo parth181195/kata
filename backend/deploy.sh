@@ -20,4 +20,4 @@ ssh "$HOST" "source ~/.nvm/nvm.sh >/dev/null && cd $DIR \
   && pm2 save"
 
 sleep 2
-curl -fsS https://kata.parthjansari.dev/api/health && echo
+curl -fsS https://api.kata.parthjansari.dev/health && echo
