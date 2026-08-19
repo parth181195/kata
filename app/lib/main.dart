@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
-  runApp(const MainApp());
-}
+import 'features/debug/probe_screen.dart';
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+void main() => runApp(const ProviderScope(child: KataApp()));
 
+class KataApp extends StatelessWidget {
+  const KataApp({super.key});
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Kata',
+        theme: ThemeData(
+            brightness: Brightness.dark, colorSchemeSeed: Colors.white, useMaterial3: true, scaffoldBackgroundColor: Colors.black),
+        home: const ProbeScreen(),
+      );
 }
