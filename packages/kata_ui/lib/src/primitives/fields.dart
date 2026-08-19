@@ -99,9 +99,10 @@ class KataSegmented extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: () => onChanged(i),
-                child: Center(
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(labels[i].toUpperCase(), style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: i == index ? p.bg : p.dim)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Flexible(child: Text(labels[i].toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: i == index ? p.bg : p.dim))),
                     if (counts != null && counts![i] != null) ...[
                       const SizedBox(width: 6),
                       Text('${counts![i]}', style: KataType.monoStyle(size: 9.5, color: i == index ? p.bg : p.muted)),
