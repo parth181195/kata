@@ -54,7 +54,7 @@ async function uploadImages(bunny: HttpBunnyClient, recipeId: string, urls: stri
   return out;
 }
 
-async function cmdImport(file: string, withImages: boolean) {
+async function cmdImport(file: string, withImages: boolean, update: boolean) {
   const prisma = new PrismaClient();
   const bunny = new HttpBunnyClient();
   // urls.txt lines: `<url>` or `<url> | <name>` or `<url> | <name> | <sensor>`; `#` comments
@@ -72,7 +72,7 @@ async function cmdImport(file: string, withImages: boolean) {
     try {
       const r = parseFxwPost(await fetchHtml(url), url);
       if (!('error' in r)) {
-        if (nameOverride) r.ofr.name = nameOverride.slice(0, 25);
+        if (nameOverride) r.ofr.name = nameOverride.replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, '').slice(0, 25);
         if (sensorOverride && strList(r.ofr.sensors).length === 0) r.ofr.sensors = [sensorOverride];
       }
       if ('error' in r) {
@@ -88,9 +88,24 @@ async function cmdImport(file: string, withImages: boolean) {
       }
       const hash = ofrHash(r.ofr);
       const existing = await prisma.recipe.findUnique({ where: { hash } });
-      if (existing) {
+      if (existing && !update) {
         report.skipped.push({ url, reason: `duplicate of ${existing.id}` });
         console.log(`· ${url} — duplicate (${existing.name})`);
+        continue;
+      }
+      if (existing) {
+        const upd = await prisma.recipe.update({
+          where: { id: existing.id },
+          data: {
+            ofr: { ...r.ofr, hash },
+            name: (str(r.ofr.name) ?? existing.name).slice(0, 60),
+            sensors: strList(r.ofr.sensors),
+            sourceUrl: url,
+            sourceAttribution: str(r.ofr.source_attribution) ?? existing.sourceAttribution,
+          },
+        });
+        report.ok.push({ url, id: upd.id, name: upd.name, images: upd.imageUrls.length });
+        console.log(`↻ ${upd.name} (${upd.filmSim}) updated`);
         continue;
       }
       const filmSim = str(r.ofr.film_simulation) ?? 'Provia';
@@ -130,8 +145,8 @@ async function cmdImport(file: string, withImages: boolean) {
 async function main() {
   const [cmd, arg, ...flags] = process.argv.slice(2);
   if (cmd === 'scrape' && arg) return cmdScrape(arg);
-  if (cmd === 'import' && arg) return cmdImport(arg, flags.includes('--images'));
-  console.error('usage: seed scrape <url> | seed import <urls.txt> [--images]');
+  if (cmd === 'import' && arg) return cmdImport(arg, flags.includes('--images'), flags.includes('--update'));
+  console.error('usage: seed scrape <url> | seed import <urls.txt> [--images] [--update]');
   process.exit(1);
 }
 void main();

@@ -54,3 +54,15 @@ describe('Fuji X Weekly parser', () => {
     expect(parseFxwPost(html('Kodak Portra'), 'https://x/y')).toEqual({ error: 'film simulation not recognised' });
   });
 });
+
+describe('sensor detection', () => {
+  const mk = (tags: string) => `<html><body><h1 class="entry-title">Test Recipe</h1><div class="entry-content"><p>Provia<br>Dynamic Range: DR100<br>Highlight: 0</p></div><footer>${tags}</footer></body></html>`;
+  it('does not let X-Trans I match X-Trans IV', () => {
+    const r = parseFxwPost(mk('<a rel="tag" href="#">Fujifilm X-T4</a><a rel="tag" href="#">X-Trans IV</a>'), 'https://x/a');
+    if ('error' in r) throw new Error(r.error);
+    expect(r.ofr.sensors).toEqual(['X-Trans IV']);
+    const r2 = parseFxwPost(mk('<a rel="tag" href="#">X-Trans I</a><a rel="tag" href="#">Fujifilm X-Pro1</a>'), 'https://x/b');
+    if ('error' in r2) throw new Error(r2.error);
+    expect(r2.ofr.sensors).toEqual(['X-Trans I']);
+  });
+});

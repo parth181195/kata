@@ -90,18 +90,20 @@ function parseWhiteBalance(v: string, out: OfrDoc) {
   const m = mode.toLowerCase();
   if (/white priority/.test(m)) out.white_balance = 'Auto (white priority)';
   else if (/ambience|ambiance/.test(m)) out.white_balance = 'Auto (ambience priority)';
-  else if (/^auto/.test(m)) out.white_balance = 'Auto';
-  else if (/fluorescent\s*(\d)/.test(m)) out.white_balance = `Fluorescent ${m.match(/fluorescent\s*(\d)/)![1]}`;
+  else if (/^auto|^awb/.test(m)) out.white_balance = 'Auto';
+  else if (/fluorescent[^0-9]{0,16}(\d)/.test(m)) out.white_balance = `Fluorescent ${m.match(/fluorescent[^0-9]{0,16}(\d)/)![1]}`;
+  else if (/fluorescent/.test(m)) out.white_balance = 'Fluorescent 1';
   else if (/incandescent|tungsten/.test(m)) out.white_balance = 'Incandescent';
   else if (/shade/.test(m)) out.white_balance = 'Shade';
   else if (/daylight|sunlight|sunny/.test(m)) out.white_balance = 'Daylight';
   else if (/underwater/.test(m)) out.white_balance = 'Underwater';
   else if (/custom\s*(\d)/.test(m)) out.white_balance = `Custom ${m.match(/custom\s*(\d)/)![1]}`;
+  else if (/custom|manual|preset/.test(m)) out.white_balance = 'Custom 1';
   else out.white_balance = cap(mode);
 }
 
 function parseGrain(v: string, out: OfrDoc) {
-  const m = v.toLowerCase();
+  const m = v.split(/[;(]|\bor\b/i)[0].toLowerCase();
   if (/off/.test(m)) {
     out.grain_roughness = 'Off';
     return;
@@ -110,7 +112,8 @@ function parseGrain(v: string, out: OfrDoc) {
   out.grain_size = /large/.test(m) ? 'Large' : 'Small';
 }
 
-const effect = (v: string) => (/strong/i.test(v) ? 'Strong' : /weak/i.test(v) ? 'Weak' : 'Off');
+const firstOpt = (v: string) => v.split(/[;(/]| or /i)[0].trim();
+const effect = (v: string) => (/strong/i.test(firstOpt(v)) ? 'Strong' : /weak/i.test(firstOpt(v)) ? 'Weak' : 'Off');
 
 /** Parses one Fuji X Weekly recipe post into an OFR document. */
 export function parseFxwPost(html: string, url: string): ParseResult {
@@ -128,8 +131,9 @@ export function parseFxwPost(html: string, url: string): ParseResult {
       if (t) lines.push(t);
     }
   });
-  const drIdx = lines.findIndex((l) => /^dynamic range\s*:/i.test(l));
-  if (drIdx < 0) return { error: 'no "Dynamic Range:" line — not a recipe post?' };
+  const anchorRe = /^(dynamic range|d-?range priority|grain effect|highlight|white balance)\s*:/i;
+  const drIdx = lines.findIndex((l) => anchorRe.test(l));
+  if (drIdx < 0) return { error: 'no recipe lines (Dynamic Range / D-Range Priority / Grain / Highlight) — not a recipe post?' };
   // Anchor the recipe block: an explicit "Film Simulation:" line, else a bare film-sim line shortly before "Dynamic Range:"
   const explicitIdx = lines.findIndex((l, i) => i <= drIdx && /^film sim(ulation)?\s*:/i.test(l));
   let recipeStart = explicitIdx >= 0 ? explicitIdx : -1;
@@ -169,9 +173,11 @@ export function parseFxwPost(html: string, url: string): ParseResult {
         out.dynamic_range = /AUTO/.test(d) ? 'DR-Auto' : /400/.test(d) ? 'DR400' : /200/.test(d) ? 'DR200' : 'DR100';
         break;
       }
-      case /^d(ynamic)? ?range priority$/.test(key):
-        out.d_range_priority = /strong/i.test(val) ? 'Strong' : /weak/i.test(val) ? 'Weak' : /auto/i.test(val) ? 'Auto' : 'Off';
+      case /^d-?(ynamic)? ?range priority$/.test(key): {
+        const v0 = firstOpt(val);
+        out.d_range_priority = /strong/i.test(v0) ? 'Strong' : /weak/i.test(v0) ? 'Weak' : /auto/i.test(v0) ? 'Auto' : 'Off';
         break;
+      }
       case /^highlight/.test(key):
         out.highlight = parseNum(val);
         break;
@@ -273,7 +279,7 @@ export function parseFxwPost(html: string, url: string): ParseResult {
   const tagText = [title, ...$('a[rel="tag"], a[rel="category tag"]').map((_, a) => $(a).text()).get()].join(' ');
   const sensors = new Set<string>();
   for (const [re, sensor] of MODEL_SENSOR) if (re.test(tagText)) sensors.add(sensor);
-  for (const s of OfrEnums.sensors) if (new RegExp(s.replace('-', '-?'), 'i').test(tagText)) sensors.add(s);
+  for (const s of OfrEnums.sensors) if (new RegExp(`\\b${s.replace('-', '-?')}\\b(?!I)`, 'i').test(tagText)) sensors.add(s);
   out.sensors = [...sensors];
   Object.assign(out, extra);
 
