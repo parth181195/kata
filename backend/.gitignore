@@ -3,3 +3,6 @@ dist/
 node_modules/
 uploads/
 coverage/
+
+# seeder run output
+backend/seed/
