@@ -1,9 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
+import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { GoogleVerifier } from '../../src/auth/google-verifier';
+import { BunnyClient } from '../../src/images/bunny.client';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { FakeBunnyClient } from './fake-bunny';
 import { FakeGoogleVerifier } from './fake-google';
@@ -21,6 +22,8 @@ export async function createTestApp() {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(GoogleVerifier)
     .useValue(google)
+    .overrideProvider(BunnyClient)
+    .useValue(bunny)
     .compile();
   const app: INestApplication = moduleRef.createNestApplication();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
