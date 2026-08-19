@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -138,5 +139,141 @@ export class RecipesService {
       },
     });
     return toRecipeDto(r);
+  }
+
+  // ---------------------------------------------------------------- user side (Stage 2)
+
+  /** Publish: public immediately (hidden=false), unreviewed, owned by the user. */
+  async createByUser(
+    userId: string,
+    input: { ofr: OfrDoc; imageUrls?: string[] },
+  ): Promise<RecipeDto> {
+    return this.createCurated({
+      ofr: input.ofr,
+      imageUrls: input.imageUrls,
+      reviewed: false,
+      hidden: false,
+      authorId: userId,
+    });
+  }
+
+  /** Owner edits the OFR document; derived columns + hash re-computed; goes back to the review queue. */
+  async updateOwn(
+    id: string,
+    userId: string,
+    ofrIn: OfrDoc,
+  ): Promise<RecipeDto> {
+    const existing = await this.prisma.recipe.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException();
+    if (existing.authorId !== userId) throw new ForbiddenException();
+    const issues = validateOfr(ofrIn);
+    if (hasErrors(issues))
+      throw new BadRequestException({ message: 'Invalid OFR', issues });
+    const hash = ofrHash(ofrIn);
+    if (hash !== existing.hash) {
+      const dup = await this.prisma.recipe.findUnique({ where: { hash } });
+      if (dup)
+        throw new ConflictException({
+          message: 'Recipe with this hash already exists',
+          id: dup.id,
+        });
+    }
+    const ofr: OfrDoc = { ...ofrIn, v: 1, hash };
+    const filmSim = str(ofr.film_simulation) ?? 'Provia';
+    const r = await this.prisma.recipe.update({
+      where: { id },
+      data: {
+        hash,
+        ofr: ofr as Prisma.InputJsonValue,
+        name: (str(ofr.name) ?? 'Untitled').slice(0, 60),
+        filmSim,
+        isMono: isMonoFilmSim(filmSim),
+        sensors: strList(ofr.sensors),
+        sourceUrl: str(ofr.source_url) ?? null,
+        sourceAttribution: str(ofr.source_attribution) ?? null,
+        reviewed: false,
+      },
+    });
+    return toRecipeDto(r);
+  }
+
+  async deleteOwn(id: string, userId: string): Promise<void> {
+    const existing = await this.prisma.recipe.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException();
+    if (existing.authorId !== userId) throw new ForbiddenException();
+    await this.prisma.recipe.delete({ where: { id } });
+  }
+
+  async listMine(
+    userId: string,
+    cursor: string | undefined,
+    limit: number,
+  ): Promise<{ items: RecipeDto[]; nextCursor: string | null }> {
+    const where: Prisma.RecipeWhereInput = { authorId: userId };
+    if (cursor) {
+      const [a, id] = decodeCursor(cursor);
+      const d = new Date(a);
+      where.OR = [{ createdAt: { lt: d } }, { createdAt: d, id: { lt: id } }];
+    }
+    const rows = await this.prisma.recipe.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map(toRecipeDto),
+      nextCursor:
+        rows.length > limit && last
+          ? encodeCursor([last.createdAt.toISOString(), last.id])
+          : null,
+    };
+  }
+
+  async assertOwner(id: string, userId: string): Promise<void> {
+    const r = await this.prisma.recipe.findUnique({
+      where: { id },
+      select: { authorId: true, imageUrls: true },
+    });
+    if (!r) throw new NotFoundException();
+    if (r.authorId !== userId) throw new ForbiddenException();
+    if (r.imageUrls.length >= 3)
+      throw new BadRequestException('Max 3 images per recipe');
+  }
+
+  // ---------------------------------------------------------------- favourites
+  async setFavourite(
+    userId: string,
+    recipeId: string,
+    on: boolean,
+  ): Promise<void> {
+    const r = await this.prisma.recipe.findUnique({ where: { id: recipeId } });
+    if (!r) throw new NotFoundException();
+    await this.prisma.$transaction(async (tx) => {
+      if (on) {
+        await tx.favourite.upsert({
+          where: { userId_recipeId: { userId, recipeId } },
+          create: { userId, recipeId },
+          update: {},
+        });
+      } else {
+        await tx.favourite.deleteMany({ where: { userId, recipeId } });
+      }
+      const n = await tx.favourite.count({ where: { recipeId } });
+      await tx.recipe.update({
+        where: { id: recipeId },
+        data: { favouritesCount: n },
+      });
+    });
+  }
+
+  async favouriteIds(userId: string): Promise<string[]> {
+    const rows = await this.prisma.favourite.findMany({
+      where: { userId },
+      select: { recipeId: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((f) => f.recipeId);
   }
 }
