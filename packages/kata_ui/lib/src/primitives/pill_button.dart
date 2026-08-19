@@ -55,7 +55,7 @@ class KataPillButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (leading != null) ...[leading!, const SizedBox(width: 12)],
-        Text(display ? label.toUpperCase() : label, style: style),
+        Flexible(child: Text(display ? label.toUpperCase() : label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style)),
       ],
     );
     return Material(
