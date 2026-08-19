@@ -33,3 +33,4 @@ web/admin/dist/
 
 # seeder run output
 backend/seed/
+backend/data/*.bak
