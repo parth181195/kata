@@ -22,6 +22,16 @@ void main() {
     expect(causes.single.headline, contains('D-Range Priority'));
   });
 
+  test('a body that hasn\'t got the property is not told to switch HDR off', () {
+    final causes = explainSkips(
+      [0xD190, 0xD19D, 0xD1A2],
+      preset: _cc,
+      reasons: {for (final c in [0xD190, 0xD19D, 0xD1A2]) c: Resp.devicePropNotSupported},
+    );
+    expect(causes.single.headline, contains("doesn't store"));
+    expect(causes.single.codes, [0xD190, 0xD19D, 0xD1A2]);
+  });
+
   test('the tone group without clarity reads as D-Range Priority', () {
     final causes = explainSkips([0xD19D, 0xD19E], preset: _cc);
     expect(causes.single.headline, startsWith('D-Range Priority'));

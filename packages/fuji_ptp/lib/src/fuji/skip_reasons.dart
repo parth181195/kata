@@ -45,11 +45,13 @@ List<SkipCause> explainSkips(List<int> skipped, {required CameraPreset preset, M
   // 1. The tone/DR group. D191 is passthrough — its bytes came off this very slot seconds
   // earlier — so a rejection there can't be a value Kata invented: the body is refusing the
   // group right now. Two or more of the group is the same story.
-  final toneHit = skipped.where(_toneLockGroup.contains).toList();
+  // ...unless the body simply hasn't got the property: "turn HDR off" is nonsense then.
+  bool locked(int code) => reasons[code] != Resp.devicePropNotSupported && reasons[code] != Resp.operationNotSupported;
+  final toneHit = skipped.where((c) => _toneLockGroup.contains(c) && locked(c)).toList();
   if (toneHit.contains(0xD191) || toneHit.length >= 2) {
     final clarity = toneHit.contains(0xD1A2);
     final resp = reasons[toneHit.first];
-    take(_toneLockGroup.contains);
+    take(toneHit.contains);
     out.add(SkipCause(
       headline: clarity ? 'HDR is on (or D-Range Priority)' : 'D-Range Priority is on (or HDR)',
       detail: clarity
