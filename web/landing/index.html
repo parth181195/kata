@@ -26,6 +26,7 @@
       <a class="mono" href="#code">Kata Code</a>
       <a class="mono" href="#cameras">Cameras</a>
       <a class="mono" href="#free">What's included</a>
+      <a class="mono" href="#faq">FAQ</a>
       <a class="btn sm" href="#get">Get Kata</a>
     </nav>
   </div>
@@ -219,6 +220,52 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
   </div>
 </section>
 
+
+<section id="faq" class="section wrap" aria-labelledby="faq-h">
+  <div class="head">
+    <h2 id="faq-h">Questions</h2>
+    <p>The short honest answers. Anything else — the source is open, read it.</p>
+  </div>
+  <div class="faq">
+    <details>
+      <summary>Does this really write into the camera, or is it a cheat sheet?</summary>
+      <p>It really writes. Kata speaks the same USB protocol Fujifilm's X&nbsp;RAW&nbsp;Studio uses and sets all the custom-slot settings (film sim, DR, tones, WB shift, grain, colour chrome…) in one pass. Set the camera to <span class="mono" style="letter-spacing:.06em">USB RAW CONV./BACKUP RESTORE</span>, plug in USB-C, tap write, flick the dial once — the recipe is in the slot.</p>
+    </details>
+    <details>
+      <summary>Which cameras work?</summary>
+      <p>Verified end-to-end on the X-S20. All X-Processor 5 bodies (X-T5, X-H2/H2S, X-T50, X-M5, X-E5, X100VI, recent GFX) expose the same protocol and are expected to work. Older bodies are probed when you plug in — if the camera doesn't offer the slot properties, Kata tells you instead of pretending. Full list under <a href="#cameras" style="text-decoration:underline">Bodies &amp; slots</a>.</p>
+    </details>
+    <details>
+      <summary>Do I need an account?</summary>
+      <p>Browsing needs nothing. Google sign-in exists for one reason: your saved katas and your published recipes follow you across devices. No password, no email list, and the <a href="privacy.html" style="text-decoration:underline">privacy page</a> lists everything stored.</p>
+    </details>
+    <details>
+      <summary>What's a Kata Code?</summary>
+      <p>A QR whose payload <em>is</em> the recipe — not a link to a server. Screenshot a card, print it, photograph it off a friend's phone: scanning it in Kata rebuilds the full recipe offline. Scan it with a normal QR app and you just see readable text starting with <span class="mono" style="letter-spacing:.02em;text-transform:none">kata1:</span>.</p>
+    </details>
+    <details>
+      <summary>Where do the recipes come from?</summary>
+      <p>The seed library is 340 recipes from <a href="https://fujixweekly.com" style="text-decoration:underline">Fuji X Weekly</a>, imported with attribution, a link back to every original post, and sample photos used with permission. Community publishing adds more — everything is public immediately and curators review for the verified badge.</p>
+    </details>
+    <details>
+      <summary>Does the camera store the recipe name?</summary>
+      <p>Mostly no. Bodies that support preset names keep at most 25 characters; some (the X-S20 among them) store no name at all — the slot just shows its settings. The name lives in Kata and on the cards you share.</p>
+    </details>
+    <details>
+      <summary>Can it damage my camera?</summary>
+      <p>Kata only uses Fujifilm's own backup/restore surface — the same one X&nbsp;RAW&nbsp;Studio and the FUJIFILM&nbsp;X&nbsp;App use, writing the same settings you'd change by hand in the menus. It never touches firmware. Worst case observed: the camera ignores a value it doesn't support — which Kata reports and skips.</p>
+    </details>
+    <details>
+      <summary>iPhone? Desktop?</summary>
+      <p>Android first, because it has proper USB host APIs. A desktop version (Linux/macOS) is planned on the same engine. iOS can't talk PTP to the camera the way we need without MFi hoops — an iPhone build would be browse-and-share only, so it waits.</p>
+    </details>
+    <details>
+      <summary>Is it really free? What's the catch?</summary>
+      <p>Free, open source (MIT), no tiers, no ads, no analytics. It exists because retyping 22 menu items per recipe is miserable. The catch is that it's one person's project — report bugs and they get fixed.</p>
+    </details>
+  </div>
+</section>
+
 <section id="get" class="get wrap dots" aria-labelledby="get-h">
   <span class="mark lg" aria-hidden="true">型</span>
   <h2 id="get-h">The form you<br>fall back on</h2>
@@ -236,7 +283,7 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
   <div class="wrap">
     <div class="brand"><span class="wordmark" style="font-size:15px">Kata 型</span><span class="mono" style="font-size:10.5px;letter-spacing:.02em;text-transform:none">© 2026 Parth Jansari</span></div>
     <nav class="links" aria-label="Footer">
-      <a href="https://github.com/gosku/open-fuji-recipe">OFR SPEC</a><a href="#cameras">SUPPORTED BODIES</a><a href="#free">WHAT'S INCLUDED</a><a href="privacy.html">PRIVACY</a>
+      <a href="https://github.com/gosku/open-fuji-recipe">OFR SPEC</a><a href="#cameras">SUPPORTED BODIES</a><a href="#free">WHAT'S INCLUDED</a><a href="#faq">FAQ</a><a href="privacy.html">PRIVACY</a>
     </nav>
     <span class="legal">Not affiliated with<br>Fujifilm Corporation</span>
   </div>

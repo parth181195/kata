@@ -196,3 +196,15 @@ p { margin: 0; }
   .legal { text-align: left; }
   .recipe-card { width: 100%; }
 }
+
+/* FAQ */
+.faq { display: flex; flex-direction: column; }
+.faq details { border-top: 1px solid var(--hair); }
+.faq details:last-child { border-bottom: 1px solid var(--hair); }
+.faq summary { list-style: none; cursor: pointer; padding: 18px 0; display: flex; align-items: baseline; justify-content: space-between; gap: 18px; font: 600 14.5px/1.4 var(--body); color: var(--fg); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 400 18px/1 var(--mono); color: var(--muted); flex: none; transition: transform .15s; }
+.faq details[open] summary::after { content: "−"; }
+.faq details > p { margin: 0; padding: 0 0 20px; font: 400 13px/1.65 var(--body); color: var(--muted); max-width: 720px; }
+.faq details > p a { color: var(--dim); text-underline-offset: 3px; }
+.faq details > p em { font-style: normal; color: var(--dim); }
