@@ -8,6 +8,7 @@ import '../core/fuji/camera_service.dart';
 import '../data/recipe.dart';
 import '../features/camera/camera_art.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
+import 'publish_from_camera.dart';
 import 'slot_backups.dart';
 import 'slot_identity.dart';
 
@@ -173,7 +174,9 @@ class _SlotTile extends ConsumerWidget {
     final empty = cur == null;
     // Match the slot back to a library recipe so the tile renders like its card.
     final ident = cur == null ? null : identifySlot(ref, model, slot, cur);
-    final img = ident == null || ident.imageUrls.isEmpty ? null : recipeImage(ident.imageUrls.first);
+    final shown = ident?.display;
+    final edited = ident?.edited ?? false;
+    final img = shown == null || shown.imageUrls.isEmpty || edited ? null : recipeImage(shown.imageUrls.first);
     final fgOn = img != null ? Colors.white : p.fg;
     final mutedOn = img != null ? Colors.white70 : p.muted;
     final dimOn = img != null ? const Color(0xB3FFFFFF) : p.dim;
@@ -211,7 +214,9 @@ class _SlotTile extends ConsumerWidget {
                     Text('QUEUED', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: fgOn, letterSpacing: 0.14))
                   else if (hover)
                     Text(empty ? 'DROP TO FILL' : 'DROP TO REPLACE', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: fgOn, letterSpacing: 0.14))
-                  else if (ident?.verified == true)
+                  else if (edited)
+                    Text('EDITED ON CAMERA', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.fg, letterSpacing: 0.12))
+                  else if (ident?.recipe?.verified == true)
                     Container(
                       width: 16,
                       height: 16,
@@ -224,7 +229,7 @@ class _SlotTile extends ConsumerWidget {
                   Text(queued!.name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: fgOn, letterSpacing: 0)),
                   const SizedBox(height: 4),
                   Row(children: [
-                    Expanded(child: Text('WAS ${empty ? 'EMPTY' : (ident?.name ?? (cur.name.isEmpty ? filmName : cur.name))}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: mutedOn))),
+                    Expanded(child: Text('WAS ${empty ? 'EMPTY' : (ident?.recipe?.name ?? (cur.name.isEmpty ? filmName : cur.name))}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: mutedOn))),
                     InkWell(onTap: () => ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(slot)), child: Text('REVERT ↺', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: dimOn))),
                   ]),
                 ] else if (empty) ...[
@@ -232,9 +237,21 @@ class _SlotTile extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text('FACTORY DEFAULT · DROP TO FILL', style: KataType.monoStyle(size: 8.5, color: p.muted)),
                 ] else ...[
-                  Text((ident?.name ?? (cur.name.isEmpty ? filmName! : cur.name)).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: fgOn, letterSpacing: 0)),
+                  Text((ident?.recipe?.name ?? (cur.name.isEmpty ? filmName! : cur.name)).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: fgOn, letterSpacing: 0)),
                   const SizedBox(height: 4),
-                  Text('$filmName${cur.dynamicRange != null ? ' · ${cur.dynamicRange == kDrAuto ? 'DR AUTO' : 'DR${cur.dynamicRange}'}' : ''}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: dimOn)),
+                  Text(
+                    edited ? 'FROM ${ident!.origin!.name.toUpperCase()} · $filmName'.toUpperCase() : '$filmName${cur.dynamicRange != null ? ' · ${cur.dynamicRange == kDrAuto ? 'DR AUTO' : 'DR${cur.dynamicRange}'}' : ''}'.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KataType.monoStyle(size: 9, color: dimOn),
+                  ),
+                  const SizedBox(height: 8),
+                  // The slot may hold something better than what we wrote: let it become a kata.
+                  InkWell(
+                    onTap: () => showPublishFromCamera(context, ref, slot: slot),
+                    child: Text(edited ? 'KEEP THIS VERSION ↗' : 'SAVE FROM CAMERA ↗',
+                        style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: img != null ? Colors.white : p.dim, letterSpacing: 0.14)),
+                  ),
                 ],
               ]),
             ),
@@ -263,8 +280,11 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
     ),
   );
   if (ok != true) return;
-  // safety net: snapshot the slots as they are before touching anything
-  final backup = await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: true);
+  // Safety net: re-read first — slots edited on the camera since we last looked must be in
+  // the backup, or "Undo" would restore a state that never existed and wipe those edits.
+  await ref.read(cameraServiceProvider.notifier).refreshSlots();
+  final fresh = ref.read(cameraServiceProvider);
+  final backup = fresh is CameraReady ? await ref.read(slotBackupsProvider.notifier).takeBackup(fresh, auto: true) : null;
   if (!context.mounted) return;
   // 1c: writing progress -> done, with skipped fields. Not dismissible mid-write.
   final action = await showDialog<String>(

@@ -68,16 +68,49 @@ class SlotLinkStore extends StateNotifier<Map<String, SlotLink>> {
   }
 }
 
+/// How well a slot matches something we know.
+enum SlotMatch {
+  /// Settings are byte-for-byte a library recipe.
+  exact,
+
+  /// Kata wrote a known recipe here, but the settings have changed since — the user
+  /// refined it on the camera while shooting.
+  editedOnCamera,
+
+  /// Nothing in the library matches and we never wrote here.
+  unknown,
+}
+
+class SlotIdentity {
+  const SlotIdentity({required this.match, this.recipe, this.origin});
+
+  /// The library recipe this slot *is* (only when [match] is exact).
+  final Recipe? recipe;
+
+  /// What Kata last wrote here, when the slot has since been edited on the camera.
+  final Recipe? origin;
+  final SlotMatch match;
+
+  /// What to render on the tile: the exact recipe, else the recipe it came from.
+  Recipe? get display => recipe ?? origin;
+  bool get edited => match == SlotMatch.editedOnCamera;
+}
+
 /// Which library recipe lives in this slot, if we can tell. Write log first (exact),
-/// then the settings index (covers writes from other devices). Null = unknown/custom.
-Recipe? identifySlot(WidgetRef ref, String model, int slot, CameraPreset preset) {
+/// then the settings index (covers writes from other devices, e.g. the phone). A write-log
+/// entry whose hash no longer matches means the slot was edited on the camera after we
+/// wrote it — worth saying out loud rather than silently showing a generic tile.
+SlotIdentity identifySlot(WidgetRef ref, String model, int slot, CameraPreset preset) {
   final repo = ref.watch(recipeRepositoryProvider);
   final h = slotSettingsHash(model, preset);
   final link = ref.watch(slotLinksProvider)['$model|$slot'];
-  if (link != null && link.hash == h) {
-    final r = repo.byId(link.recipeId);
-    if (r != null) return r;
+  final linked = link == null ? null : repo.byId(link.recipeId);
+  if (link != null && link.hash == h && linked != null) {
+    return SlotIdentity(match: SlotMatch.exact, recipe: linked);
   }
   final id = ref.watch(settingsIndexProvider)[h];
-  return id == null ? null : repo.byId(id);
+  final byHash = id == null ? null : repo.byId(id);
+  if (byHash != null) return SlotIdentity(match: SlotMatch.exact, recipe: byHash);
+  if (linked != null) return SlotIdentity(match: SlotMatch.editedOnCamera, origin: linked);
+  return const SlotIdentity(match: SlotMatch.unknown);
 }

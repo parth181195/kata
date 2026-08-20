@@ -82,9 +82,10 @@ class _DockSlot extends ConsumerWidget {
     final cur = preset;
     final film = cur == null ? null : (OfrEnums.codeToFilmSim[cur.filmSim] ?? '—');
     final ident = cur == null ? null : identifySlot(ref, model, slot, cur);
-    final shown = queued ?? ident;
+    final edited = ident?.edited ?? false;
+    final shown = queued ?? (edited ? null : ident?.recipe);
     final thumb = shown == null || shown.imageUrls.isEmpty ? null : recipeImage(shown.imageUrls.first);
-    final curName = cur == null ? null : (ident?.name ?? (cur.name.isEmpty ? film : cur.name));
+    final curName = cur == null ? null : (ident?.recipe?.name ?? (cur.name.isEmpty ? film : cur.name));
     return DragTarget<Recipe>(
       onAcceptWithDetails: (d) => ref.read(writeQueueProvider.notifier).update((q) => {...q, slot: d.data}),
       builder: (context, cand, _) {
@@ -114,7 +115,9 @@ class _DockSlot extends ConsumerWidget {
                       const Spacer(),
                       if (queued != null)
                         Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: p.fg))
-                      else if (ident?.verified == true)
+                      else if (edited)
+                        Tooltip(message: 'Edited on the camera since Kata wrote ${ident!.origin!.name}', child: Text('✎', style: KataType.monoStyle(size: 9, weight: FontWeight.w600, color: p.fg)))
+                      else if (ident?.recipe?.verified == true)
                         Text('✓', style: KataType.monoStyle(size: 9, weight: FontWeight.w600, color: p.dim)),
                     ]),
                     const SizedBox(height: 4),
