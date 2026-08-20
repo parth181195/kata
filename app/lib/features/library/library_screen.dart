@@ -60,7 +60,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
                 Expanded(child: Text('KATA 型', style: KataType.displayStyle(size: 24, weight: FontWeight.w900, color: p.fg, letterSpacing: 0.05))),
-                _LayoutToggle(layout: layout, onTap: () => ref.read(libraryLayoutProvider.notifier).cycle()),
+                _LayoutToggle(layout: layout, onChanged: (l) => ref.read(libraryLayoutProvider.notifier).set(l)),
                 const SizedBox(width: 8),
                 Material(
                   color: Colors.transparent,
@@ -165,7 +165,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 key: const ValueKey('library-grid'),
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.78),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.82),
                                 itemCount: recipes.length,
                                 itemBuilder: (_, i) {
                                   final r = recipes[i];
@@ -183,7 +183,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                   final r = recipes[i];
                                   final card = RecipeCard(
                                     recipe: r,
-                                    hero: layout == LibraryLayout.hero && i == 0,
+                                    hero: layout == LibraryLayout.hero, // 6a: every card full-bleed
                                     favourite: lib.favourites.contains(r.id),
                                     onTap: () => context.push('/recipe/${r.id}'),
                                     onFavourite: () => lib.toggleFavourite(r.id),
@@ -200,60 +200,46 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 }
 
-/// Cycles HERO → LIST → GRID; glyph drawn with hairlines like the bottom nav.
+/// Two-segment icon pill per design 6a: hero rect · 2×2 grid; active segment is filled white.
 class _LayoutToggle extends StatelessWidget {
-  const _LayoutToggle({required this.layout, required this.onTap});
+  const _LayoutToggle({required this.layout, required this.onChanged});
   final LibraryLayout layout;
-  final VoidCallback onTap;
+  final ValueChanged<LibraryLayout> onChanged;
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    return Material(
-      color: Colors.transparent,
-      shape: StadiumBorder(side: BorderSide(color: p.hairline)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: const ValueKey('layout-toggle'),
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            CustomPaint(size: const Size(14, 12), painter: _LayoutGlyph(layout, p.dim)),
-            const SizedBox(width: 7),
-            Text(layout.label, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: p.dim)),
-          ]),
+    Widget seg(LibraryLayout l, Widget glyph) {
+      final on = layout == l;
+      return Material(
+        key: ValueKey('layout-${l.name}'),
+        color: on ? p.fg : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => onChanged(l),
+          child: SizedBox(width: 30, height: 28, child: Center(child: glyph)),
         ),
-      ),
+      );
+    }
+
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(border: Border.all(color: p.hairline), borderRadius: BorderRadius.circular(18)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        seg(LibraryLayout.hero, Container(width: 13, height: 10, decoration: BoxDecoration(border: Border.all(color: layout == LibraryLayout.hero ? p.bg : p.muted, width: 1.5), borderRadius: BorderRadius.circular(2)))),
+        const SizedBox(width: 2),
+        seg(
+          LibraryLayout.grid,
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: GridView.count(crossAxisCount: 2, mainAxisSpacing: 2, crossAxisSpacing: 2, physics: const NeverScrollableScrollPhysics(), children: [
+              for (var i = 0; i < 4; i++) ColoredBox(color: layout == LibraryLayout.grid ? p.bg : p.muted),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
-}
-
-class _LayoutGlyph extends CustomPainter {
-  _LayoutGlyph(this.layout, this.color);
-  final LibraryLayout layout;
-  final Color color;
-  @override
-  void paint(Canvas c, Size s) {
-    final st = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 1.5;
-    const r = Radius.circular(1.5);
-    switch (layout) {
-      case LibraryLayout.hero:
-        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0.75, 0.75, s.width - 1.5, s.height * 0.55), r), st);
-        c.drawLine(Offset(0.75, s.height - 0.75), Offset(s.width - 0.75, s.height - 0.75), st);
-      case LibraryLayout.list:
-        for (var i = 0; i < 3; i++) {
-          final y = 0.75 + i * (s.height - 1.5) / 2;
-          c.drawLine(Offset(0.75, y), Offset(s.width - 0.75, y), st);
-        }
-      case LibraryLayout.grid:
-        final w = (s.width - 1.5 - 3) / 2, h = (s.height - 1.5 - 3) / 2;
-        for (final (x, y) in [(0.0, 0.0), (w + 3, 0.0), (0.0, h + 3), (w + 3, h + 3)]) {
-          c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0.75 + x, 0.75 + y, w, h), r), st);
-        }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_LayoutGlyph o) => o.layout != layout || o.color != color;
 }

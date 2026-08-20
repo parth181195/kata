@@ -1,11 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// How library cards are laid out: hero = big first card + rows (design default), list = rows only, grid = 2-up photo tiles.
-enum LibraryLayout { hero, list, grid }
+/// How library cards are laid out (design 6e): hero = all-hero feed (default), grid = 2-up photo tiles.
+/// Compact rows live in Mine, where names matter more than looks.
+enum LibraryLayout { hero, grid }
 
 extension LibraryLayoutX on LibraryLayout {
-  String get label => switch (this) { LibraryLayout.hero => 'HERO', LibraryLayout.list => 'LIST', LibraryLayout.grid => 'GRID' };
+  String get label => switch (this) { LibraryLayout.hero => 'HERO', LibraryLayout.grid => 'GRID' };
   LibraryLayout get next => LibraryLayout.values[(index + 1) % LibraryLayout.values.length];
 }
 
