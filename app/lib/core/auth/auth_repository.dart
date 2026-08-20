@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../net/api_client.dart';
 import '../net/token_store.dart';
+import 'desktop_google_auth.dart';
 import 'google_id_token.dart';
 
 class AppUser {
@@ -70,7 +73,13 @@ class AuthRepository {
   }
 }
 
-final googleIdTokenProvider = Provider<GoogleIdTokenProvider>((_) => GoogleSignInIdTokenProvider());
+/// Android uses the platform Google Sign-In; desktop uses the loopback OAuth flow.
+final googleIdTokenProvider = Provider<GoogleIdTokenProvider>((_) {
+  if (!kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) {
+    return DesktopGoogleIdTokenProvider();
+  }
+  return GoogleSignInIdTokenProvider();
+});
 final authRepositoryProvider = Provider<AuthRepository>(
     (ref) => AuthRepository(api: ref.watch(apiClientProvider), tokens: ref.watch(tokenStoreProvider), google: ref.watch(googleIdTokenProvider)));
 
