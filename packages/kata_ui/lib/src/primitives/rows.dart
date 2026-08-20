@@ -23,7 +23,7 @@ class KataSectionHeader extends StatelessWidget {
 
 /// List row: title (+ optional sub), trailing value in mono, hairline below.
 class KataListRow extends StatelessWidget {
-  const KataListRow({super.key, required this.title, this.sub, this.value, this.onTap, this.onLongPress, this.trailing, this.enabled = true, this.contentInset = 0, this.selected = false});
+  const KataListRow({super.key, required this.title, this.sub, this.value, this.onTap, this.onLongPress, this.trailing, this.enabled = true, this.contentInset = 0, this.selected = false, this.inkRadius = 12});
   final String title;
   final String? sub;
   final String? value;
@@ -34,6 +34,10 @@ class KataListRow extends StatelessWidget {
   /// Picked, in a list you choose from: the text brightens and a tick sits at the very end
   /// of the line. Use this instead of passing a tick through [value], which floats mid-row.
   final bool selected;
+
+  /// Corner radius of the pressed/hover highlight. Rounded suits an inset card-like row;
+  /// pass 0 for a full-bleed list, where rounded corners float oddly against square rows.
+  final double inkRadius;
 
   /// Pads the text *inside* the highlight. Zero on a phone, where the page's own margin does
   /// that job; on a wide row the label would otherwise sit on the highlight's edge.
@@ -52,7 +56,7 @@ class KataListRow extends StatelessWidget {
           Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 13, weight: FontWeight.w600, color: enabled ? p.fg : p.muted, height: 1.2)),
           if (sub != null) ...[
             const SizedBox(height: 3),
-            Text(sub!, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 11.5, color: selected ? p.dim : p.muted, height: 1.3)),
+            Text(sub!, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 11.5, color: selected ? p.fg : p.muted, height: 1.3)),
           ],
         ]),
       ),
@@ -82,7 +86,7 @@ class KataListRow extends StatelessWidget {
           bottom: 0,
           child: Material(
             color: Colors.transparent,
-            child: InkWell(onTap: enabled ? onTap : null, onLongPress: onLongPress, borderRadius: BorderRadius.circular(12)),
+            child: InkWell(onTap: enabled ? onTap : null, onLongPress: onLongPress, borderRadius: BorderRadius.circular(inkRadius)),
           ),
         ),
         IgnorePointer(

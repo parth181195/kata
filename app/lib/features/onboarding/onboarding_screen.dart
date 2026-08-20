@@ -95,6 +95,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: KataListRow(
+                inkRadius: 0,
                 title: b.model,
                 sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
                 selected: on,
