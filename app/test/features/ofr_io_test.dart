@@ -14,7 +14,9 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byIcon(Icons.more_vert).last);
     await t.pumpAndSettle();
-    await t.tap(find.text('Export OFR'));
+    await t.tap(find.text('Export as'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('.ofr.json'));
     await t.pumpAndSettle();
     expect(find.text('EXPORT · OPEN FUJI RECIPE'), findsOneWidget);
     expect(find.textContaining('"film_simulation": "Classic Chrome"'), findsOneWidget);
@@ -23,7 +25,7 @@ void main() {
 
   testWidgets('import: invalid clarity blocks save; valid JSON saves to Mine', (t) async {
     final c = await pumpKata(t, initialLocation: '/mine');
-    expect(find.text('NOTHING SAVED YET'), findsOneWidget);
+    expect(find.text('NOTHING PUBLISHED YET'), findsOneWidget);
     await t.tap(find.text('+'));
     await t.pumpAndSettle();
     await t.tap(find.text('Import OFR'));
@@ -41,7 +43,7 @@ void main() {
     await t.tap(find.text('SAVE TO MINE'));
     await t.pumpAndSettle();
     expect(c.read(recipeRepositoryProvider).mine.length, 1);
-    await t.tap(find.text('MY RECIPES'));
+    await t.tap(find.text('DRAFTS'));
     await t.pumpAndSettle();
     expect(find.text('PORTRA WARM'), findsOneWidget);
     await t.pump(const Duration(seconds: 5));

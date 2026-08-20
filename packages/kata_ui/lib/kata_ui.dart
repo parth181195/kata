@@ -21,3 +21,4 @@ export 'src/primitives/fields.dart';
 export 'src/primitives/rows.dart';
 export 'src/primitives/feedback.dart';
 export 'src/primitives/editing.dart';
+export 'src/primitives/menu.dart';

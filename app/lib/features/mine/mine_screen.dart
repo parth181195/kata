@@ -6,7 +6,9 @@ import 'package:kata_ui/kata_ui.dart';
 import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 import '../library/recipe_card.dart';
+import '../camera/write_sheet.dart';
 import '../ofr_io/import_sheet.dart';
+import '../share/share_composer_sheet.dart';
 
 class MineScreen extends ConsumerStatefulWidget {
   const MineScreen({super.key});
@@ -21,15 +23,15 @@ class _MineScreenState extends ConsumerState<MineScreen> {
   Widget build(BuildContext context) {
     final p = context.kata;
     final lib = ref.watch(recipeRepositoryProvider);
+    // design 5a: MINE = published under your name · SAVED = favourites · DRAFTS = local (imported / camera / new)
+    final mine = lib.published.toList();
     final favs = lib.all.where((r) => lib.favourites.contains(r.id)).toList();
-    // "My recipes" = local drafts (imported/new) + my published ones; camera reads get their own segment
-    final mine = lib.mine.where((r) => r.source == RecipeSource.imported || r.source == RecipeSource.published).toList();
-    final cam = lib.mine.where((r) => r.source == RecipeSource.camera).toList();
-    final list = [favs, mine, cam][_seg];
+    final drafts = lib.drafts.toList();
+    final list = [mine, favs, drafts][_seg];
     final emptyCopy = [
-      ('Nothing saved yet', 'Favourite a kata or read one back from your camera.', 'Browse library'),
-      ('No recipes of yours yet', 'Start a kata from scratch, or import an OFR file. Publish when it\'s ready.', 'New kata'),
-      ('Nothing from the camera', 'Connect on the Camera tab and tap “Save as kata” on a slot.', 'Camera'),
+      ('Nothing published yet', 'Publish a draft and it goes live under your name — and into the review queue for a badge.', 'New kata'),
+      ('Nothing saved yet', 'Save any community kata and it shows up here, synced across devices.', 'Browse library'),
+      ('No drafts', 'Start a kata from scratch, import an OFR file, scan a Kata Code, or read one back from your camera.', 'New kata'),
     ][_seg];
 
     return Scaffold(
@@ -41,7 +43,7 @@ class _MineScreenState extends ConsumerState<MineScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('MINE', style: KataType.displayStyle(size: 24, color: p.fg)),
                 const SizedBox(height: 12),
-                KataSegmented(labels: const ['Favourites', 'My recipes', 'From camera'], index: _seg, onChanged: (i) => setState(() => _seg = i), counts: [favs.length, mine.length, cam.length]),
+                KataSegmented(labels: const ['Mine', 'Saved', 'Drafts'], index: _seg, onChanged: (i) => setState(() => _seg = i), counts: [mine.length, favs.length, drafts.length]),
               ]),
             ),
             Expanded(
@@ -58,9 +60,8 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                           body: emptyCopy.$2,
                           actionLabel: emptyCopy.$3,
                           onAction: () => switch (_seg) {
-                            0 => context.go('/library'),
-                            1 => context.push('/new'),
-                            _ => context.go('/camera'),
+                            1 => context.go('/library'),
+                            _ => context.push('/new'),
                           },
                         ),
                       ),
@@ -77,11 +78,14 @@ class _MineScreenState extends ConsumerState<MineScreen> {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (_, i) {
                         final r = list[i];
-                        final card = RecipeCard(
-                          recipe: r,
-                          favourite: lib.favourites.contains(r.id),
-                          onTap: () => context.push('/recipe/${r.id}'),
-                          onFavourite: () => lib.toggleFavourite(r.id),
+                        final card = GestureDetector(
+                          onLongPress: () => _contextMenu(context, ref, r),
+                          child: RecipeCard(
+                            recipe: r,
+                            favourite: lib.favourites.contains(r.id),
+                            onTap: () => context.push('/recipe/${r.id}'),
+                            onFavourite: () => lib.toggleFavourite(r.id),
+                          ),
                         );
                         if (r.source == RecipeSource.seed) return card;
                         // status strip above my recipes: DRAFT · IN REVIEW · VERIFIED · HIDDEN
@@ -142,5 +146,41 @@ class _MineScreenState extends ConsumerState<MineScreen> {
         ]),
       ),
     );
+  }
+}
+
+/// 5a: long-press any kata for the same actions; the header names the object.
+Future<void> _contextMenu(BuildContext context, WidgetRef ref, Recipe r) async {
+  final lib = ref.read(recipeRepositoryProvider);
+  final own = r.source == RecipeSource.published || r.isDraft;
+  final pick = await showKataMenu<String>(context, title: r.name, items: [
+    if (own) const KataMenuItem('edit', 'Edit kata', icon: Icons.edit_outlined),
+    const KataMenuItem('write', 'Write to slot…', icon: Icons.usb_outlined),
+    const KataMenuItem('dup', 'Duplicate', icon: Icons.copy_outlined),
+    const KataMenuItem('share', 'Share card…', icon: Icons.ios_share_outlined),
+    if (r.isDraft) const KataMenuItem('publish', 'Publish to library', icon: Icons.public_outlined),
+    const KataMenuDivider('d'),
+    if (own)
+      KataMenuItem(r.isDraft ? 'delete' : 'unpublish', r.isDraft ? 'Delete' : 'Unpublish', icon: Icons.delete_outline, destructive: true)
+    else
+      const KataMenuItem('unsave', 'Remove from Saved', icon: Icons.bookmark_remove_outlined, destructive: true),
+  ]);
+  if (pick == null || !context.mounted) return;
+  switch (pick) {
+    case 'edit' || 'publish':
+      context.push('/edit/${r.id}');
+    case 'write':
+      await showWriteSheet(context, r);
+    case 'dup':
+      context.push('/new?from=${r.id}');
+    case 'share':
+      await showShareComposer(context, r);
+    case 'delete':
+      await lib.remove(r.id);
+    case 'unpublish':
+      final ok = await showKataDialog(context, title: 'Unpublish “${r.name}”?', body: 'It disappears from the community library for everyone.', confirmLabel: 'Unpublish', destructive: true);
+      if (ok == true) await lib.unpublish(r.id);
+    case 'unsave':
+      await lib.toggleFavourite(r.id);
   }
 }

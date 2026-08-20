@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kata_ui/kata_ui.dart';
 import 'package:kata/data/recipe_repository.dart';
 
 import '../helpers.dart';
@@ -11,9 +12,9 @@ void main() {
     await t.tap(find.byKey(const ValueKey('nav-2')));
     await t.pumpAndSettle();
     // My recipes segment → empty → "New kata"
-    await t.tap(find.text('MY RECIPES'));
+    await t.tap(find.text('DRAFTS'));
     await t.pumpAndSettle();
-    expect(find.text('NO RECIPES OF YOURS YET'), findsOneWidget);
+    expect(find.text('NO DRAFTS'), findsOneWidget);
     await t.tap(find.text('New kata'));
     await t.pumpAndSettle();
     expect(find.text('NEW KATA'), findsOneWidget);
@@ -53,6 +54,8 @@ void main() {
     expect(api.published.length, 1);
     expect(api.published.first.name, 'Test Kata');
     expect(repo.drafts, isEmpty);
+    await t.tap(find.descendant(of: find.byType(KataSegmented), matching: find.text('MINE')));
+    await t.pumpAndSettle();
     expect(find.text('IN REVIEW'), findsOneWidget);
     expect(find.text('DRAFT'), findsNothing);
   });
@@ -78,7 +81,7 @@ void main() {
     await pumpKata(t, initialLocation: '/recipe/a', api: api);
     await t.tap(find.byIcon(Icons.more_vert).last);
     await t.pumpAndSettle();
-    await t.tap(find.text('Report'));
+    await t.tap(find.text('Report recipe'));
     await t.pumpAndSettle();
     await t.tap(find.text('Duplicate of another kata'));
     await t.pumpAndSettle();

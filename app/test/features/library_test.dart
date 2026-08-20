@@ -79,21 +79,21 @@ void _offlineTests() {
 }
 
 void _layoutTests() {
-  testWidgets('layout toggle cycles HERO → LIST → GRID and persists', (t) async {
+  testWidgets('layout switcher: all-hero feed default, grid persists', (t) async {
     await pumpKata(t);
-    expect(find.text('HERO'), findsOneWidget);
+    // 6a: hero feed is the default; every card is the hero variant (VERIFIED overlay on photo)
     expect(find.byKey(const ValueKey('library-list')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('layout-toggle')));
+    expect(find.text('VERIFIED'), findsWidgets);
+    await t.tap(find.byKey(const ValueKey('layout-grid')));
     await t.pumpAndSettle();
-    expect(find.text('LIST'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('layout-toggle')));
-    await t.pumpAndSettle();
-    expect(find.text('GRID'), findsOneWidget);
     expect(find.byKey(const ValueKey('library-grid')), findsOneWidget);
     expect(find.byType(RecipeGridTile), findsWidgets);
     // persisted
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('kata.libraryLayout'), 'grid');
+    await t.tap(find.byKey(const ValueKey('layout-hero')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-list')), findsOneWidget);
   });
 
   testWidgets('detail: tapping the hero opens the image viewer when photos exist', (t) async {

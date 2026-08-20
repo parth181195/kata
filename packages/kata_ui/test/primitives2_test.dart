@@ -6,6 +6,7 @@ Widget wrap(Widget w) => MaterialApp(theme: KataTheme.dark(), home: Scaffold(bod
 
 void main() {
   _editing();
+  _menu();
   testWidgets('text field, segmented, tabs, chips variants', (t) async {
     var seg = 0, tab = 0, removed = 0;
     await t.pumpWidget(wrap(StatefulBuilder(builder: (c, set) => Column(children: [
@@ -73,5 +74,43 @@ void _editing() {
     await t.tap(find.text('Velvia'));
     await t.pumpAndSettle();
     expect(v, 99);
+  });
+}
+
+void _menu() {
+  testWidgets('KataMenu: rows, submenu back-row, destructive red, returns value', (t) async {
+    String? picked;
+    await t.pumpWidget(MaterialApp(theme: KataTheme.dark(), home: Scaffold(body: Builder(builder: (c) => Center(
+      child: TextButton(
+        onPressed: () async {
+          picked = await showKataMenu<String>(c, title: 'Acros Push', items: const [
+            KataMenuItem('edit', 'Edit kata'),
+            KataMenuItem('export', 'Export as', submenu: [
+              KataMenuItem('json', '.ofr.json'),
+              KataMenuItem('png', 'PNG card'),
+              KataMenuItem('code', 'Kata Code'),
+            ]),
+            KataMenuDivider('d1'),
+            KataMenuItem('delete', 'Delete', destructive: true),
+          ]);
+        },
+        child: const Text('open'),
+      ),
+    )))));
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    expect(find.text('ACROS PUSH'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+    await t.tap(find.text('Export as'));
+    await t.pumpAndSettle();
+    expect(find.text('EXPORT AS'), findsOneWidget); // back row
+    expect(find.text('Edit kata'), findsNothing); // replaced, not nested
+    await t.tap(find.text('‹'));
+    await t.pumpAndSettle();
+    expect(find.text('Edit kata'), findsOneWidget);
+    await t.tap(find.text('Edit kata'));
+    await t.pumpAndSettle();
+    expect(picked, 'edit');
+    expect(find.text('Edit kata'), findsNothing); // closed
   });
 }

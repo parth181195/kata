@@ -12,7 +12,7 @@ void main() {
     await pumpKata(t, initialLocation: '/recipe/a');
     await t.tap(find.byIcon(Icons.more_vert).last);
     await t.pumpAndSettle();
-    await t.tap(find.text('Share card').first);
+    await t.tap(find.text('Share card…'));
     await t.pumpAndSettle();
     expect(find.byType(ShareComposerSheet), findsOneWidget);
     expect(find.text('S1 · RECIPE CARD'), findsOneWidget);

@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
+import 'package:ofr/ofr.dart';
 
 import '../../core/auth/auth_repository.dart';
 import '../../core/fuji/camera_service.dart';
@@ -44,38 +47,101 @@ class RecipeDetailScreen extends ConsumerWidget {
           child: InkWell(onTap: onTap, child: SizedBox(width: 36, height: 36, child: Center(child: child))),
         );
 
-    void overflow() => showKataSheet(context, builder: (c) => KataSheet(eyebrow: 'Kata', title: recipe.name, children: [
-          KataListRow(title: 'Share card', value: 'S1–S4 · Kata Code', onTap: () { Navigator.of(c).pop(); showShareComposer(context, recipe); }),
-          KataListRow(title: 'Export OFR', value: '.ofr.json', onTap: () { Navigator.of(c).pop(); showExportSheet(context, recipe); }),
-          KataListRow(title: 'Copy source link', value: recipe.ofr.sourceUrl == null ? '—' : 'URL', enabled: recipe.ofr.sourceUrl != null, onTap: () async {
-            await Clipboard.setData(ClipboardData(text: recipe.ofr.sourceUrl!));
-            if (c.mounted) Navigator.of(c).pop();
-            if (context.mounted) KataToast.show(context, 'Link copied');
-          }),
-          KataListRow(title: 'Duplicate & edit', value: 'New draft', onTap: () { Navigator.of(c).pop(); context.push('/new?from=${recipe.id}'); }),
-          if (recipe.source == RecipeSource.published || recipe.isDraft)
-            KataListRow(title: 'Edit', value: recipe.source == RecipeSource.published ? 'Re-review' : 'Draft', onTap: () { Navigator.of(c).pop(); context.push('/edit/${recipe.id}'); }),
-          if (recipe.source == RecipeSource.published)
-            KataListRow(title: 'Unpublish', value: 'Remove from library', onTap: () async {
-              Navigator.of(c).pop();
-              final ok = await showKataDialog(context, title: 'Unpublish “${recipe.name}”?', body: 'It disappears from the community library for everyone. Favourites on it are lost.', confirmLabel: 'Unpublish', destructive: true);
-              if (ok != true) return;
-              try {
-                await ref.read(recipeRepositoryProvider).unpublish(recipe.id);
-                if (context.mounted) { KataToast.show(context, 'Unpublished'); context.pop(); }
-              } on ApiException catch (e) {
-                if (context.mounted) KataToast.show(context, e.isNetwork ? 'No connection' : e.message);
+    final me = ref.read(sessionProvider).valueOrNull?.user;
+    final isOwn = recipe.source == RecipeSource.published || recipe.isDraft || (recipe.authorId != null && recipe.authorId == me?.id);
+    final isDraft = recipe.isDraft;
+
+    Future<void> exportAs(String what) async {
+      switch (what) {
+        case 'json':
+          await showExportSheet(context, recipe);
+        case 'png':
+          await showShareComposer(context, recipe);
+        case 'code':
+          await Clipboard.setData(ClipboardData(text: KataCode.encode(recipe.ofr)));
+          if (context.mounted) KataToast.show(context, 'Kata Code copied');
+        case 'text':
+          await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(recipe.ofr.toJson())));
+          if (context.mounted) KataToast.show(context, 'OFR JSON copied');
+      }
+    }
+
+    // 5b: primary actions (edit, write) are never only in the overflow; destructive last, red.
+    Future<void> overflow() async {
+      const exportSub = [
+        KataMenuItem('json', '.ofr.json'),
+        KataMenuItem('png', 'PNG card'),
+        KataMenuItem('code', 'Kata Code'),
+        KataMenuItem('text', 'Plain text'),
+      ];
+      final items = isOwn
+          ? <KataMenuItem<String>>[
+              const KataMenuItem('edit', 'Edit kata', icon: Icons.edit_outlined),
+              KataMenuItem('write', 'Write to slot…', icon: Icons.usb_outlined, enabled: ready),
+              const KataMenuItem('dup', 'Duplicate', icon: Icons.copy_outlined),
+              const KataMenuItem('share', 'Share card…', icon: Icons.ios_share_outlined),
+              const KataMenuDivider('d1'),
+              const KataMenuItem('export', 'Export as', icon: Icons.file_download_outlined, submenu: exportSub),
+              const KataMenuItem('history', 'Version history', icon: Icons.history, enabled: false, trailing: 'Soon'),
+              if (isDraft) const KataMenuItem('publish', 'Publish to library', icon: Icons.public_outlined),
+              const KataMenuDivider('d2'),
+              if (isDraft)
+                const KataMenuItem('delete', 'Delete', icon: Icons.delete_outline, destructive: true)
+              else
+                const KataMenuItem('unpublish', 'Unpublish', icon: Icons.undo_outlined, destructive: true),
+            ]
+          : <KataMenuItem<String>>[
+              const KataMenuItem('dup', 'Duplicate to edit', icon: Icons.edit_outlined, trailing: 'Copy in Mine'),
+              KataMenuItem('save', fav ? 'Remove from Saved' : 'Save to Mine', icon: fav ? Icons.bookmark : Icons.bookmark_outline),
+              const KataMenuItem('share', 'Share card…', icon: Icons.ios_share_outlined),
+              const KataMenuItem('code', 'Copy as text', icon: Icons.data_object, trailing: 'kata1:'),
+              const KataMenuItem('export', 'Export as', icon: Icons.file_download_outlined, submenu: exportSub),
+              KataMenuItem('source', 'View source post', icon: Icons.open_in_new, enabled: recipe.ofr.sourceUrl != null),
+              const KataMenuDivider('d1'),
+              const KataMenuItem('report', 'Report recipe', icon: Icons.flag_outlined, destructive: true),
+            ];
+      final pos = Offset(MediaQuery.sizeOf(context).width - 20, MediaQuery.paddingOf(context).top + 60);
+      final pick = await showKataMenu<String>(context, title: recipe.name, position: pos, items: items);
+      if (pick == null || !context.mounted) return;
+      switch (pick) {
+        case 'edit':
+          context.push('/edit/${recipe.id}');
+        case 'write':
+          await showWriteSheet(context, recipe);
+        case 'dup':
+          context.push('/new?from=${recipe.id}');
+        case 'share':
+          await showShareComposer(context, recipe);
+        case 'save':
+          await ref.read(recipeRepositoryProvider).toggleFavourite(recipe.id);
+          if (context.mounted) KataToast.show(context, fav ? 'Removed from Saved' : 'Saved');
+        case 'code' || 'json' || 'png' || 'text':
+          await exportAs(pick);
+        case 'source':
+          await launchUrl(Uri.parse(recipe.ofr.sourceUrl!), mode: LaunchMode.externalApplication);
+        case 'publish':
+          context.push('/edit/${recipe.id}');
+        case 'delete':
+          await ref.read(recipeRepositoryProvider).remove(recipe.id);
+          if (context.mounted) context.pop();
+        case 'unpublish':
+          final ok = await showKataDialog(context, title: 'Unpublish “${recipe.name}”?', body: 'It disappears from the community library for everyone.', confirmLabel: 'Unpublish', destructive: true);
+          if (ok == true && context.mounted) {
+            try {
+              await ref.read(recipeRepositoryProvider).unpublish(recipe.id);
+              if (context.mounted) {
+                KataToast.show(context, 'Unpublished');
+                context.pop();
               }
-            }),
-          if (recipe.source == RecipeSource.seed && !(recipe.authorId != null && recipe.authorId == ref.read(sessionProvider).valueOrNull?.user.id))
-            KataListRow(title: 'Report', value: 'Flag to curators', onTap: () { Navigator.of(c).pop(); _report(context, ref, recipe); }),
-          if (recipe.isDraft)
-            KataListRow(title: 'Remove from Mine', value: 'Delete', onTap: () async {
-              Navigator.of(c).pop();
-              await ref.read(recipeRepositoryProvider).remove(recipe.id);
-              if (context.mounted) context.pop();
-            }),
-        ]));
+            } on ApiException catch (e) {
+              if (context.mounted) KataToast.show(context, e.isNetwork ? 'No connection' : e.message);
+            }
+          }
+        case 'report':
+          await _report(context, ref, recipe);
+      }
+    }
+
 
     return Scaffold(
       body: Column(children: [
@@ -105,7 +171,13 @@ class RecipeDetailScreen extends ConsumerWidget {
                             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(15)),
                             child: statusPill,
                           ),
-                          circle(Icon(Icons.more_vert, size: 16, color: Colors.white), onTap: overflow),
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            if (isOwn) ...[
+                              circle(const Icon(Icons.edit_outlined, size: 15, color: Colors.white), onTap: () => context.push('/edit/${recipe.id}')),
+                              const SizedBox(width: 8),
+                            ],
+                            circle(const Icon(Icons.more_vert, size: 16, color: Colors.white), onTap: overflow),
+                          ]),
                         ]),
                       ),
                     ),
