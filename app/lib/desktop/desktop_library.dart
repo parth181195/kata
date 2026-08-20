@@ -8,6 +8,7 @@ import '../data/recipe_specs.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/ofr_io/export_sheet.dart';
 import '../features/share/share_composer_sheet.dart';
+import 'desktop_shell.dart';
 import 'slot_dock.dart';
 
 final desktopSelectedRecipeProvider = StateProvider<String?>((_) => null);
@@ -135,6 +136,8 @@ class _DetailPane extends ConsumerWidget {
     final repo = ref.watch(recipeRepositoryProvider);
     final r = recipe;
     final fav = repo.favourites.contains(r.id);
+    // "mine" = a local draft or something I published: those I edit in place, the rest I fork.
+    final mine = r.isDraft || repo.mine.any((x) => x.id == r.id);
     final items = RecipeSpecs.items(r.ofr, rulers: false);
     return ListView(padding: const EdgeInsets.all(18), children: [
       Row(children: [
@@ -151,6 +154,18 @@ class _DetailPane extends ConsumerWidget {
         Expanded(child: KataPillButton(label: fav ? '♥ Saved' : '♡ Save', kind: KataButtonKind.secondary, display: false, height: 40, onPressed: () => repo.toggleFavourite(r.id))),
         const SizedBox(width: 8),
         Expanded(child: KataPillButton(label: 'Share card', kind: KataButtonKind.secondary, display: false, height: 40, onPressed: () => showShareComposer(context, r))),
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(
+          child: KataPillButton(
+            label: mine ? 'Edit' : 'Duplicate & edit',
+            kind: KataButtonKind.secondary,
+            display: false,
+            height: 40,
+            onPressed: () => DesktopShell.of(context)?.openEditor(id: mine ? r.id : null, from: mine ? null : r.id),
+          ),
+        ),
         const SizedBox(width: 8),
         KataIconCircle(size: 40, onPressed: () => showExportSheet(context, r), child: Icon(Icons.file_download_outlined, size: 16, color: p.dim)),
       ]),

@@ -8,6 +8,7 @@ import 'package:kata_ui/kata_ui.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
 import 'desktop_camera.dart';
+import 'desktop_editor.dart';
 import 'desktop_import.dart';
 import 'desktop_library.dart';
 import 'desktop_settings.dart';
@@ -16,16 +17,36 @@ import 'desktop_settings.dart';
 /// + 200px rail (Library / Saved / Mine / Camera / Settings) + content. Mobile keeps its own shell.
 class DesktopShell extends ConsumerStatefulWidget {
   const DesktopShell({super.key});
+
+  /// Lets any descendant open the editor (detail pane, camera board, dock).
+  static DesktopShellController? of(BuildContext context) => context.findAncestorStateOfType<_DesktopShellState>();
+
   @override
   ConsumerState<DesktopShell> createState() => _DesktopShellState();
 }
 
-enum DesktopSection { library, saved, mine, camera, settings }
+enum DesktopSection { library, saved, mine, camera, settings, editor }
 
-class _DesktopShellState extends ConsumerState<DesktopShell> {
+/// What descendants may ask the shell to do.
+abstract class DesktopShellController {
+  void openEditor({String? id, String? from});
+}
+
+class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopShellController {
   DesktopSection _section = DesktopSection.library;
+  DesktopSection _cameFrom = DesktopSection.library;
   late final AppLifecycleListener _lifecycle;
   bool _dropHover = false;
+
+  /// Editor args for the current editing session (null id = new kata).
+  ({String? id, String? from})? _editorArgs;
+
+  @override
+  void openEditor({String? id, String? from}) => setState(() {
+        _cameFrom = _section == DesktopSection.editor ? _cameFrom : _section;
+        _editorArgs = (id: id, from: from);
+        _section = DesktopSection.editor;
+      });
 
   @override
   void initState() {
@@ -59,6 +80,12 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
       DesktopSection.mine => const DesktopLibrary(mineOnly: true),
       DesktopSection.camera => const DesktopCamera(),
       DesktopSection.settings => const DesktopSettings(),
+      DesktopSection.editor => DesktopEditor(
+          key: ValueKey(_editorArgs),
+          id: _editorArgs?.id,
+          from: _editorArgs?.from,
+          onDone: () => setState(() => _section = _cameFrom),
+        ),
     };
     final camPill = switch (cam) {
       CameraReady(:final caps) => KataStatusPill(KataStatus.connected, label: '${caps.model} · C1–C${caps.slotCount}'),
@@ -123,6 +150,12 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
               padding: const EdgeInsets.fromLTRB(10, 14, 10, 14),
               decoration: BoxDecoration(border: Border(right: BorderSide(color: p.hairline))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                KataPillButton(
+                  label: 'New kata',
+                  height: 36,
+                  onPressed: () => openEditor(),
+                ),
+                const SizedBox(height: 12),
                 for (final (s, label) in [
                   (DesktopSection.library, 'Library'),
                   (DesktopSection.saved, 'Saved'),

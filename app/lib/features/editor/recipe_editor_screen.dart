@@ -9,6 +9,7 @@ import '../../core/net/api_client.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_repository.dart';
 import '../../data/recipe_specs.dart';
+import 'ofr_fields.dart';
 
 /// Blank starting point for "New kata": Provia, everything at camera defaults.
 const kBlankOfr = OfrRecipe(
@@ -163,7 +164,6 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     final p = context.kata;
     final signedIn = ref.watch(sessionProvider).valueOrNull != null;
     final r = _r;
-    final mono = OfrEnums.isMonoName(r.filmSimulation);
     final issues = _issues;
     final title = _editing == null ? 'New kata' : 'Edit kata';
 
@@ -175,7 +175,6 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
         ...children,
       ]),
     );
-    Widget two(Widget a, Widget b) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: a), const SizedBox(width: 10), Expanded(child: b)]);
     Widget gap() => const SizedBox(height: 10);
 
     return PopScope(
@@ -213,67 +212,11 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                   gap(),
                   KataTextField(label: 'Source URL', controller: _url, hint: 'https:// (optional)', keyboardType: TextInputType.url, onChanged: (_) => setState(() => _dirty = true)),
                   gap(),
-                  Wrap(spacing: 7, runSpacing: 7, children: [
-                    for (final s in OfrEnums.sensors.take(7))
-                      KataChip(
-                        label: s,
-                        selected: r.sensors.contains(s),
-                        onTap: () => _set((x) => x.copyWith(sensors: x.sensors.contains(s) ? x.sensors.where((e) => e != s).toList() : [...x.sensors, s])),
-                      ),
-                  ]),
+                  OfrFields.sensorChips(r, _set),
                 ]),
-                section('Look', [
-                  KataPickerRow(
-                    label: 'Film simulation',
-                    value: r.filmSimulation,
-                    options: OfrEnums.filmSims,
-                    // switching colour↔mono drops the fields the other family forbids, so validation never traps you
-                    onChanged: (v) => _set((x) => OfrEnums.isMonoName(v)
-                        ? x.copyWith(filmSimulation: v, clearColor: true, clearColorChrome: true)
-                        : x.copyWith(filmSimulation: v, clearMonochromatic: true, color: x.color ?? 0)),
-                  ),
-                  KataPickerRow(label: 'Dynamic range', value: r.dynamicRange, hint: 'Camera default', options: OfrEnums.dynamicRanges, onChanged: (v) => _set((x) => x.copyWith(dynamicRange: v))),
-                  KataPickerRow(label: 'D range priority', value: r.dRangePriority, options: OfrEnums.dRangePriorities, onChanged: (v) => _set((x) => x.copyWith(dRangePriority: v))),
-                  KataPickerRow(label: 'Grain', value: r.grainRoughness, options: OfrEnums.grainRoughness, onChanged: (v) => _set((x) => x.copyWith(grainRoughness: v, clearGrainSize: v == 'Off'))),
-                  KataPickerRow(label: 'Grain size', value: r.grainSize, hint: '—', enabled: r.grainRoughness != 'Off', options: OfrEnums.grainSizes, onChanged: (v) => _set((x) => x.copyWith(grainSize: v))),
-                  KataPickerRow(label: 'Color chrome effect', value: r.colorChromeEffect, hint: 'Off', options: OfrEnums.effects, onChanged: (v) => _set((x) => x.copyWith(colorChromeEffect: v))),
-                  KataPickerRow(label: 'Color chrome FX blue', value: r.colorChromeFxBlue, hint: 'Off', options: OfrEnums.effects, onChanged: (v) => _set((x) => x.copyWith(colorChromeFxBlue: v))),
-                ]),
-                section('White balance', [
-                  KataPickerRow(label: 'Mode', value: r.whiteBalance, options: OfrEnums.wbModes, onChanged: (v) => _set((x) => x.copyWith(whiteBalance: v, wbKelvin: v == 'Kelvin' ? (x.wbKelvin ?? 5500) : null, clearKelvin: v != 'Kelvin'))),
-                  if (r.whiteBalance == 'Kelvin') ...[
-                    gap(),
-                    KataStepper(label: 'Kelvin', value: r.wbKelvin ?? 5500, min: 2500, max: 10000, step: 100, format: (v) => '${v.toInt()}K', onChanged: (v) => _set((x) => x.copyWith(wbKelvin: v.toInt()))),
-                  ],
-                  gap(),
-                  two(
-                    KataStepper(label: 'WB shift R', value: r.whiteBalanceRed, min: -9, max: 9, onChanged: (v) => _set((x) => x.copyWith(whiteBalanceRed: v.toInt()))),
-                    KataStepper(label: 'WB shift B', value: r.whiteBalanceBlue, min: -9, max: 9, onChanged: (v) => _set((x) => x.copyWith(whiteBalanceBlue: v.toInt()))),
-                  ),
-                ]),
-                section('Tone', [
-                  two(
-                    KataStepper(label: 'Highlight', value: r.highlight ?? 0, min: -2, max: 4, step: 0.5, onChanged: (v) => _set((x) => x.copyWith(highlight: v))),
-                    KataStepper(label: 'Shadow', value: r.shadow ?? 0, min: -2, max: 4, step: 0.5, onChanged: (v) => _set((x) => x.copyWith(shadow: v))),
-                  ),
-                  gap(),
-                  two(
-                    KataStepper(label: 'Color', value: r.color ?? 0, min: -4, max: 4, enabled: !mono, onChanged: (v) => _set((x) => x.copyWith(color: v.toInt()))),
-                    KataStepper(label: 'Sharpness', value: r.sharpness, min: -4, max: 4, onChanged: (v) => _set((x) => x.copyWith(sharpness: v.toInt()))),
-                  ),
-                  gap(),
-                  two(
-                    KataStepper(label: 'High ISO NR', value: r.highIsoNr, min: -4, max: 4, onChanged: (v) => _set((x) => x.copyWith(highIsoNr: v.toInt()))),
-                    KataStepper(label: 'Clarity', value: r.clarity, min: -5, max: 5, onChanged: (v) => _set((x) => x.copyWith(clarity: v.toInt()))),
-                  ),
-                  if (mono) ...[
-                    gap(),
-                    two(
-                      KataStepper(label: 'Warm / cool', value: r.monochromaticColorWarmCool ?? 0, min: -9, max: 9, onChanged: (v) => _set((x) => x.copyWith(monochromaticColorWarmCool: v.toInt()))),
-                      KataStepper(label: 'Magenta / green', value: r.monochromaticColorMagentaGreen ?? 0, min: -9, max: 9, onChanged: (v) => _set((x) => x.copyWith(monochromaticColorMagentaGreen: v.toInt()))),
-                    ),
-                  ],
-                ]),
+                section('Look', OfrFields.look(r, _set)),
+                section('White balance', OfrFields.whiteBalance(r, _set)),
+                section('Tone', OfrFields.tone(r, _set)),
                 section('Summary', [
                   Text(RecipeSpecs.summary(_current), style: KataType.monoStyle(size: 12, color: p.dim, height: 1.4)),
                   if (issues.isNotEmpty) ...[
