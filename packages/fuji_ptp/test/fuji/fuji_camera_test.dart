@@ -84,6 +84,7 @@ void main() {
     final r2 = await c2.writePreset(1, const CameraPreset(name: 'A', filmSim: 1, shadowX10: 10));
     expect(r2.ok, isFalse);
     expect(r2.warnings.any((w) => w.contains('verify')), isTrue);
+    expect(r2.mismatched, [0xD19E]); // the phone's notes card reads this, not the warning text
   });
 
   test('writing to a slot beyond slotCount throws', () async {

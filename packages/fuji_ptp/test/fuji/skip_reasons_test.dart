@@ -46,10 +46,25 @@ void main() {
     expect(causes.firstWhere((c) => c.codes.contains(0xD1A0)).headline, contains('busy'));
   });
 
+  test('AccessDenied reads as a mode lock, not "no reason given"', () {
+    final locked = explainSkips([0xD1A0], preset: _cc, reasons: {0xD1A0: Resp.accessDenied}).single;
+    expect(locked.headline, contains('Locked'));
+    expect(locked.detail, contains('AccessDenied'));
+    expect(locked.fix, contains('HDR'));
+  });
+
   test('every skipped code lands in exactly one cause, whatever the camera said', () {
     final all = [for (var c = 0xD18D; c <= 0xD1A5; c++) c];
     for (final preset in [_cc, _acros]) {
-      for (final resp in [null, Resp.devicePropNotSupported, Resp.deviceBusy, Resp.invalidDevicePropValue, 0x2016, 0x2099]) {
+      for (final resp in [
+        null,
+        Resp.devicePropNotSupported,
+        Resp.deviceBusy,
+        Resp.invalidDevicePropValue,
+        Resp.invalidDevicePropFormat,
+        Resp.accessDenied,
+        0x2099,
+      ]) {
         final causes = explainSkips(all, preset: preset, reasons: resp == null ? const {} : {for (final c in all) c: resp});
         final covered = [for (final c in causes) ...c.codes];
         expect(covered..sort(), all, reason: 'resp=$resp');
