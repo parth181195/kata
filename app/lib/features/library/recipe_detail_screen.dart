@@ -18,6 +18,7 @@ import '../ofr_io/export_sheet.dart';
 import '../history/version_history_sheet.dart';
 import '../share/share_composer_sheet.dart';
 import 'image_viewer.dart';
+import 'credit_line.dart';
 import 'recipe_card.dart';
 
 class RecipeDetailScreen extends ConsumerWidget {
@@ -211,20 +212,9 @@ class RecipeDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
               sliver: SliverList.list(children: [
                 Row(children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: recipe.ofr.sourceUrl == null ? null : () async {
-                        await Clipboard.setData(ClipboardData(text: recipe.ofr.sourceUrl!));
-                        if (context.mounted) KataToast.show(context, 'Link copied');
-                      },
-                      child: Text(
-                        recipe.ofr.sourceUrl == null ? attributionLine(recipe) : '${recipe.ofr.sourceAttribution ?? 'Source'} — ${Uri.tryParse(recipe.ofr.sourceUrl!)?.host ?? recipe.ofr.sourceUrl} ↗',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: KataType.bodyStyle(size: 11.5, color: p.dim, height: 1.4).copyWith(decoration: recipe.ofr.sourceUrl == null ? null : TextDecoration.underline, decorationColor: p.dim),
-                      ),
-                    ),
-                  ),
+                  // tapping the credit opens the write-up it came from, rather than
+                  // copying a link and leaving you to paste it somewhere
+                  Expanded(child: CreditLine(recipe: recipe, size: 11.5)),
                   const SizedBox(width: 10),
                   for (final s in recipe.ofr.sensors.take(2)) ...[
                     Container(height: 24, padding: const EdgeInsets.symmetric(horizontal: 10), alignment: Alignment.center, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: p.hairline)),

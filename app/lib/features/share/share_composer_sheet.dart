@@ -46,7 +46,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   Future<void> _share() async {
     setState(() => _busy = true);
     try {
-      final png = await CardRenderer(_boundary).toPng(pixelRatio: 3);
+      final png = await CardRenderer(_boundary).toPng(pixelRatio: kCardPixelRatio);
       final name = '${widget.recipe.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').toLowerCase()}-${_template.code.toLowerCase()}.png';
       await Share.shareXFiles([XFile.fromData(png, name: name, mimeType: 'image/png')], subject: '${widget.recipe.name} — Kata recipe card', text: _spec.payload);
     } catch (e) {

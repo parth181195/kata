@@ -24,6 +24,10 @@ class KataPillButton extends StatelessWidget {
   final Widget? leading;
   final double height;
   final bool expand;
+
+  /// A prominent label: uppercase and tracked. Doto (the pixel display face) is deliberately
+  /// *not* used here — at button sizes its dot matrix costs more legibility than it buys
+  /// character, so it stays with titles and marks.
   final bool display;
   /// Keeps the enabled look, swaps [leading] for a dots loader and ignores taps.
   final bool loading;
@@ -52,7 +56,7 @@ class KataPillButton extends StatelessWidget {
         border = p.red;
     }
     final style = display
-        ? KataType.displayStyle(size: 15, color: fg, letterSpacing: 0.03)
+        ? KataType.bodyStyle(size: 13.5, weight: FontWeight.w700, color: fg, height: 1, letterSpacing: 0.08)
         : KataType.bodyStyle(size: 12.5, weight: FontWeight.w600, color: fg, height: 1);
     final child = Row(
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
@@ -133,7 +137,7 @@ class KataBigRound extends StatelessWidget {
             width: size,
             height: size,
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(label.toUpperCase(), style: KataType.displayStyle(size: 15, color: onPressed == null ? p.muted : p.bg)),
+              Text(label.toUpperCase(), style: KataType.bodyStyle(size: 13.5, weight: FontWeight.w700, color: onPressed == null ? p.muted : p.bg, height: 1, letterSpacing: 0.08)),
               if (loading) ...[const SizedBox(height: 8), KataDotsLoader(color: onPressed == null ? p.muted : p.bg, dot: 4, gap: 4)] else if (sub != null) ...[
                 const SizedBox(height: 5),
                 Text(sub!, style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),

@@ -21,7 +21,8 @@ extension ShareRatioX on ShareRatio {
   double get aspect => switch (this) { ShareRatio.r4x5 => 4 / 5, ShareRatio.r1x1 => 1, ShareRatio.r9x16 => 9 / 16 };
 }
 
-/// Everything a template needs. Cards are laid out at a logical width of [kCardWidth] and rendered at 3×.
+/// Everything a template needs. Cards are laid out at a logical width of [kCardWidth] and
+/// rendered at [kCardPixelRatio]×.
 class ShareSpec {
   const ShareSpec({required this.recipe, required this.template, required this.ratio, this.inverted = false, this.embedCode = true, required this.credit});
   final Recipe recipe;
@@ -35,6 +36,10 @@ class ShareSpec {
 }
 
 const kCardWidth = 390.0;
+
+/// Export scale. 4× puts the card at 1560px wide — about what WhatsApp and Instagram
+/// downscale to, so the QR arrives with whole pixels per module instead of mush.
+const kCardPixelRatio = 4.0;
 
 /// Palette for a card: white card / black ink by default; inverted flips.
 class _Ink {
@@ -165,7 +170,7 @@ class _S1 extends StatelessWidget {
               Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
             ]),
           ),
-          _qrBlock(spec, ink, 64),
+          _qrBlock(spec, ink, 112),
         ]),
       ]),
     );
@@ -209,7 +214,7 @@ class _S2 extends StatelessWidget {
             ]),
           ),
           const SizedBox(width: 10),
-          _qrBlock(spec, ink, 56),
+          _qrBlock(spec, ink, 104),
         ]),
         ),
       ]),
@@ -240,7 +245,7 @@ class _S3 extends StatelessWidget {
         Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
         const SizedBox(height: 22),
         Row(children: [
-          _qrBlock(spec, ink, 76),
+          _qrBlock(spec, ink, 124),
           const SizedBox(width: 14),
           Expanded(child: Text('SCAN TO LOAD INTO\nYOUR OWN C-SLOT', style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25))),
         ]),
@@ -271,7 +276,7 @@ class _S4 extends StatelessWidget {
         Text(spec.credit, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1)),
         const SizedBox(height: 12),
         // the code takes whatever height is left (≥ 120) and never pushes the footer off the card
-        Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: KataCodeQr(payload: spec.payload, size: 200, inverted: spec.inverted)))),
+        Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: KataCodeQr(payload: spec.payload, size: 260, inverted: spec.inverted)))),
         const SizedBox(height: 12),
         Text('HOW TO USE', style: KataType.bodyStyle(size: 8, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8 * 0.16)),
         const SizedBox(height: 6),

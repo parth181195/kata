@@ -9,6 +9,7 @@ import '../data/recipe_specs.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/ofr_io/export_sheet.dart';
 import '../core/auth/auth_repository.dart';
+import '../features/library/credit_line.dart';
 import '../features/library/filter_sheet.dart';
 import '../features/share/share_composer_sheet.dart';
 import 'desktop_recipe_page.dart';
@@ -218,7 +219,7 @@ class _DetailPane extends ConsumerWidget {
         Expanded(child: Text(r.name.toUpperCase(), style: KataType.displayStyle(size: 20, color: p.fg, letterSpacing: 0, height: 1.05))),
       ]),
       const SizedBox(height: 6),
-      Text(attributionLineOf(r), style: KataType.bodyStyle(size: 11.5, color: p.muted)),
+      CreditLine(recipe: r),
       const SizedBox(height: 12),
       if (r.imageUrls.isNotEmpty)
         ClipRRect(borderRadius: BorderRadius.circular(10), child: AspectRatio(aspectRatio: 3 / 2, child: FrameSlot(radius: 0, image: recipeImage(r.imageUrls.first)))),

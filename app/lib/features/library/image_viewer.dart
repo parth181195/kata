@@ -1,8 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kata_ui/kata_ui.dart';
 
-/// Full-screen photo viewer: swipe between photos, pinch/double-tap to zoom, credit line, close.
+/// Full-screen photo viewer: swipe *or* arrows between photos, pinch/double-tap to zoom,
+/// credit line, close. A mouse has no swipe, so on desktop the arrows and the keyboard are
+/// the only way through — they are not decoration.
 Future<void> showImageViewer(BuildContext context, {required List<String> urls, int initialIndex = 0, String? credit}) {
   if (urls.isEmpty) return Future.value();
   return Navigator.of(context, rootNavigator: true).push(
@@ -32,10 +35,23 @@ class _ImageViewerState extends State<_ImageViewer> {
   bool _zoomed = false;
   final _controllers = <int, TransformationController>{};
 
+  final _focus = FocusNode();
+
   TransformationController _ctl(int i) => _controllers.putIfAbsent(i, TransformationController.new);
+
+  bool get _canBack => _index > 0;
+  bool get _canForward => _index < widget.urls.length - 1;
+
+  void _go(int delta) {
+    final next = (_index + delta).clamp(0, widget.urls.length - 1);
+    if (next == _index) return;
+    _ctl(_index).value = Matrix4.identity(); // leave a zoomed frame behind at 1:1
+    _page.animateToPage(next, duration: KataMotion.page, curve: KataMotion.curve);
+  }
 
   @override
   void dispose() {
+    _focus.dispose();
     _page.dispose();
     for (final c in _controllers.values) {
       c.dispose();
@@ -61,7 +77,24 @@ class _ImageViewerState extends State<_ImageViewer> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(fit: StackFit.expand, children: [
+      body: Focus(
+        focusNode: _focus,
+        autofocus: true,
+        onKeyEvent: (_, e) {
+          if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+          switch (e.logicalKey) {
+            case LogicalKeyboardKey.arrowRight:
+              _go(1);
+            case LogicalKeyboardKey.arrowLeft:
+              _go(-1);
+            case LogicalKeyboardKey.escape:
+              Navigator.of(context).pop();
+            default:
+              return KeyEventResult.ignored;
+          }
+          return KeyEventResult.handled;
+        },
+        child: Stack(fit: StackFit.expand, children: [
         PageView.builder(
           controller: _page,
           physics: _zoomed ? const NeverScrollableScrollPhysics() : const PageScrollPhysics(),
@@ -87,6 +120,21 @@ class _ImageViewerState extends State<_ImageViewer> {
             ),
           ),
         ),
+        // arrows: the only way through with a mouse
+        if (widget.urls.length > 1) ...[
+          Positioned(
+            left: 16,
+            top: 0,
+            bottom: 0,
+            child: Center(child: Opacity(opacity: _canBack ? 1 : 0.25, child: _Circle(onTap: _canBack ? () => _go(-1) : null, child: const Icon(Icons.arrow_back, size: 16, color: Colors.white)))),
+          ),
+          Positioned(
+            right: 16,
+            top: 0,
+            bottom: 0,
+            child: Center(child: Opacity(opacity: _canForward ? 1 : 0.25, child: _Circle(onTap: _canForward ? () => _go(1) : null, child: const Icon(Icons.arrow_forward, size: 16, color: Colors.white)))),
+          ),
+        ],
         // top bar
         SafeArea(
           child: Align(
@@ -126,13 +174,15 @@ class _ImageViewerState extends State<_ImageViewer> {
                   const SizedBox(height: 12),
                   Text(widget.credit!.toUpperCase(), textAlign: TextAlign.center, style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: KataColors.grey500, letterSpacing: 0.14)),
                   const SizedBox(height: 4),
-                  Text('PINCH OR DOUBLE-TAP TO ZOOM', style: KataType.monoStyle(size: 8.5, color: KataColors.grey700, letterSpacing: 0.14)),
+                  Text(widget.urls.length > 1 ? 'ARROWS TO MOVE · DOUBLE-TAP TO ZOOM' : 'PINCH OR DOUBLE-TAP TO ZOOM',
+                      style: KataType.monoStyle(size: 8.5, color: KataColors.grey700, letterSpacing: 0.14)),
                 ],
               ]),
             ),
           ),
         ),
-      ]),
+        ]),
+      ),
     );
   }
 }

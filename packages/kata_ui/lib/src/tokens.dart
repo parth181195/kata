@@ -60,8 +60,8 @@ class KataType {
   }) =>
       TextStyle(fontFamily: display, fontSize: size, fontWeight: weight, color: color, letterSpacing: size * letterSpacing, height: height);
 
-  static TextStyle bodyStyle({double size = 13, FontWeight weight = FontWeight.w400, Color? color, double height = 1.4}) =>
-      TextStyle(fontFamily: body, fontSize: size, fontWeight: weight, color: color, height: height);
+  static TextStyle bodyStyle({double size = 13, FontWeight weight = FontWeight.w400, Color? color, double height = 1.4, double? letterSpacing}) =>
+      TextStyle(fontFamily: body, fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: letterSpacing);
 
   static TextStyle monoStyle({
     double size = 12,
