@@ -1,7 +1,7 @@
 # Kata design (from the design tool)
 
 Source project: (design-tool export)
-Snapshot: `Kata.dc.html` (2026-08-19, **rev 3**: turn 3 sharing (3a composer + scan-to-import, 3b export templates S1–S4, 3c Kata Code spec) + turn 2 (2a spec sheet, 2b primitives); 1a–1g unchanged). `support.js` / `image-slot.js` are the canvas runtime.
+Snapshot: `Kata.dc.html` (2026-08-20, **rev 4**: + turn 4 logo directions (pick: 4b slot-mark + 4f wordmark), turn 5 edit discoverability + menu inventory (5b specs: menu R14 · pad 6 · item H44 R11 · icon 15 · gap 11 · divider 1dp inset 12; destructive last + red; submenu at 3+ children; primary actions never only in overflow), turn 6 library card layouts (6a all-hero default · 6b photo-grid · 6c immersive reserved · 6d rail = future home screen; view switcher persists per tab; compact rows live in Mine)). `support.js` / `image-slot.js` are the canvas runtime.
 
 ## Contract (from 2a — authoritative metrics)
 - Base 4 · grid 8 · gutter 20 (sign-in 28) · themes dark (default) + light.
