@@ -167,13 +167,13 @@ class CameraService extends Notifier<CameraState> {
     }
   }
 
-  Future<WriteResult> writeRecipe(int slot, CameraPreset preset) async {
+  Future<WriteResult> writeRecipe(int slot, CameraPreset preset, {void Function(int done, int total)? onProgress}) async {
     final s = state;
     final cam = _cam;
     if (s is! CameraReady || cam == null) throw StateError('camera not ready');
     state = s.copyWith(busyWith: 'Writing C$slot');
     try {
-      final result = await cam.writePreset(slot, preset);
+      final result = await cam.writePreset(slot, preset, onProgress: onProgress);
       final fresh = await cam.readSlot(slot);
       final slots = [...s.slots];
       slots[slot - 1] = fresh;

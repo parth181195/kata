@@ -127,4 +127,17 @@ void main() {
     expect(r.ok, isTrue); // cosmetic: never fails a write
     expect(r.warnings.any((w) => w.contains('name')), isTrue);
   });
+
+  test('writePreset reports per-field progress 0..total', () async {
+    final body = FakeFujiBody();
+    final c = cam(body);
+    await c.openSession();
+    await c.discoverCapabilities();
+    final ticks = <(int, int)>[];
+    await c.writePreset(1, const CameraPreset(name: 'A', filmSim: 1, highlightX10: 15), onProgress: (d, t) => ticks.add((d, t)));
+    expect(ticks.first, (0, ticks.first.$2));
+    expect(ticks.last.$1, ticks.last.$2);
+    expect(ticks.map((e) => e.$1), List.generate(ticks.length, (i) => i));
+    expect(ticks.every((e) => e.$2 == ticks.first.$2), isTrue);
+  });
 }

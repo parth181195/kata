@@ -264,34 +264,205 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
   );
   if (ok != true) return;
   // safety net: snapshot the slots as they are before touching anything
-  await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: true);
-  // write sequentially; the service refreshes each slot after write
-  final svc = ref.read(cameraServiceProvider.notifier);
-  var wrote = 0;
-  final notes = <String>[];
-  try {
-    for (final e in queue.entries) {
-      final preset = OfrMapper.toPreset(e.value.ofr).value;
-      final r = await svc.writeRecipe(e.key, preset);
-      notes.addAll(r.warnings);
-      wrote++;
-      ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(e.key));
-      // remember what landed where, so the slot renders as this recipe's card from now on
-      final after = ref.read(cameraServiceProvider);
-      if (after is CameraReady && !e.value.id.startsWith('backup:') && e.key <= after.slots.length) {
-        await ref
-            .read(slotLinksProvider.notifier)
-            .record(after.caps.model, e.key, e.value.id, slotSettingsHash(after.caps.model, after.slots[e.key - 1]));
+  final backup = await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: true);
+  if (!context.mounted) return;
+  // 1c: writing progress -> done, with skipped fields. Not dismissible mid-write.
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (c) => Dialog(
+      backgroundColor: c.kata.bg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: c.kata.hairline)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 620),
+        child: _WritingDialog(queue: queue, backup: backup),
+      ),
+    ),
+  );
+}
+
+class _WritingDialog extends ConsumerStatefulWidget {
+  const _WritingDialog({required this.queue, required this.backup});
+  final Map<int, Recipe> queue;
+  final SlotBackup? backup;
+  @override
+  ConsumerState<_WritingDialog> createState() => _WritingDialogState();
+}
+
+class _WritingDialogState extends ConsumerState<_WritingDialog> {
+  late final List<MapEntry<int, Recipe>> _entries = widget.queue.entries.toList();
+  int _slotIx = 0;
+  int _fieldsDone = 0, _fieldsTotal = 0;
+  bool _cancel = false;
+  bool _done = false;
+  Object? _error;
+  final _results = <int, WriteResult>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _run();
+  }
+
+  Future<void> _run() async {
+    final svc = ref.read(cameraServiceProvider.notifier);
+    for (var i = 0; i < _entries.length; i++) {
+      if (_cancel) break;
+      final e = _entries[i];
+      if (mounted) setState(() { _slotIx = i; _fieldsDone = 0; _fieldsTotal = 0; });
+      try {
+        final preset = OfrMapper.toPreset(e.value.ofr).value;
+        final r = await svc.writeRecipe(e.key, preset, onProgress: (d, t) {
+          if (mounted) setState(() { _fieldsDone = d; _fieldsTotal = t; });
+        });
+        _results[e.key] = r;
+        ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(e.key));
+        // remember what landed where, so the slot renders as this recipe's card from now on
+        final after = ref.read(cameraServiceProvider);
+        if (after is CameraReady && !e.value.id.startsWith('backup:') && e.key <= after.slots.length) {
+          await ref
+              .read(slotLinksProvider.notifier)
+              .record(after.caps.model, e.key, e.value.id, slotSettingsHash(after.caps.model, after.slots[e.key - 1]));
+        }
+      } catch (err) {
+        if (mounted) setState(() => _error = err);
+        return;
       }
     }
-    if (context.mounted) {
-      final nameNote = notes.any((w) => w.contains('PresetName')) ? ' · names not stored on this body' : '';
-      KataToast.show(context, 'Wrote $wrote slot${wrote == 1 ? '' : 's'} — flick the mode dial to refresh$nameNote');
+    if (mounted) setState(() => _done = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    final pad = const EdgeInsets.fromLTRB(24, 22, 24, 22);
+    if (_error != null) {
+      final e = _entries[_slotIx];
+      final msg = '$_error'.replaceFirst('FujiCameraException: ', '');
+      return Padding(
+        padding: pad,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('WRITE FAILED AT C${e.key}', style: KataType.displayStyle(size: 20, color: p.fg)),
+          const SizedBox(height: 10),
+          Text(msg, style: KataType.monoStyle(size: 10, color: p.muted, height: 1.5)),
+          const SizedBox(height: 10),
+          Text('Slots already written stay written. C${e.key} and anything after it are still queued — fix and press Write again.', style: KataType.bodyStyle(size: 12, color: p.muted, height: 1.5)),
+          const SizedBox(height: 18),
+          KataPillButton(label: 'Close', kind: KataButtonKind.secondary, display: false, height: 44, onPressed: () => Navigator.of(context).pop()),
+        ]),
+      );
     }
-  } catch (e) {
-    // Failed slots stay queued; the connection survives protocol rejections.
-    final msg = '$e'.replaceFirst('FujiCameraException: ', '');
-    if (context.mounted) KataToast.show(context, 'Write failed after $wrote slot${wrote == 1 ? '' : 's'}: $msg');
+    if (!_done) {
+      final e = _entries[_slotIx];
+      final doneSlots = _results.keys.map((k) => 'C$k').join(' · ');
+      final frac = (_slotIx + (_fieldsTotal == 0 ? 0.0 : _fieldsDone / _fieldsTotal)) / _entries.length;
+      return Padding(
+        padding: pad,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            KataDotsLoader(dot: 5, color: p.fg),
+            const SizedBox(width: 10),
+            Text('WRITING · DO NOT UNPLUG', style: KataType.displayStyle(size: 20, color: p.fg)),
+          ]),
+          const SizedBox(height: 14),
+          Text('Writing C${e.key}${_fieldsTotal > 0 ? ' · $_fieldsDone/$_fieldsTotal' : ''}', style: KataType.monoStyle(size: 12, weight: FontWeight.w500, color: p.fg)),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: SizedBox(
+              height: 3,
+              child: Row(children: [
+                Expanded(flex: (frac * 1000).round().clamp(0, 1000), child: Container(color: p.fg)),
+                Expanded(flex: 1000 - (frac * 1000).round().clamp(0, 1000), child: Container(color: p.hairline)),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text('SLOT ${_slotIx + 1} OF ${_entries.length}${doneSlots.isEmpty ? '' : ' · $doneSlots DONE'} · KEEP THE CABLE IN',
+              style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.14)),
+          const SizedBox(height: 18),
+          KataPillButton(
+            label: _cancel ? 'Cancelling after this slot…' : 'Cancel remaining',
+            kind: KataButtonKind.secondary,
+            display: false,
+            height: 40,
+            onPressed: _cancel || _slotIx >= _entries.length - 1 ? null : () => setState(() => _cancel = true),
+          ),
+        ]),
+      );
+    }
+    // done state
+    final wrote = _results.length;
+    final cancelled = _entries.length - wrote;
+    final settingsOk = _results.values.fold<int>(0, (a, r) => a + r.written.length);
+    final settingsAll = _results.values.fold<int>(0, (a, r) => a + r.written.length + r.skipped.length);
+    final names = _entries.where((e) => _results.containsKey(e.key)).map((e) => 'C${e.key} ${e.value.name}').join(' · ');
+    final skippedRows = <(int, int)>[for (final e in _results.entries) for (final code in e.value.skipped) (e.key, code)];
+    final nameNote = _results.values.any((r) => r.warnings.any((w) => w.contains('PresetName')));
+    return Padding(
+      padding: pad,
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Text('WRITE COMPLETE', style: KataType.displayStyle(size: 20, color: p.fg)),
+          const SizedBox(width: 10),
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: p.fg),
+            child: Center(child: Text('✓', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: p.bg, height: 1))),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Text('$wrote slot${wrote == 1 ? '' : 's'} written${cancelled > 0 ? ' · $cancelled cancelled' : ''}', style: KataType.bodyStyle(size: 12.5, color: p.dim)),
+        if (names.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text('${names.toUpperCase()} · $settingsOk OF $settingsAll SETTINGS', maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.1)),
+        ],
+        const SizedBox(height: 14),
+        KataCard(
+          dashed: true,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('!', style: KataType.displayStyle(size: 14, color: p.fg, letterSpacing: 0)),
+            const SizedBox(width: 10),
+            Expanded(child: Text("Turn the mode dial off and back to load the slots. The camera won't show the change until you do.", style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.5))),
+          ]),
+        ),
+        if (skippedRows.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text('${skippedRows.length} SETTING${skippedRows.length == 1 ? '' : 'S'} SKIPPED', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: p.fg, letterSpacing: 0.16)),
+          const SizedBox(height: 6),
+          for (final (slot, code) in skippedRows.take(6))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 3),
+              child: Text('C$slot · ${FujiProp.name(code)} — NOT WRITTEN OVER USB, SET IN CAMERA', style: KataType.monoStyle(size: 8.5, color: p.muted)),
+            ),
+        ],
+        if (nameNote) ...[
+          const SizedBox(height: 8),
+          Text('NAMES NOT STORED ON THIS BODY', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.12)),
+        ],
+        const SizedBox(height: 18),
+        Row(children: [
+          if (widget.backup != null) ...[
+            Expanded(
+              child: KataPillButton(
+                label: 'Undo from backup',
+                kind: KataButtonKind.secondary,
+                display: false,
+                height: 46,
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop();
+                  restoreBackup(context, ref, widget.backup!);
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(flex: 2, child: KataPillButton(label: 'Done', height: 46, onPressed: () => Navigator.of(context).pop())),
+        ]),
+      ]),
+    );
   }
 }
 

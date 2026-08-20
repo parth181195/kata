@@ -129,7 +129,9 @@ class FujiCamera {
     return PresetCodec.decode(name: name, raw: raw);
   }
 
-  Future<WriteResult> writePreset(int slot, CameraPreset preset) => _job(() async {
+  /// [onProgress] reports (fieldsDone, fieldsTotal) as each property lands — drives the
+  /// "Writing C5 · 14/22" UI. Called once with (0, total) before the first write.
+  Future<WriteResult> writePreset(int slot, CameraPreset preset, {void Function(int done, int total)? onProgress}) => _job(() async {
         final caps = _requireCaps();
         if (slot < 1 || slot > caps.slotCount) throw FujiCameraException('slot $slot out of range (1..${caps.slotCount})');
 
@@ -142,6 +144,8 @@ class FujiCamera {
         final written = <int>[];
         final skipped = <int>[];
         final writtenBytes = <int, Uint8List>{};
+        onProgress?.call(0, plan.length);
+        var progressed = 0;
         for (final w in plan) {
           var bytes = w.bytes;
           var r = await _set(w.code, bytes);
@@ -165,6 +169,7 @@ class FujiCamera {
             skipped.add(w.code);
             warnings.add('${hex16(w.code)} ${FujiProp.name(w.code)}: rejected (${Resp.name(r.code)})');
           }
+          onProgress?.call(++progressed, plan.length);
         }
         // Verify
         var ok = true;

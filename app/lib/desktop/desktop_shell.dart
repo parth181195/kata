@@ -1,5 +1,6 @@
 import 'dart:ui' show AppExitResponse;
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
@@ -7,6 +8,7 @@ import 'package:kata_ui/kata_ui.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
 import 'desktop_camera.dart';
+import 'desktop_import.dart';
 import 'desktop_library.dart';
 import 'desktop_settings.dart';
 
@@ -23,6 +25,7 @@ enum DesktopSection { library, saved, mine, camera, settings }
 class _DesktopShellState extends ConsumerState<DesktopShell> {
   DesktopSection _section = DesktopSection.library;
   late final AppLifecycleListener _lifecycle;
+  bool _dropHover = false;
 
   @override
   void initState() {
@@ -59,7 +62,20 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
       _ => const KataStatusPill(KataStatus.noCamera),
     };
     return Scaffold(
-      body: Column(children: [
+      body: DropTarget(
+        onDragEntered: (_) => setState(() => _dropHover = true),
+        onDragExited: (_) => setState(() => _dropHover = false),
+        onDragDone: (d) async {
+          setState(() => _dropHover = false);
+          final f = d.files.firstOrNull;
+          if (f == null) return;
+          final nav = Navigator.of(context);
+          final bytes = await f.readAsBytes();
+          if (!nav.mounted) return;
+          await showImportDialog(nav.context, filePath: f.path, fileBytes: bytes);
+        },
+        child: Stack(children: [
+          Column(children: [
         Container(
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -69,6 +85,15 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
             const SizedBox(width: 14),
             Text(_section.name.toUpperCase(), style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.16)),
             const Spacer(),
+            KataPillButton(
+              label: 'Import',
+              kind: KataButtonKind.secondary,
+              display: false,
+              height: 30,
+              expand: false,
+              onPressed: () => showImportDialog(context),
+            ),
+            const SizedBox(width: 12),
             camPill,
             const SizedBox(width: 12),
             if (user != null)
@@ -85,7 +110,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
         Expanded(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Container(
-              width: 200,
+              width: 200,  // rail
               padding: const EdgeInsets.fromLTRB(10, 14, 10, 14),
               decoration: BoxDecoration(border: Border(right: BorderSide(color: p.hairline))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -103,7 +128,28 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
             Expanded(child: body),
           ]),
         ),
-      ]),
+          ]),
+          if (_dropHover)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: p.bg.withValues(alpha: 0.86),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 26),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: p.fg, width: 1.5)),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text('DROP TO IMPORT', style: KataType.displayStyle(size: 20, color: p.fg)),
+                        const SizedBox(height: 6),
+                        Text('CARD IMAGE · .OFR.JSON · KATA CODE', style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.16)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      ),
     );
   }
 
