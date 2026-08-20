@@ -52,10 +52,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     children: [
                       for (var i = 0; i < 3; i++) ...[
                         if (i > 0) const SizedBox(width: 2),
-                        const Expanded(
+                        Expanded(
                           child: FrameSlot(
                             radius: 0,
                             placeholder: 'sample frame',
+                            image: AssetImage('assets/frames/signin-${i + 1}.jpg'),
                           ),
                         ),
                       ],
