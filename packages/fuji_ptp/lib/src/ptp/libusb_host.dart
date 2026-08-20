@@ -319,7 +319,7 @@ void _worker(SendPort ready) {
         if (rcClaim != 0) {
           usb.close(handle);
           handle = nullptr;
-          return {'error': 'claim failed ($rcClaim)'};
+          return {'error': rcClaim == -6 ? 'busy' : 'claim failed ($rcClaim)'};
         }
         claimed = pick['id']!;
         epIn = pick['in']!;
@@ -454,7 +454,22 @@ class LibusbHost implements UsbHost, UsbLink {
   }
 
   @override
-  Future<Map> open(String name, {int? interfaceId}) async => (await _call('open', {'name': name, 'interfaceId': interfaceId})) as Map;
+  Future<Map> open(String name, {int? interfaceId}) async {
+    // Linux: GNOME's gvfsd-gphoto2 auto-claims PTP cameras and respawns quickly. Evict and
+    // race it a few times — the udev ENV{ID_GPHOTO2}="" rule (docs/ops/kata-desktop.md)
+    // prevents this permanently.
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return (await _call('open', {'name': name, 'interfaceId': interfaceId})) as Map;
+      } on StateError catch (e) {
+        if (!e.message.contains('busy') || !Platform.isLinux || attempt >= 5) rethrow;
+        try {
+          await Process.run('pkill', ['-f', 'gvfsd-gphoto2']);
+        } catch (_) {}
+        await Future<void>.delayed(Duration(milliseconds: 150 + attempt * 150));
+      }
+    }
+  }
 
   @override
   Future<void> close() async => _call('close');

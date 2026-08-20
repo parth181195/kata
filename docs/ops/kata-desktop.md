@@ -5,11 +5,11 @@ libusb-1.0 is loaded at runtime (`libusb-1.0.so.0`, package `libusb-1.0-0`). Wit
 
 ```bash
 sudo tee /etc/udev/rules.d/71-fujifilm.rules >/dev/null <<'RULE'
-SUBSYSTEM=="usb", ATTR{idVendor}=="04cb", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="04cb", MODE="0666", TAG+="uaccess", ENV{ID_GPHOTO2}="", ENV{GPHOTO2_DRIVER}=""
 RULE
 sudo udevadm control --reload && sudo udevadm trigger
 ```
-Replug the camera afterwards. macOS needs nothing; Windows needs the camera interface bound to WinUSB (Zadig) — deferred.
+Replug the camera afterwards. The `ID_GPHOTO2` clears stop GNOME's gvfs from auto-claiming the camera (otherwise Kata evicts `gvfsd-gphoto2` on demand and retries). macOS needs nothing; Windows needs the camera interface bound to WinUSB (Zadig) — deferred.
 
 ## Sign-in
 Desktop uses a Google OAuth client of type **Desktop app** with the loopback flow; the API accepts its ID tokens via `GOOGLE_EXTRA_CLIENT_IDS` in `/opt/kata/api/.env`. Until the client exists, desktop builds show the sign-in wall.
