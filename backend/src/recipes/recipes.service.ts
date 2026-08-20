@@ -83,6 +83,7 @@ export class RecipesService {
       where,
       orderBy,
       take: dto.limit + 1,
+      include: { author: true },
     });
     const page = rows.slice(0, dto.limit);
     const last = page[page.length - 1];
@@ -98,13 +99,19 @@ export class RecipesService {
   }
 
   async get(id: string, opts: ListOpts): Promise<RecipeDto> {
-    const r = await this.prisma.recipe.findUnique({ where: { id } });
+    const r = await this.prisma.recipe.findUnique({
+      where: { id },
+      include: { author: true },
+    });
     if (!r || (r.hidden && !opts.includeHidden)) throw new NotFoundException();
     return toRecipeDto(r);
   }
 
   async byHash(hash: string, opts: ListOpts): Promise<RecipeDto> {
-    const r = await this.prisma.recipe.findUnique({ where: { hash } });
+    const r = await this.prisma.recipe.findUnique({
+      where: { hash },
+      include: { author: true },
+    });
     if (!r || (r.hidden && !opts.includeHidden)) throw new NotFoundException();
     return toRecipeDto(r);
   }
@@ -138,6 +145,17 @@ export class RecipesService {
         imageUrls: input.imageUrls ?? [],
       },
     });
+    if (input.authorId) {
+      // user-published recipes get history from v1; curated/seeded ones don't need it
+      await this.prisma.recipeVersion.create({
+        data: {
+          recipeId: r.id,
+          version: 1,
+          name: r.name,
+          ofr: ofr as Prisma.InputJsonValue,
+        },
+      });
+    }
     return toRecipeDto(r);
   }
 
@@ -180,21 +198,93 @@ export class RecipesService {
     }
     const ofr: OfrDoc = { ...ofrIn, v: 1, hash };
     const filmSim = str(ofr.film_simulation) ?? 'Provia';
-    const r = await this.prisma.recipe.update({
-      where: { id },
-      data: {
-        hash,
-        ofr: ofr as Prisma.InputJsonValue,
-        name: (str(ofr.name) ?? 'Untitled').slice(0, 60),
-        filmSim,
-        isMono: isMonoFilmSim(filmSim),
-        sensors: strList(ofr.sensors),
-        sourceUrl: str(ofr.source_url) ?? null,
-        sourceAttribution: str(ofr.source_attribution) ?? null,
-        reviewed: false,
-      },
+    const r = await this.prisma.$transaction(async (tx) => {
+      // late history adoption: snapshot the pre-edit state if this recipe predates versioning
+      const have = await tx.recipeVersion.count({ where: { recipeId: id } });
+      if (have === 0) {
+        await tx.recipeVersion.create({
+          data: {
+            recipeId: id,
+            version: existing.version,
+            name: existing.name,
+            ofr: existing.ofr as Prisma.InputJsonValue,
+          },
+        });
+      }
+      const next = existing.version + 1;
+      const upd = await tx.recipe.update({
+        where: { id },
+        data: {
+          hash,
+          ofr: ofr as Prisma.InputJsonValue,
+          name: (str(ofr.name) ?? 'Untitled').slice(0, 60),
+          filmSim,
+          isMono: isMonoFilmSim(filmSim),
+          sensors: strList(ofr.sensors),
+          sourceUrl: str(ofr.source_url) ?? null,
+          sourceAttribution: str(ofr.source_attribution) ?? null,
+          reviewed: false,
+          version: next,
+        },
+      });
+      await tx.recipeVersion.create({
+        data: {
+          recipeId: id,
+          version: next,
+          name: upd.name,
+          ofr: ofr as Prisma.InputJsonValue,
+        },
+      });
+      // design 5a: version history keeps the last 10
+      const stale = await tx.recipeVersion.findMany({
+        where: { recipeId: id },
+        orderBy: { version: 'desc' },
+        skip: 10,
+        select: { id: true },
+      });
+      if (stale.length)
+        await tx.recipeVersion.deleteMany({
+          where: { id: { in: stale.map((v) => v.id) } },
+        });
+      return upd;
     });
     return toRecipeDto(r);
+  }
+
+  /** Owner/admin: version list, newest first. */
+  async versions(id: string, userId: string, isAdmin: boolean) {
+    const r = await this.prisma.recipe.findUnique({
+      where: { id },
+      select: { authorId: true, version: true },
+    });
+    if (!r) throw new NotFoundException();
+    if (!isAdmin && r.authorId !== userId) throw new ForbiddenException();
+    const rows = await this.prisma.recipeVersion.findMany({
+      where: { recipeId: id },
+      orderBy: { version: 'desc' },
+    });
+    return {
+      current: r.version,
+      items: rows.map((v) => ({
+        version: v.version,
+        name: v.name,
+        ofr: v.ofr,
+        createdAt: v.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  /** Owner: re-apply an old version's settings (bumps the version like any edit; goes back to review). */
+  async revert(
+    id: string,
+    userId: string,
+    version: number,
+  ): Promise<RecipeDto> {
+    const snap = await this.prisma.recipeVersion.findUnique({
+      where: { recipeId_version: { recipeId: id, version } },
+    });
+    if (!snap) throw new NotFoundException();
+    return this.updateOwn(id, userId, snap.ofr as OfrDoc);
   }
 
   async deleteOwn(id: string, userId: string): Promise<void> {

@@ -16,6 +16,8 @@ model User {
   id            String         @id @default(uuid())
   googleSub     String         @unique
   email         String         @unique
+  /// Public @handle for credit lines (cards, creator pages). Lowercase, unique, optional until claimed.
+  handle        String?        @unique
   displayName   String
   photoUrl      String?
   role          Role           @default(user)
@@ -78,11 +80,14 @@ model Recipe {
   reportCount       Int         @default(0)
   favouritesCount   Int         @default(0)
   imageUrls         String[]
+  /// Bumped on every owner edit; RecipeVersion keeps the last 10 snapshots.
+  version           Int         @default(1)
   search            Unsupported("tsvector")?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   favourites        Favourite[]
   reports           Report[]
+  versions          RecipeVersion[]
 
   @@index([hidden, createdAt(sort: Desc)])
   @@index([hidden, favouritesCount(sort: Desc)])
@@ -92,6 +97,20 @@ model Recipe {
   @@index([sensors], type: Gin, map: "recipes_sensors_idx")
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "recipes_name_trgm_idx")
   @@map("recipes")
+}
+
+/// Snapshot of a recipe's OFR at a given version (owner edits only; pruned to the last 10).
+model RecipeVersion {
+  id        String   @id @default(uuid())
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId  String
+  version   Int
+  name      String
+  ofr       Json
+  createdAt DateTime @default(now())
+
+  @@unique([recipeId, version])
+  @@map("recipe_versions")
 }
 
 model Favourite {

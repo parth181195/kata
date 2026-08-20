@@ -18,7 +18,11 @@ import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImagesService } from '../images/images.service';
 import { ListRecipesDto } from './dto/list-recipes.dto';
-import { PublishRecipeDto, UpdateRecipeDto } from './dto/user-recipe.dto';
+import {
+  PublishRecipeDto,
+  RevertDto,
+  UpdateRecipeDto,
+} from './dto/user-recipe.dto';
 import { RecipesService } from './recipes.service';
 
 @Controller('recipes')
@@ -67,6 +71,21 @@ export class RecipesController {
   @HttpCode(204)
   remove(@Param('id') id: string, @CurrentUser() u: AuthUser) {
     return this.recipes.deleteOwn(id, u.id);
+  }
+
+  // ---------------------------------------------------------- versions (design 5a: keeps the last 10)
+  @Get(':id/versions')
+  versions(@Param('id') id: string, @CurrentUser() u: AuthUser) {
+    return this.recipes.versions(id, u.id, u.role === 'admin');
+  }
+
+  @Post(':id/revert')
+  revert(
+    @Param('id') id: string,
+    @Body() dto: RevertDto,
+    @CurrentUser() u: AuthUser,
+  ) {
+    return this.recipes.revert(id, u.id, dto.version);
   }
 
   @Post(':id/images')

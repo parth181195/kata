@@ -1,9 +1,11 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsInt,
   IsObject,
   IsOptional,
   IsUrl,
+  Min,
 } from 'class-validator';
 
 export class PublishRecipeDto {
@@ -17,4 +19,8 @@ export class PublishRecipeDto {
 
 export class UpdateRecipeDto {
   @IsObject() ofr!: Record<string, unknown>;
+}
+
+export class RevertDto {
+  @IsInt() @Min(1) version!: number;
 }

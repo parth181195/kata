@@ -1,4 +1,4 @@
-import { Prisma, Recipe } from '@prisma/client';
+import { Prisma, Recipe, User } from '@prisma/client';
 
 export interface RecipeDto {
   id: string;
@@ -15,11 +15,17 @@ export interface RecipeDto {
   hidden: boolean;
   imageUrls: string[];
   favouritesCount: number;
+  version: number;
+  /** Present when the query included the author relation — for @handle credit lines. */
+  authorHandle: string | null;
+  authorName: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export const toRecipeDto = (r: Recipe): RecipeDto => ({
+export const toRecipeDto = (
+  r: Recipe & { author?: User | null },
+): RecipeDto => ({
   id: r.id,
   ofr: r.ofr,
   hash: r.hash,
@@ -34,6 +40,9 @@ export const toRecipeDto = (r: Recipe): RecipeDto => ({
   hidden: r.hidden,
   imageUrls: r.imageUrls,
   favouritesCount: r.favouritesCount,
+  version: r.version,
+  authorHandle: r.author?.handle ?? null,
+  authorName: r.author?.displayName ?? null,
   createdAt: r.createdAt.toISOString(),
   updatedAt: r.updatedAt.toISOString(),
 });
