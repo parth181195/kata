@@ -3,8 +3,9 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { Role, User } from '@prisma/client';
+import { Prisma, Role, User } from '@prisma/client';
 import { GoogleIdentity } from '../auth/google-verifier';
+import { Preferences } from './preferences';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface UserDto {
@@ -14,6 +15,7 @@ export interface UserDto {
   photoUrl: string | null;
   role: Role;
   handle: string | null;
+  preferences: Preferences;
 }
 
 export const toUserDto = (u: User): UserDto => ({
@@ -23,6 +25,7 @@ export const toUserDto = (u: User): UserDto => ({
   photoUrl: u.photoUrl,
   role: u.role,
   handle: u.handle,
+  preferences: (u.preferences ?? {}) as Preferences,
 });
 
 @Injectable()
@@ -53,9 +56,25 @@ export class UsersService {
   /** Claim / change the public @handle (lowercase; letters, digits, dot, underscore; 3–20). */
   async updateProfile(
     id: string,
-    patch: { handle?: string; displayName?: string },
+    patch: { handle?: string; displayName?: string; preferences?: Preferences },
   ): Promise<User> {
-    const data: { handle?: string; displayName?: string } = {};
+    const data: Prisma.UserUpdateInput = {};
+    if (patch.preferences !== undefined) {
+      // merge: the onboarding writes one step at a time, and Settings edits one key
+      const current = await this.prisma.user.findUnique({
+        where: { id },
+        select: { preferences: true },
+      });
+      // class-transformer materialises absent DTO fields as `undefined` own-properties, and
+      // spreading those would wipe stored keys instead of leaving them alone
+      const incoming = Object.fromEntries(
+        Object.entries(patch.preferences).filter(([, v]) => v !== undefined),
+      );
+      data.preferences = {
+        ...((current?.preferences ?? {}) as Preferences),
+        ...incoming,
+      };
+    }
     if (patch.displayName !== undefined) {
       const d = patch.displayName.trim();
       if (d.length < 2 || d.length > 60)

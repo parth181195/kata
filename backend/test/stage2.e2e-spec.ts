@@ -187,6 +187,48 @@ describe('stage 2: user recipes + favourites', () => {
     expect(got.authorHandle).toBe('parth.test');
     await A.del(`/recipes/${r3.id}`).expect(204);
 
+    // preferences: what to shoot with and what to look at, seeded into the library filter
+    const prefs = (
+      await A.patch('/me')
+        .send({
+          preferences: {
+            sensor: 'X-Trans V',
+            body: 'X-S20',
+            filmSimFamilies: ['mono', 'classic'],
+            onboardedAt: '2026-08-20T18:00:00.000Z',
+          },
+        })
+        .expect(200)
+    ).body as { preferences: Record<string, unknown> };
+    expect(prefs.preferences).toMatchObject({
+      sensor: 'X-Trans V',
+      body: 'X-S20',
+    });
+    expect(prefs.preferences.filmSimFamilies).toEqual(['mono', 'classic']);
+    // a typo must not silently empty someone's library
+    await A.patch('/me')
+      .send({ preferences: { sensor: 'X-Trans IX' } })
+      .expect(400);
+    await A.patch('/me')
+      .send({ preferences: { filmSimFamilies: ['noir'] } })
+      .expect(400);
+    // they survive, and a partial patch merges rather than replacing
+    await A.patch('/me')
+      .send({ preferences: { sensor: 'X-Trans IV' } })
+      .expect(200);
+    const merged = (await A.get('/me').expect(200)).body as {
+      preferences: Record<string, unknown>;
+    };
+    expect(merged.preferences).toMatchObject({
+      sensor: 'X-Trans IV',
+      body: 'X-S20',
+    });
+    // and they are not another user's
+    expect(
+      ((await B.get('/me').expect(200)).body as { preferences: unknown })
+        .preferences,
+    ).toEqual({});
+
     // cameras: upsert per (model, firmware), seenCount increments; admin summary
     await A.put('/me/cameras')
       .send({

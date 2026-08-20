@@ -21,6 +21,9 @@ model User {
   displayName   String
   photoUrl      String?
   role          Role           @default(user)
+  /// First-run answers: which body they shoot, its sensor generation, the looks they asked
+  /// for. Seeds the library filter; always user-editable and safe to be empty.
+  preferences   Json           @default("{}")
   createdAt     DateTime       @default(now())
   recipes       Recipe[]
   favourites    Favourite[]

@@ -6,14 +6,39 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { FILM_FAMILIES, SENSORS } from './preferences';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { toUserDto, UsersService } from './users.service';
 
+/// Validated so a typo can't leave someone staring at an empty library.
+export class PreferencesDto {
+  @IsOptional() @IsString() @IsIn(SENSORS) sensor?: string;
+  @IsOptional() @IsString() @MaxLength(40) body?: string;
+  @IsOptional()
+  @IsArray()
+  @IsIn(FILM_FAMILIES, { each: true })
+  filmSimFamilies?: string[];
+  @IsOptional() @IsISO8601() onboardedAt?: string;
+}
+
 export class UpdateMeDto {
   @IsOptional() @IsString() @MaxLength(30) handle?: string;
   @IsOptional() @IsString() @MaxLength(80) displayName?: string;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PreferencesDto)
+  preferences?: PreferencesDto;
 }
 
 @Controller('me')

@@ -39,7 +39,7 @@ export class RecipesController {
   // moderation decision, and the admin console has its own "hidden" tab (GET /admin/queue)
   // for working through them. An admin browsing the library should see the library.
   @Get()
-  list(@Query() dto: ListRecipesDto, @CurrentUser() _u: AuthUser) {
+  list(@Query() dto: ListRecipesDto) {
     return this.recipes.list(dto, { includeHidden: false });
   }
 
