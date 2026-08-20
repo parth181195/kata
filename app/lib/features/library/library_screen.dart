@@ -67,7 +67,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   shape: StadiumBorder(side: BorderSide(color: p.hairline)),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
-                    onTap: () => _setFilter((f) => f.copyWith(sort: LibrarySort.values[(f.sort.index + 1) % LibrarySort.values.length])),
+                    onTap: () async {
+                      final pos = Offset(MediaQuery.sizeOf(context).width - 20, MediaQuery.paddingOf(context).top + 56);
+                      final pick = await showKataMenu<LibrarySort>(context, position: pos, items: [
+                        for (final (s, label) in [(LibrarySort.newest, 'Newest first'), (LibrarySort.popular, 'Most saved'), (LibrarySort.az, 'A → Z')])
+                          KataMenuItem(s, label, selected: filter.sort == s),
+                      ]);
+                      if (pick != null) _setFilter((f) => f.copyWith(sort: pick));
+                    },
                     child: Container(
                       height: 36,
                       padding: const EdgeInsets.symmetric(horizontal: 13),
