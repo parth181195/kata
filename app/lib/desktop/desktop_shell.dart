@@ -4,6 +4,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
+import 'package:ofr/ofr.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
@@ -11,6 +12,7 @@ import 'desktop_camera.dart';
 import 'desktop_editor.dart';
 import 'desktop_import.dart';
 import 'desktop_library.dart';
+import 'desktop_mine.dart';
 import 'desktop_settings.dart';
 
 /// Desktop shell per Kata Desktop.dc.html: 52px top bar (wordmark · context · camera pill · account)
@@ -31,6 +33,9 @@ enum DesktopSection { library, saved, mine, camera, settings, editor }
 abstract class DesktopShellController {
   Future<void> openEditor({String? id, String? from});
 
+  /// Open a brand-new kata seeded with settings (e.g. read out of a camera slot).
+  Future<void> openEditorWith(OfrRecipe seed);
+
   /// The editor reports its unsaved state so every way out of it can ask first.
   void setEditorDirty(bool dirty);
 }
@@ -43,6 +48,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
 
   /// Editor args for the current editing session (null id = new kata).
   ({String? id, String? from})? _editorArgs;
+  OfrRecipe? _editorSeed;
   bool _editorDirty = false;
 
   @override
@@ -63,6 +69,19 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
     setState(() {
       _cameFrom = _section == DesktopSection.editor ? _cameFrom : _section;
       _editorArgs = (id: id, from: from);
+      _editorSeed = null;
+      _editorDirty = false;
+      _section = DesktopSection.editor;
+    });
+  }
+
+  @override
+  Future<void> openEditorWith(OfrRecipe seed) async {
+    if (!await _mayLeaveEditor()) return;
+    setState(() {
+      _cameFrom = _section == DesktopSection.editor ? _cameFrom : _section;
+      _editorArgs = (id: null, from: null);
+      _editorSeed = seed;
       _editorDirty = false;
       _section = DesktopSection.editor;
     });
@@ -107,13 +126,14 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
     final body = switch (_section) {
       DesktopSection.library => const DesktopLibrary(),
       DesktopSection.saved => const DesktopLibrary(savedOnly: true),
-      DesktopSection.mine => const DesktopLibrary(mineOnly: true),
+      DesktopSection.mine => const DesktopMine(),
       DesktopSection.camera => const DesktopCamera(),
       DesktopSection.settings => const DesktopSettings(),
       DesktopSection.editor => DesktopEditor(
-          key: ValueKey(_editorArgs),
+          key: ValueKey((_editorArgs, _editorSeed?.hash ?? _editorSeed?.filmSimulation)),
           id: _editorArgs?.id,
           from: _editorArgs?.from,
+          seed: _editorSeed,
           onDirtyChanged: setEditorDirty,
           onDone: () => setState(() {
             _editorDirty = false;

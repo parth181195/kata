@@ -15,6 +15,7 @@ import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import '../camera/write_sheet.dart';
 import '../ofr_io/export_sheet.dart';
+import '../history/version_history_sheet.dart';
 import '../share/share_composer_sheet.dart';
 import 'image_viewer.dart';
 import 'recipe_card.dart';
@@ -82,7 +83,7 @@ class RecipeDetailScreen extends ConsumerWidget {
               const KataMenuItem('share', 'Share card…', icon: Icons.ios_share_outlined),
               const KataMenuDivider('d1'),
               const KataMenuItem('export', 'Export as', icon: Icons.file_download_outlined, submenu: exportSub),
-              const KataMenuItem('history', 'Version history', icon: Icons.history, enabled: false, trailing: 'Soon'),
+              KataMenuItem('history', 'Version history', icon: Icons.history, enabled: !isDraft),
               if (isDraft) const KataMenuItem('publish', 'Publish to library', icon: Icons.public_outlined),
               const KataMenuDivider('d2'),
               if (isDraft)
@@ -108,6 +109,8 @@ class RecipeDetailScreen extends ConsumerWidget {
           context.push('/edit/${recipe.id}');
         case 'write':
           await showWriteSheet(context, recipe);
+        case 'history':
+          await showVersionHistory(context, recipe);
         case 'dup':
           context.push('/new?from=${recipe.id}');
         case 'share':

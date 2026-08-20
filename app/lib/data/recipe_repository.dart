@@ -226,6 +226,25 @@ class RecipeRepository extends ChangeNotifier {
 
   Future<void> report(String id, String reason) => _api.report(id, reason);
 
+  /// History of one of my published recipes.
+  Future<RecipeHistory> versions(String id) => _api.versions(id);
+
+  /// Roll back and keep the result in the local caches, like any other edit.
+  Future<Recipe> revert(String id, int version) async {
+    final r = await _api.revert(id, version);
+    final i = _published.indexWhere((x) => x.id == id);
+    if (i >= 0) {
+      _published[i] = r;
+    } else {
+      _published.insert(0, r);
+    }
+    final ci = _cached.indexWhere((x) => x.id == id);
+    if (ci >= 0) _cached[ci] = r.copyWith(source: RecipeSource.seed);
+    await _db.setMeta(_kPublished, jsonEncode(_published.map((x) => x.toJson()).toList()));
+    notifyListeners();
+    return r;
+  }
+
   /// Fire-and-forget: failures are irrelevant to the user.
   Future<void> reportCamera({required String model, required String firmware, required int pid, required int slots, required int props}) async {
     try {

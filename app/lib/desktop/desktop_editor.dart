@@ -12,6 +12,7 @@ import '../data/recipe.dart';
 import '../data/recipe_repository.dart';
 import '../data/recipe_specs.dart';
 import '../features/editor/ofr_fields.dart';
+import '../features/history/version_history_sheet.dart';
 import '../features/editor/recipe_editor_screen.dart' show kBlankOfr;
 import 'desktop_camera.dart';
 import 'desktop_import.dart';
@@ -208,6 +209,16 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
             KataStatusPill(_isPublished && _editing!.verified ? KataStatus.connected : KataStatus.disconnected,
                 label: _isPublished ? (_editing!.verified ? 'VERIFIED' : 'IN REVIEW') : 'DRAFT'),
           const SizedBox(width: 12),
+          if (_isPublished)
+            KataPillButton(
+              label: 'History',
+              kind: KataButtonKind.secondary,
+              display: false,
+              height: 34,
+              expand: false,
+              onPressed: () => showVersionHistoryDialog(context, _editing!),
+            ),
+          if (_isPublished) const SizedBox(width: 8),
           if (ready != null)
             KataPillButton(
               label: 'Write to a slot',

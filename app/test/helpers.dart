@@ -95,11 +95,32 @@ class FakeRecipeApi implements RecipeApi {
     return r;
   }
 
+  /// recipeId -> snapshots, newest last (mirrors the server keeping the last 10)
+  final Map<String, List<RecipeVersion>> history = {};
+
+  @override
+  Future<RecipeHistory> versions(String id) async {
+    _net();
+    final rows = [...?history[id]].reversed.toList();
+    return RecipeHistory(current: rows.isEmpty ? 1 : rows.first.version + 1, items: rows);
+  }
+
+  @override
+  Future<Recipe> revert(String id, int version) async {
+    _net();
+    final snap = (history[id] ?? []).firstWhere((v) => v.version == version, orElse: () => throw ApiException('not found', status: 404));
+    return update(id, snap.ofr);
+  }
+
   @override
   Future<Recipe> update(String id, OfrRecipe ofr) async {
     _net();
     final i = published.indexWhere((r) => r.id == id);
     if (i < 0) throw ApiException('not found', status: 404);
+    // snapshot what it was, like the server does on every edit
+    final prev = published[i];
+    final list = history.putIfAbsent(id, () => []);
+    list.add(RecipeVersion(version: list.length + 1, name: prev.name, ofr: prev.ofr, createdAt: DateTime.now()));
     final r = published[i].copyWith(ofr: ofr.copyWith(hash: OfrHasher.compute(ofr)), verified: false);
     published[i] = r;
     final ci = recipes.indexWhere((x) => x.id == id);
