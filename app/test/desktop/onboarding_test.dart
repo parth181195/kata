@@ -14,7 +14,7 @@ import 'package:kata_ui/kata_ui.dart';
 import '../helpers.dart';
 
 void main() {
-  testWidgets('desktop asks both questions on one card and saves the answers', (t) async {
+  testWidgets('desktop asks the two questions as two pages and saves the answers', (t) async {
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
     t.view.physicalSize = const Size(1440, 1200);
@@ -44,17 +44,25 @@ void main() {
     ));
     await t.pumpAndSettle();
 
-    expect(find.text('SET KATA UP'), findsOneWidget);
     // it must stand on its own as a route: no Material ancestor means yellow-underlined text
     expect(find.descendant(of: find.byType(DesktopOnboarding), matching: find.byType(Scaffold)), findsOneWidget);
-    expect(find.textContaining('WHICH BODY'), findsOneWidget);
-    expect(find.textContaining('WHAT ARE YOU AFTER'), findsOneWidget, reason: 'one card, not paged steps');
+    expect(find.text('WHICH BODY DO YOU SHOOT?'), findsOneWidget);
+    expect(find.text('STEP 1 OF 2'), findsOneWidget);
+    expect(find.textContaining('WHAT ARE YOU AFTER'), findsNothing, reason: 'each question gets its own page');
 
     await t.enterText(find.byType(TextField).first, 'X-S20');
     await t.pumpAndSettle();
     await t.tap(find.widgetWithText(KataListRow, 'X-S20'));
     await t.pumpAndSettle();
-    expect(find.textContaining('open on X-Trans V'), findsOneWidget, reason: 'it says what it will do');
+    expect(find.textContaining('LIBRARY WILL OPEN ON X-TRANS V'), findsOneWidget, reason: 'it says what it will do');
+
+    await t.tap(find.text('CONTINUE'));
+    await t.pumpAndSettle();
+    expect(find.text('WHAT ARE YOU AFTER?'), findsOneWidget);
+    expect(find.text('STEP 2 OF 2'), findsOneWidget);
+    expect(find.textContaining('KATAS'), findsWidgets, reason: 'each look shows how many it would give you');
+    await t.tap(find.text('BLACK & WHITE'));
+    await t.pumpAndSettle();
 
     await t.tap(find.text('START'));
     await t.pumpAndSettle();
@@ -63,5 +71,6 @@ void main() {
     expect(prefs.body, 'X-S20');
     expect(prefs.sensor, 'X-Trans V');
     expect(prefs.onboarded, isTrue);
+    expect(prefs.filmSimFamilies, ['mono']);
   });
 }
