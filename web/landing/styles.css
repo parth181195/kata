@@ -124,8 +124,9 @@ p { margin: 0; }
 .qr-s { width: 44px; height: 44px; background: repeating-conic-gradient(#000 0 25%, #fff 0 50%) 0 0 / 11px 11px; flex: none; }
 
 /* table */
-.table { display: grid; grid-template-columns: 170px repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--hair); border: 1px solid var(--hair); overflow-x: auto; }
-.table > div { background: var(--bg); padding: 14px; min-width: 0; }
+.table { display: grid; grid-template-columns: 170px repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--hair); border: 1px solid var(--hair); }
+.table .tr { display: contents; }
+.table > div, .table .tr > div { background: var(--bg); padding: 14px; min-width: 0; }
 .table .th { background: var(--surface); padding: 12px 14px; font: 500 8.5px/1.3 var(--body); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
 .table .gen { font: 800 15px/1 var(--display); text-transform: uppercase; }
 .table .bodies { font: 400 11.5px/1.5 var(--body); color: var(--dim); }
@@ -170,7 +171,19 @@ p { margin: 0; }
   .grid3 { grid-template-columns: 1fr; }
   .head { flex-direction: column; align-items: flex-start; gap: 14px; }
   .strip .wrap { justify-content: flex-start; gap: 28px; overflow-x: auto; scrollbar-width: none; }
-  .table { grid-template-columns: 120px repeat(4, minmax(120px, 1fr)); }
+}
+
+/* the spec table becomes stacked generation cards on small screens — no sideways scrolling */
+@media (max-width: 860px) {
+  .table { display: block; background: none; border: 0; }
+  .table .th { display: none; }
+  .table .tr { display: block; border: 1px solid var(--hair2); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+  .table .tr > div { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end; gap: 6px 14px; padding: 11px 16px; border-top: 1px solid var(--hair); }
+  .table .tr > .gen { display: block; border-top: 0; background: var(--surface); font-size: 16px; padding: 13px 16px; }
+  .table .tr > div::before { content: attr(data-l); font: 500 8.5px/1.3 var(--body); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; flex: none; margin-right: auto; padding-top: 2px; }
+  .table .tr > .gen::before { content: none; }
+  .table .tr > .val { white-space: nowrap; }
+  .table .bodies, .table .val { text-align: right; }
 }
 @media (max-width: 720px) {
   :root { --gut: 20px; }
