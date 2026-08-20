@@ -19,7 +19,7 @@ import 'desktop_import.dart';
 /// Design 1e: every field visible at once. Left rail carries identity, live compatibility
 /// against the connected body, and the Kata Code; the right pane is the full field set.
 class DesktopEditor extends ConsumerStatefulWidget {
-  const DesktopEditor({super.key, this.id, this.from, this.seed, this.onDone});
+  const DesktopEditor({super.key, this.id, this.from, this.seed, this.onDone, this.onDirtyChanged});
 
   /// Existing recipe to edit (draft or published).
   final String? id;
@@ -30,6 +30,9 @@ class DesktopEditor extends ConsumerStatefulWidget {
   /// Start from these settings (e.g. read out of a camera slot).
   final OfrRecipe? seed;
   final VoidCallback? onDone;
+
+  /// Lets the shell ask before navigating away from unsaved work.
+  final void Function(bool dirty)? onDirtyChanged;
 
   @override
   ConsumerState<DesktopEditor> createState() => _DesktopEditorState();
@@ -68,8 +71,13 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
 
   void _set(OfrRecipe Function(OfrRecipe) f) => setState(() {
         _r = f(_r);
-        _dirty = true;
+        _markDirty();
       });
+
+  void _markDirty() {
+    _dirty = true;
+    widget.onDirtyChanged?.call(true);
+  }
 
   OfrRecipe get _current => _r.copyWith(
         name: _name.text.trim().isEmpty ? null : _name.text.trim(),
@@ -83,6 +91,7 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
 
   void _leave() {
     _dirty = false;
+    widget.onDirtyChanged?.call(false);
     widget.onDone?.call();
   }
 
@@ -154,7 +163,7 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
     setState(() {
       // keep the identity the user typed; take the settings
       _r = ofr.copyWith(name: _r.name, sourceAttribution: _r.sourceAttribution, sourceUrl: _r.sourceUrl, sensors: _r.sensors.isEmpty ? ofr.sensors : _r.sensors, clearHash: true);
-      _dirty = true;
+      _markDirty();
     });
     if (mounted) KataToast.show(context, 'Loaded C$slot');
   }
@@ -167,7 +176,7 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
       setState(() {
         _r = out.recipe.copyWith(clearHash: true);
         _name.text = out.recipe.name ?? _name.text;
-        _dirty = true;
+        _markDirty();
       });
       if (mounted) KataToast.show(context, 'Loaded from the clipboard');
     } catch (_) {
@@ -230,7 +239,7 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
             child: ListView(padding: const EdgeInsets.fromLTRB(20, 18, 20, 24), children: [
               KataSectionHeader('Identity'),
               const SizedBox(height: 10),
-              KataTextField(label: 'Name', controller: _name, hint: 'e.g. Kodachrome 64', onChanged: (_) => setState(() => _dirty = true)),
+              KataTextField(label: 'Name', controller: _name, hint: 'e.g. Kodachrome 64', onChanged: (_) => setState(_markDirty)),
               const SizedBox(height: 6),
               Text(
                 _name.text.trim().length > 25
@@ -239,9 +248,9 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
                 style: KataType.bodyStyle(size: 10.5, color: _name.text.trim().length > 25 ? p.dim : p.muted, height: 1.4),
               ),
               const SizedBox(height: 10),
-              KataTextField(label: 'Credit', controller: _attr, hint: 'Attribution (optional)', onChanged: (_) => setState(() => _dirty = true)),
+              KataTextField(label: 'Credit', controller: _attr, hint: 'Attribution (optional)', onChanged: (_) => setState(_markDirty)),
               const SizedBox(height: 10),
-              KataTextField(label: 'Source URL', controller: _url, hint: 'https:// (optional)', onChanged: (_) => setState(() => _dirty = true)),
+              KataTextField(label: 'Source URL', controller: _url, hint: 'https:// (optional)', onChanged: (_) => setState(_markDirty)),
               const SizedBox(height: 12),
               OfrFields.sensorChips(r, _set),
               const SizedBox(height: 22),
@@ -305,7 +314,7 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
                     expand: false,
                     onPressed: () => setState(() {
                       _r = kBlankOfr;
-                      _dirty = true;
+                      _markDirty();
                     }),
                   ),
                 ]),

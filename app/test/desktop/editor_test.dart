@@ -10,6 +10,7 @@ import 'package:kata/data/local_db.dart';
 import 'package:kata/data/recipe.dart';
 import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/desktop/desktop_editor.dart';
+import 'package:kata/desktop/desktop_shell.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
@@ -92,4 +93,65 @@ void main() {
     final btn = t.widget<KataPillButton>(find.widgetWithText(KataPillButton, 'PUBLISH'));
     expect(btn.onPressed, isNull);
   });
+
+  testWidgets('unsaved work asks before the shell navigates away', (t) async {
+    var dirty = false;
+    var left = false;
+    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    t.view.physicalSize = const Size(1440, 1500);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+
+    final db = KataDb.memory();
+    addTearDown(db.close);
+    final repo = RecipeRepository(db: db, api: FakeRecipeApi([]));
+    await repo.load();
+    final c = ProviderContainer(overrides: [recipeRepositoryProvider.overrideWith((_) => repo)]);
+    addTearDown(c.dispose);
+    await t.pumpWidget(UncontrolledProviderScope(
+      container: c,
+      child: MaterialApp(
+        theme: KataTheme.dark(),
+        home: Scaffold(body: DesktopEditor(onDirtyChanged: (d) => dirty = d, onDone: () => left = true)),
+      ),
+    ));
+    await t.pumpAndSettle();
+    expect(dirty, isFalse);
+
+    // type something: the shell is told there is unsaved work
+    await t.enterText(find.widgetWithText(TextField, 'e.g. Kodachrome 64'), 'Half done');
+    await t.pumpAndSettle();
+    expect(dirty, isTrue, reason: 'the shell needs this to guard rail navigation');
+
+    // Close asks first and stays put when the answer is no
+    await t.tap(find.text('Close'));
+    await t.pumpAndSettle();
+    expect(find.text('DISCARD CHANGES?'), findsOneWidget);
+    await t.tap(find.text('Cancel'));
+    await t.pumpAndSettle();
+    expect(left, isFalse);
+
+    // saving clears the flag so navigation stops asking
+    await t.tap(find.text('Save draft'));
+    await t.pumpAndSettle();
+    expect(dirty, isFalse);
+    expect(left, isTrue);
+    expect(repo.mine.single.name, 'Half done');
+  });
+
+  testWidgets('the shell controller exposes a dirty hook for its exits', (t) async {
+    expect(DesktopShell.of(await _dummyContext(t)), isNull); // no shell above: callers no-op safely
+  });
+}
+
+/// A context with no DesktopShell ancestor, to prove `DesktopShell.of` is null-safe at call sites.
+Future<BuildContext> _dummyContext(WidgetTester t) async {
+  late BuildContext ctx;
+  await t.pumpWidget(MaterialApp(home: Builder(builder: (c) {
+    ctx = c;
+    return const SizedBox.shrink();
+  })));
+  return ctx;
 }

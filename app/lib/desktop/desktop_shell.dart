@@ -29,7 +29,10 @@ enum DesktopSection { library, saved, mine, camera, settings, editor }
 
 /// What descendants may ask the shell to do.
 abstract class DesktopShellController {
-  void openEditor({String? id, String? from});
+  Future<void> openEditor({String? id, String? from});
+
+  /// The editor reports its unsaved state so every way out of it can ask first.
+  void setEditorDirty(bool dirty);
 }
 
 class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopShellController {
@@ -40,13 +43,39 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
 
   /// Editor args for the current editing session (null id = new kata).
   ({String? id, String? from})? _editorArgs;
+  bool _editorDirty = false;
 
   @override
-  void openEditor({String? id, String? from}) => setState(() {
-        _cameFrom = _section == DesktopSection.editor ? _cameFrom : _section;
-        _editorArgs = (id: id, from: from);
-        _section = DesktopSection.editor;
-      });
+  void setEditorDirty(bool dirty) => _editorDirty = dirty;
+
+  /// The editor is a section, not a route — leaving it disposes the draft. Every exit
+  /// (rail, opening another kata, quitting) goes through here first.
+  Future<bool> _mayLeaveEditor() async {
+    if (_section != DesktopSection.editor || !_editorDirty) return true;
+    final ok = await showKataDialog(context,
+        title: 'Discard changes?', body: 'Nothing has been saved yet.', confirmLabel: 'Discard', destructive: true);
+    return ok == true;
+  }
+
+  @override
+  Future<void> openEditor({String? id, String? from}) async {
+    if (!await _mayLeaveEditor()) return;
+    setState(() {
+      _cameFrom = _section == DesktopSection.editor ? _cameFrom : _section;
+      _editorArgs = (id: id, from: from);
+      _editorDirty = false;
+      _section = DesktopSection.editor;
+    });
+  }
+
+  Future<void> _goto(DesktopSection s) async {
+    if (s == _section) return;
+    if (!await _mayLeaveEditor()) return;
+    setState(() {
+      _editorDirty = false;
+      _section = s;
+    });
+  }
 
   @override
   void initState() {
@@ -58,6 +87,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
       if (mounted) ref.read(cameraServiceProvider.notifier).enableAutoConnect();
     });
     _lifecycle = AppLifecycleListener(onExitRequested: () async {
+      if (!await _mayLeaveEditor()) return AppExitResponse.cancel;
       await ref.read(cameraServiceProvider.notifier).disconnect();
       return AppExitResponse.exit;
     });
@@ -84,7 +114,11 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
           key: ValueKey(_editorArgs),
           id: _editorArgs?.id,
           from: _editorArgs?.from,
-          onDone: () => setState(() => _section = _cameFrom),
+          onDirtyChanged: setEditorDirty,
+          onDone: () => setState(() {
+            _editorDirty = false;
+            _section = _cameFrom;
+          }),
         ),
     };
     final camPill = switch (cam) {
@@ -136,7 +170,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
               Tooltip(
                 message: user.email,
                 child: InkWell(
-                  onTap: () => setState(() => _section = DesktopSection.settings),
+                  onTap: () => _goto(DesktopSection.settings),
                   customBorder: const CircleBorder(),
                   child: CircleAvatar(radius: 14, backgroundColor: p.surface, foregroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null, child: Text(user.displayName.isEmpty ? '?' : user.displayName[0], style: KataType.bodyStyle(size: 11, weight: FontWeight.w600, color: p.fg))),
                 ),
@@ -204,7 +238,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
         borderRadius: BorderRadius.circular(10),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => setState(() => _section = s),
+          onTap: () => _goto(s),
           child: Container(
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 12),

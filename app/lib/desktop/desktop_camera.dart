@@ -262,6 +262,10 @@ class _SlotTile extends ConsumerWidget {
   }
 }
 
+/// Ids that exist only for the duration of a write (a backup restore, an unsaved editor
+/// draft): never worth remembering as "this slot holds recipe X".
+bool _transientId(String id) => id.startsWith('backup:') || id == 'editor-draft';
+
 // ---------------------------------------------------------------- 1b write review (field diff)
 Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
   final st = ref.read(cameraServiceProvider);
@@ -344,7 +348,7 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
         ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(e.key));
         // remember what landed where, so the slot renders as this recipe's card from now on
         final after = ref.read(cameraServiceProvider);
-        if (after is CameraReady && !e.value.id.startsWith('backup:') && e.key <= after.slots.length) {
+        if (after is CameraReady && !_transientId(e.value.id) && e.key <= after.slots.length) {
           await ref
               .read(slotLinksProvider.notifier)
               .record(after.caps.model, e.key, e.value.id, slotSettingsHash(after.caps.model, after.slots[e.key - 1]));
