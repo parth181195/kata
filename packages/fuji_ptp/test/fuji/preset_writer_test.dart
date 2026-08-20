@@ -5,6 +5,7 @@ import 'package:fuji_ptp/src/fuji/camera_preset.dart';
 import 'package:fuji_ptp/src/fuji/fuji_props.dart';
 import 'package:fuji_ptp/src/fuji/preset_codec.dart';
 import 'package:fuji_ptp/src/fuji/preset_writer.dart';
+import 'package:fuji_ptp/src/ptp/binary.dart';
 
 Uint8List b(List<int> l) => Uint8List.fromList(l);
 
@@ -85,5 +86,13 @@ void main() {
     expect(xs20Caps.presetProtocol, isTrue);
     expect(xs20Caps.hasSmoothSkin, isFalse);
     expect(CameraCapabilities(model: 'X-T4', firmware: '1', pid: 1, slotCount: 0, supportedProps: {0xD185}).presetProtocol, isFalse);
+  });
+
+  test('plan sanitizes the name: ascii only, collapsed spaces, capped at 25', () {
+    expect(PresetWriter.sanitizeName('Caf\u00e9  Noir \u2014 Portra 400 Overexposed'), 'Caf Noir Portra 400 Overe');
+    expect(PresetWriter.sanitizeName('  Beach Chrome '), 'Beach Chrome');
+    expect(PresetWriter.sanitizeName('\u65e5\u672c\u8a9e'), '');
+    final plan = PresetWriter.plan(CameraPreset(name: 'A' * 40, filmSim: 1, rawExtras: extras), xs20Caps);
+    expect(ByteReader(plan.first.bytes).ptpString(), 'A' * 25);
   });
 }

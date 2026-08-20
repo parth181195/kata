@@ -43,6 +43,12 @@ class FakeFujiBody implements UsbLink {
   /// Props the body rejects on write (simulates read-only / conditional props).
   final Set<int> rejectWrites = {};
 
+  /// When set, 0xD18D writes longer than this respond InvalidDevicePropValue (0 = no names at all).
+  int? nameMaxLen;
+
+  /// Body accepts the 0xD18D write but keeps an empty name (observed on X-S20).
+  bool dropNameOnWrite = false;
+
   /// Props where the written value silently differs on read-back.
   final Set<int> corruptOnWrite = {};
 
@@ -115,6 +121,11 @@ class FakeFujiBody implements UsbLink {
         final prop = cmd.params[0];
         if (!supported.contains(prop) || rejectWrites.contains(prop)) {
           _resp(cmd, Resp.devicePropNotSupported);
+        } else if (prop == 0xD18D && nameMaxLen != null && ByteReader(Uint8List.fromList(data!)).ptpString().length > nameMaxLen!) {
+          _resp(cmd, Resp.invalidDevicePropValue);
+        } else if (prop == 0xD18D && dropNameOnWrite) {
+          slots[currentSlot]![prop] = packPtpString('');
+          _resp(cmd, Resp.ok);
         } else if (prop == 0xD18C) {
           final s = data![0];
           if (s < 1 || s > slotCount) {

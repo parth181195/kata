@@ -104,4 +104,27 @@ void main() {
     final selects = body.log.where((l) => l.startsWith('1016 [53644]')).toList();
     expect(selects.length, greaterThanOrEqualTo(3));
   });
+
+  test('body refusing the name falls back to empty; settings still written', () async {
+    final body = FakeFujiBody()..nameMaxLen = 0;
+    final c = cam(body);
+    await c.openSession();
+    await c.discoverCapabilities();
+    final r = await c.writePreset(1, const CameraPreset(name: 'Kodachrome 64', filmSim: 1, highlightX10: 15));
+    expect(r.ok, isTrue);
+    expect(r.written, contains(0xD18D));
+    expect(r.warnings.any((w) => w.contains('name')), isTrue);
+    expect(body.slots[1]![0xD19D], Uint8List.fromList([15, 0]));
+    expect((await c.readSlot(1)).name, '');
+  });
+
+  test('body that accepts but silently drops the name only warns', () async {
+    final body = FakeFujiBody()..dropNameOnWrite = true;
+    final c = cam(body);
+    await c.openSession();
+    await c.discoverCapabilities();
+    final r = await c.writePreset(1, const CameraPreset(name: 'Test K', filmSim: 1));
+    expect(r.ok, isTrue); // cosmetic: never fails a write
+    expect(r.warnings.any((w) => w.contains('name')), isTrue);
+  });
 }

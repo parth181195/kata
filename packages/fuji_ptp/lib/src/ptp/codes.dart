@@ -34,6 +34,7 @@ class Resp {
   static const invalidStorageId = 0x2008;
   static const invalidObjectHandle = 0x2009;
   static const devicePropNotSupported = 0x200A;
+  static const invalidDevicePropValue = 0x201C;
   static const invalidParameter = 0x201D;
   static const sessionAlreadyOpen = 0x201E;
   static const deviceBusy = 0x2019;
@@ -49,6 +50,7 @@ class Resp {
     invalidStorageId: 'InvalidStorageID',
     invalidObjectHandle: 'InvalidObjectHandle',
     devicePropNotSupported: 'DevicePropNotSupported',
+    invalidDevicePropValue: 'InvalidDevicePropValue',
     invalidParameter: 'InvalidParameter',
     sessionAlreadyOpen: 'SessionAlreadyOpen',
     deviceBusy: 'DeviceBusy',

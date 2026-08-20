@@ -152,6 +152,10 @@ class CameraService extends Notifier<CameraState> {
       slots[slot - 1] = fresh;
       state = CameraReady(caps: s.caps, slots: slots);
       return result;
+    } on FujiCameraException {
+      // Protocol-level rejection: the session is still healthy — keep the connection.
+      state = CameraReady(caps: s.caps, slots: s.slots);
+      rethrow;
     } catch (e) {
       state = CameraFailed(CameraFailure.io, '$e');
       rethrow;

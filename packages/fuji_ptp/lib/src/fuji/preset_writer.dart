@@ -54,12 +54,22 @@ class WriteResult {
 
 /// Turns a [CameraPreset] into the ordered list of property writes for a body with [caps].
 class PresetWriter {
+  /// X RAW Studio caps preset names at 25 characters; some bodies store none at all.
+  static const nameMax = 25;
+
+  /// ASCII-printable only, whitespace collapsed, trimmed, capped at [nameMax] — the safest
+  /// superset across bodies. The label is cosmetic; the settings are what matter.
+  static String sanitizeName(String name) {
+    final ascii = name.replaceAll(RegExp(r'[^\x20-\x7E]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    return ascii.length <= nameMax ? ascii : ascii.substring(0, nameMax).trimRight();
+  }
+
   static List<PropWrite> plan(CameraPreset p, CameraCapabilities caps) {
     final encoded = PresetCodec.encode(p);
     final out = <PropWrite>[];
     for (final code in presetWriteOrder) {
       if (code == 0xD18D) {
-        out.add(PropWrite(code, packPtpString(p.name), fatal: true));
+        out.add(PropWrite(code, packPtpString(sanitizeName(p.name)), fatal: true));
         continue;
       }
       final bytes = encoded[code];

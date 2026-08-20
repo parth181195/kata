@@ -143,10 +143,22 @@ class FujiCamera {
         final skipped = <int>[];
         final writtenBytes = <int, Uint8List>{};
         for (final w in plan) {
-          final r = await _set(w.code, w.bytes);
+          var bytes = w.bytes;
+          var r = await _set(w.code, bytes);
+          if (!r.ok && w.code == 0xD18D && bytes.length > 1) {
+            // Some bodies cap or refuse preset names (X-S20: none). The label is cosmetic —
+            // retry with an empty name so the settings still land.
+            final rejected = Resp.name(r.code);
+            final empty = packPtpString('');
+            r = await _set(0xD18D, empty);
+            if (r.ok) {
+              bytes = empty;
+              warnings.add('0xD18D PresetName: name rejected ($rejected); wrote empty — this body may not store names');
+            }
+          }
           if (r.ok) {
             written.add(w.code);
-            writtenBytes[w.code] = w.bytes;
+            writtenBytes[w.code] = bytes;
           } else if (w.fatal) {
             throw FujiCameraException('${hex16(w.code)} (${FujiProp.name(w.code)}) rejected: ${Resp.name(r.code)}');
           } else {
@@ -165,8 +177,13 @@ class FujiCamera {
               ? ByteReader(got).ptpString() == ByteReader(expected).ptpString()
               : got.length >= expected.length && _eq(got.sublist(0, expected.length), expected);
           if (!same) {
-            ok = false;
-            warnings.add('${hex16(code)} ${FujiProp.name(code)}: verify mismatch (wrote ${hex(expected)} read ${hex(got)})');
+            if (code == 0xD18D) {
+              // Cosmetic: bodies that store no name read back empty. Never fail the write over it.
+              warnings.add("0xD18D PresetName: body kept '${ByteReader(got).ptpString()}' — it may not store names");
+            } else {
+              ok = false;
+              warnings.add('${hex16(code)} ${FujiProp.name(code)}: verify mismatch (wrote ${hex(expected)} read ${hex(got)})');
+            }
           }
         }
         return WriteResult(ok: ok, slot: slot, warnings: warnings, written: written, skipped: skipped);

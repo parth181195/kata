@@ -234,11 +234,25 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
   await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: true);
   // write sequentially; the service refreshes each slot after write
   final svc = ref.read(cameraServiceProvider.notifier);
-  for (final e in queue.entries) {
-    final preset = OfrMapper.toPreset(e.value.ofr).value;
-    await svc.writeRecipe(e.key, preset);
+  var wrote = 0;
+  final notes = <String>[];
+  try {
+    for (final e in queue.entries) {
+      final preset = OfrMapper.toPreset(e.value.ofr).value;
+      final r = await svc.writeRecipe(e.key, preset);
+      notes.addAll(r.warnings);
+      wrote++;
+      ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(e.key));
+    }
+    if (context.mounted) {
+      final nameNote = notes.any((w) => w.contains('PresetName')) ? ' · names not stored on this body' : '';
+      KataToast.show(context, 'Wrote $wrote slot${wrote == 1 ? '' : 's'} — flick the mode dial to refresh$nameNote');
+    }
+  } catch (e) {
+    // Failed slots stay queued; the connection survives protocol rejections.
+    final msg = '$e'.replaceFirst('FujiCameraException: ', '');
+    if (context.mounted) KataToast.show(context, 'Write failed after $wrote slot${wrote == 1 ? '' : 's'}: $msg');
   }
-  ref.read(writeQueueProvider.notifier).state = {};
 }
 
 class _ReviewDialog extends StatelessWidget {
