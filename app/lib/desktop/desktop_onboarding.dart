@@ -75,9 +75,9 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
       Padding(
         padding: const EdgeInsets.fromLTRB(48, 26, 48, 0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('WHICH BODY DO YOU SHOOT?', style: KataType.displayStyle(size: 32, color: p.fg)),
+          Text('WHICH BODIES DO YOU SHOOT?', style: KataType.displayStyle(size: 32, color: p.fg)),
           const SizedBox(height: 8),
-          Text('So the library opens on katas made for your sensor. Change or clear it any time.', style: KataType.bodyStyle(size: 13.5, color: p.muted, height: 1.5)),
+          Text('Pick as many as you own — the library opens on katas made for those sensors. Change or clear it any time.', style: KataType.bodyStyle(size: 13.5, color: p.muted, height: 1.5)),
           const SizedBox(height: 18),
           KataSearchField(hint: 'Search bodies', controller: _search, onChanged: (_) => setState(() {})),
         ]),
@@ -93,8 +93,8 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
               contentInset: 18, // the label sits inside the highlight, not on its edge
               title: b.model,
               sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
-              value: a.body == b.model ? '✓' : null,
-              onTap: () => ref.read(onboardingAnswersProvider.notifier).state = a.copyWith(body: b.model, sensor: b.generation),
+              value: a.bodies.contains(b.model) ? '✓' : null,
+              onTap: () => ref.read(onboardingAnswersProvider.notifier).state = a.toggleBody(b.model),
             );
           },
         ),
@@ -104,23 +104,28 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
         decoration: BoxDecoration(border: Border(top: BorderSide(color: p.hairline))),
         child: Row(children: [
           KataPillButton(
-            label: 'I shoot more than one',
+            label: 'Not listed',
             kind: KataButtonKind.secondary,
             display: false,
             height: 46,
             expand: false,
             onPressed: () {
-              ref.read(onboardingAnswersProvider.notifier).state = a.copyWith(clearBody: true);
+              ref.read(onboardingAnswersProvider.notifier).state = a.copyWith(bodies: const {});
               setState(() => _step = 1);
             },
           ),
           const Spacer(),
-          if (a.sensor != null)
+          if (a.sensorSummary != null)
             Padding(
               padding: const EdgeInsets.only(right: 14),
-              child: Text('LIBRARY WILL OPEN ON ${a.sensor!.toUpperCase()}', style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.14)),
+              child: Text('LIBRARY WILL OPEN ON ${a.sensorSummary!.toUpperCase()}', style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.14)),
             ),
-          KataPillButton(label: 'Continue', height: 46, expand: false, onPressed: a.body == null ? null : () => setState(() => _step = 1)),
+          KataPillButton(
+            label: a.bodies.isEmpty ? 'Continue' : 'Continue · ${a.bodies.length}',
+            height: 46,
+            expand: false,
+            onPressed: a.bodies.isEmpty ? null : () => setState(() => _step = 1),
+          ),
         ]),
       ),
     ]);
@@ -170,7 +175,7 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
           KataPillButton(label: 'Back', kind: KataButtonKind.secondary, display: false, height: 46, expand: false, onPressed: () => setState(() => _step = 0)),
           const Spacer(),
           Text(
-            a.sensor == null ? 'The library will show everything' : 'The library will open on ${a.sensor}',
+            a.sensorSummary == null ? 'The library will show everything' : 'The library will open on ${a.sensorSummary}',
             style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.12),
           ),
           const SizedBox(width: 14),

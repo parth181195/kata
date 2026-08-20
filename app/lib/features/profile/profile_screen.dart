@@ -51,7 +51,7 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           row(
             'My camera & looks',
-            trailing: user?.preferences.body ?? user?.preferences.sensor ?? 'SET UP',
+            trailing: (user?.preferences.bodies.isNotEmpty ?? false) ? user!.preferences.bodiesLabel : 'SET UP',
             onTap: () => context.push('/onboarding'),
           ),
           row('Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),

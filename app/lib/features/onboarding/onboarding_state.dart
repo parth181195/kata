@@ -20,24 +20,33 @@ final needsOnboardingProvider = Provider<bool>((ref) {
 /// The library filter a set of preferences implies. Only the sensor is applied: a film-sim
 /// family is a *shortcut* the user taps, not something we silently narrow the library by.
 LibraryFilter filterFor(UserPreferences p, LibraryFilter base) =>
-    p.sensor == null ? base : base.copyWith(sensor: p.sensor);
+    p.sensors.isEmpty ? base : base.copyWith(sensors: p.sensors.toSet());
 
 /// Answers as the user builds them up, before they are saved.
 class OnboardingAnswers {
-  const OnboardingAnswers({this.body, this.sensor, this.families = const {}});
-  final String? body;
-  final String? sensor;
+  const OnboardingAnswers({this.bodies = const {}, this.families = const {}});
+
+  /// Model names; the sensor list is derived, since two bodies can share a generation.
+  final Set<String> bodies;
   final Set<String> families;
 
-  OnboardingAnswers copyWith({String? body, String? sensor, Set<String>? families, bool clearBody = false}) => OnboardingAnswers(
-        body: clearBody ? null : (body ?? this.body),
-        sensor: clearBody ? null : (sensor ?? this.sensor),
-        families: families ?? this.families,
-      );
+  Set<String> get sensors => {
+        for (final m in bodies)
+          if (KnownBody.forModel(m) case final b?) b.generation,
+      };
+
+  /// What the library will open on, in a form a person can read.
+  String? get sensorSummary => sensors.isEmpty ? null : (sensors.toList()..sort()).join(' · ');
+
+  OnboardingAnswers toggleBody(String model) =>
+      OnboardingAnswers(bodies: bodies.contains(model) ? ({...bodies}..remove(model)) : {...bodies, model}, families: families);
+
+  OnboardingAnswers copyWith({Set<String>? bodies, Set<String>? families}) =>
+      OnboardingAnswers(bodies: bodies ?? this.bodies, families: families ?? this.families);
 
   UserPreferences toPreferences() => UserPreferences(
-        sensor: sensor,
-        body: body,
+        bodies: bodies.toList()..sort(),
+        sensors: sensors.toList()..sort(),
         filmSimFamilies: families.toList()..sort(),
         onboardedAt: DateTime.now(),
       );

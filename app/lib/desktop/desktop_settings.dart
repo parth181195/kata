@@ -38,7 +38,7 @@ class DesktopSettings extends ConsumerWidget {
             KataListRow(
               title: 'My camera & looks',
               sub: 'What the library opens on',
-              value: user.preferences.body ?? user.preferences.sensor ?? 'SET UP',
+              value: user.preferences.bodies.isEmpty ? (user.preferences.sensors.join(' · ').isEmpty ? 'SET UP' : user.preferences.sensors.join(' · ')) : user.preferences.bodiesLabel,
               onTap: () => GoRouter.of(context).push('/onboarding'),
             ),
           if (user != null) KataListRow(title: 'Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),

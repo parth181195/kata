@@ -98,17 +98,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   const SizedBox(width: 7),
                   // the user's own sensor when they told us, so a seeded filter is visible
                   // and clearable rather than a library that mysteriously looks small
+                  // one chip per sensor the user shoots (or the common one if they never
+                  // said), so a seeded filter is visible and clearable rather than a library
+                  // that mysteriously looks small
                   ...(() {
-                    final mine = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensor;
-                    final sensor = filter.sensor ?? mine ?? 'X-Trans V';
+                    final mine = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensors ?? const <String>[];
+                    final shown = {...mine, ...filter.sensors};
                     return [
-                      KataChip(
-                        label: sensor,
-                        selected: filter.sensor == sensor,
-                        onTap: () => _setFilter((f) => f.sensor == sensor ? f.copyWith(clearSensor: true) : f.copyWith(sensor: sensor)),
-                        onRemove: filter.sensor == null ? null : () => _setFilter((f) => f.copyWith(clearSensor: true)),
-                      ),
-                      const SizedBox(width: 7),
+                      for (final sensor in (shown.isEmpty ? const ['X-Trans V'] : (shown.toList()..sort()))) ...[
+                        KataChip(
+                          label: sensor,
+                          selected: filter.sensors.contains(sensor),
+                          onTap: () => _setFilter((f) {
+                            final next = {...f.sensors};
+                            next.contains(sensor) ? next.remove(sensor) : next.add(sensor);
+                            return f.copyWith(sensors: next);
+                          }),
+                        ),
+                        const SizedBox(width: 7),
+                      ],
                     ];
                   })(),
                   // one-tap shortcuts for the looks they asked for during setup

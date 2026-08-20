@@ -260,7 +260,7 @@ class RecipeRepository extends ChangeNotifier {
       if (f.verifiedOnly && !r.verified) return false;
       if (f.mono != null && r.isMono != f.mono) return false;
       if (f.filmSim != null && r.ofr.filmSimulation != f.filmSim) return false;
-      if (f.sensor != null && !r.ofr.sensors.contains(f.sensor)) return false;
+      if (f.sensors.isNotEmpty && !r.ofr.sensors.any(f.sensors.contains)) return false;
       if (f.families.isNotEmpty && !FilmFamily.simsFor(f.families).contains(r.ofr.filmSimulation)) return false;
       if (q.isNotEmpty) {
         final hay = '${r.name} ${r.ofr.filmSimulation} ${r.ofr.sourceAttribution ?? ''}'.toLowerCase();
@@ -334,8 +334,8 @@ final recipeRepositoryProvider = ChangeNotifierProvider<RecipeRepository>((ref) 
 /// Seeded from the signed-in user's setup answers: a new user lands on katas for their own
 /// sensor rather than all 340. The chip stays visible and clearable — never a silent filter.
 final libraryFilterProvider = StateProvider<LibraryFilter>((ref) {
-  final sensor = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensor;
-  return sensor == null ? const LibraryFilter() : LibraryFilter(sensor: sensor);
+  final sensors = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensors ?? const <String>[];
+  return sensors.isEmpty ? const LibraryFilter() : LibraryFilter(sensors: sensors.toSet());
 });
 
 final filteredRecipesProvider = Provider<List<Recipe>>((ref) {

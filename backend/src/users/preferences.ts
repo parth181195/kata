@@ -21,6 +21,9 @@ export const FILM_FAMILIES = [
 ] as const;
 
 export interface Preferences {
+  sensors?: string[];
+  bodies?: string[];
+  /// pre-multi-body accounts
   sensor?: string;
   body?: string;
   filmSimFamilies?: string[];

@@ -23,6 +23,14 @@ import { toUserDto, UsersService } from './users.service';
 
 /// Validated so a typo can't leave someone staring at an empty library.
 export class PreferencesDto {
+  // plural: people own more than one body
+  @IsOptional() @IsArray() @IsIn(SENSORS, { each: true }) sensors?: string[];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  bodies?: string[];
+  // singular kept for accounts written before multi-body
   @IsOptional() @IsString() @IsIn(SENSORS) sensor?: string;
   @IsOptional() @IsString() @MaxLength(40) body?: string;
   @IsOptional()

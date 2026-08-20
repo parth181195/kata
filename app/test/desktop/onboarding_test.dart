@@ -46,7 +46,7 @@ void main() {
 
     // it must stand on its own as a route: no Material ancestor means yellow-underlined text
     expect(find.descendant(of: find.byType(DesktopOnboarding), matching: find.byType(Scaffold)), findsOneWidget);
-    expect(find.text('WHICH BODY DO YOU SHOOT?'), findsOneWidget);
+    expect(find.text('WHICH BODIES DO YOU SHOOT?'), findsOneWidget);
     expect(find.text('STEP 1 OF 2'), findsOneWidget);
     expect(find.textContaining('WHAT ARE YOU AFTER'), findsNothing, reason: 'each question gets its own page');
 
@@ -56,7 +56,15 @@ void main() {
     await t.pumpAndSettle();
     expect(find.textContaining('LIBRARY WILL OPEN ON X-TRANS V'), findsOneWidget, reason: 'it says what it will do');
 
-    await t.tap(find.text('CONTINUE'));
+    // a second body: plenty of people own two, and both sensors should come through
+    await t.enterText(find.byType(TextField).first, 'X-T4');
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(KataListRow, 'X-T4'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('X-TRANS IV · X-TRANS V'), findsOneWidget, reason: 'both generations are named');
+    expect(find.text('CONTINUE · 2'), findsOneWidget);
+
+    await t.tap(find.text('CONTINUE · 2'));
     await t.pumpAndSettle();
     expect(find.text('WHAT ARE YOU AFTER?'), findsOneWidget);
     expect(find.text('STEP 2 OF 2'), findsOneWidget);
@@ -68,8 +76,8 @@ void main() {
     await t.pumpAndSettle();
     expect(done, isTrue);
     final prefs = c.read(sessionProvider).valueOrNull!.user.preferences;
-    expect(prefs.body, 'X-S20');
-    expect(prefs.sensor, 'X-Trans V');
+    expect(prefs.bodies, ['X-S20', 'X-T4']);
+    expect(prefs.sensors, ['X-Trans IV', 'X-Trans V']);
     expect(prefs.onboarded, isTrue);
     expect(prefs.filmSimFamilies, ['mono']);
   });

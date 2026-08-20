@@ -65,7 +65,7 @@ void main() {
     expect(repo.where(const LibraryFilter(query: 'koda')).map((r) => r.id), ['a']);
     expect(repo.where(const LibraryFilter(mono: true)).map((r) => r.id), ['b']);
     expect(repo.where(const LibraryFilter(verifiedOnly: true)).map((r) => r.id), ['a', 'c']);
-    expect(repo.where(const LibraryFilter(sensor: 'X-Trans V')).map((r) => r.id), ['b']);
+    expect(repo.where(const LibraryFilter(sensors: {'X-Trans V'})).map((r) => r.id), ['b']);
     expect(repo.where(const LibraryFilter(sort: LibrarySort.az)).first.id, 'a');
     expect(repo.where(const LibraryFilter(filmSim: 'Velvia')).map((r) => r.id), ['c']);
   });

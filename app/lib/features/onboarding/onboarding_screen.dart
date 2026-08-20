@@ -77,9 +77,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('WHICH BODY DO YOU SHOOT?', style: KataType.displayStyle(size: 26, color: p.fg, height: 1.1)),
+          Text('WHICH BODIES DO YOU SHOOT?', style: KataType.displayStyle(size: 26, color: p.fg, height: 1.1)),
           const SizedBox(height: 8),
-          Text('So the library opens on katas made for your sensor. You can change or clear this any time.', style: KataType.bodyStyle(size: 13, color: p.muted, height: 1.5)),
+          Text('Pick as many as you own — the library opens on katas made for those sensors. Change or clear it any time.', style: KataType.bodyStyle(size: 13, color: p.muted, height: 1.5)),
           const SizedBox(height: 14),
           KataSearchField(hint: 'Search bodies', height: KataSearchField.touch, controller: _search, onChanged: (_) => setState(() {})),
         ]),
@@ -91,14 +91,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           itemCount: bodies.length,
           itemBuilder: (_, i) {
             final b = bodies[i];
-            final on = answers.body == b.model;
+            final on = answers.bodies.contains(b.model);
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: KataListRow(
                 title: b.model,
                 sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
                 value: on ? '✓' : null,
-                onTap: () => ref.read(onboardingAnswersProvider.notifier).state = answers.copyWith(body: b.model, sensor: b.generation),
+                onTap: () => ref.read(onboardingAnswersProvider.notifier).state = answers.toggleBody(b.model),
               ),
             );
           },
@@ -109,19 +109,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: Row(children: [
           Expanded(
             child: KataPillButton(
-              label: 'I shoot more than one',
+              label: 'Not listed',
               kind: KataButtonKind.secondary,
               display: false,
               height: 50,
               onPressed: () {
-                ref.read(onboardingAnswersProvider.notifier).state = answers.copyWith(clearBody: true);
+                ref.read(onboardingAnswersProvider.notifier).state = answers.copyWith(bodies: const {});
                 setState(() => _step = 1);
               },
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: KataPillButton(label: 'Continue', height: 50, onPressed: answers.body == null ? null : () => setState(() => _step = 1)),
+            child: KataPillButton(
+              label: answers.bodies.isEmpty ? 'Continue' : 'Continue · ${answers.bodies.length}',
+              height: 50,
+              onPressed: answers.bodies.isEmpty ? null : () => setState(() => _step = 1),
+            ),
           ),
         ]),
       ),
@@ -183,18 +187,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Text("YOU'RE SET", style: KataType.displayStyle(size: 26, color: p.fg, height: 1.1)),
         const SizedBox(height: 10),
         Text(
-          a.sensor == null
+          a.sensorSummary == null
               ? 'The library will show everything. Filter by sensor whenever you want — the chips are at the top.'
-              : 'Your library opens on ${a.sensor}. The filter chip is right at the top, so clear it any time to see everything.',
+              : 'Your library opens on ${a.sensorSummary}. The chips are right at the top, so clear them any time to see everything.',
           style: KataType.bodyStyle(size: 13.5, color: p.muted, height: 1.5),
         ),
         const SizedBox(height: 18),
         KataCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (a.body != null) ...[
-              Text('CAMERA', style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.18)),
+            if (a.bodies.isNotEmpty) ...[
+              Text(a.bodies.length == 1 ? 'CAMERA' : 'CAMERAS', style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.18)),
               const SizedBox(height: 4),
-              Text(a.body!, style: KataType.displayStyle(size: 16, color: p.fg, letterSpacing: 0)),
+              Text((a.bodies.toList()..sort()).join(' · '), style: KataType.displayStyle(size: 16, color: p.fg, letterSpacing: 0)),
               const SizedBox(height: 12),
             ],
             Text('LOOKS', style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.18)),

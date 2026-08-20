@@ -6,9 +6,10 @@ enum RecipeSource { seed, imported, camera, published }
 enum LibrarySort { newest, popular, az }
 
 class LibraryFilter {
-  const LibraryFilter({this.query = '', this.sensor, this.filmSim, this.mono, this.families = const {}, this.verifiedOnly = false, this.sort = LibrarySort.newest});
+  const LibraryFilter({this.query = '', this.sensors = const {}, this.filmSim, this.mono, this.families = const {}, this.verifiedOnly = false, this.sort = LibrarySort.newest});
   final String query;
-  final String? sensor;
+  /// Sensor generations to show. Empty means every sensor — people own more than one body.
+  final Set<String> sensors;
   final String? filmSim;
   final bool? mono;
 
@@ -19,8 +20,8 @@ class LibraryFilter {
   final LibrarySort sort;
   LibraryFilter copyWith({
     String? query,
-    String? sensor,
-    bool clearSensor = false,
+    Set<String>? sensors,
+    bool clearSensors = false,
     String? filmSim,
     bool clearFilmSim = false,
     bool? mono,
@@ -31,14 +32,14 @@ class LibraryFilter {
   }) =>
       LibraryFilter(
         query: query ?? this.query,
-        sensor: clearSensor ? null : (sensor ?? this.sensor),
+        sensors: clearSensors ? const {} : (sensors ?? this.sensors),
         filmSim: clearFilmSim ? null : (filmSim ?? this.filmSim),
         mono: clearMono ? null : (mono ?? this.mono),
         families: families ?? this.families,
         verifiedOnly: verifiedOnly ?? this.verifiedOnly,
         sort: sort ?? this.sort,
       );
-  bool get isEmpty => query.isEmpty && sensor == null && filmSim == null && mono == null && !verifiedOnly;
+  bool get isEmpty => query.isEmpty && sensors.isEmpty && families.isEmpty && filmSim == null && mono == null && !verifiedOnly;
 }
 
 class Recipe {

@@ -12,31 +12,46 @@ import 'google_id_token.dart';
 /// What the first-run questions produced: the body they shoot, its sensor generation, and
 /// the looks they asked for. Empty until onboarding runs; safe to ignore everywhere.
 class UserPreferences {
-  const UserPreferences({this.sensor, this.body, this.filmSimFamilies = const [], this.onboardedAt});
-  final String? sensor;
-  final String? body;
+  const UserPreferences({this.bodies = const [], this.sensors = const [], this.filmSimFamilies = const [], this.onboardedAt});
+
+  /// Every body the user shoots — plenty of people own two.
+  final List<String> bodies;
+
+  /// The sensor generations those bodies use; what the library filter is seeded with.
+  final List<String> sensors;
   final List<String> filmSimFamilies;
   final DateTime? onboardedAt;
 
   bool get onboarded => onboardedAt != null;
 
+  /// For one-line summaries ("X-S20 · X-T4").
+  String get bodiesLabel => bodies.join(' · ');
+
   Map<String, dynamic> toJson() => {
-        if (sensor != null) 'sensor': sensor,
-        if (body != null) 'body': body,
+        if (bodies.isNotEmpty) 'bodies': bodies,
+        if (sensors.isNotEmpty) 'sensors': sensors,
         if (filmSimFamilies.isNotEmpty) 'filmSimFamilies': filmSimFamilies,
         if (onboardedAt != null) 'onboardedAt': onboardedAt!.toUtc().toIso8601String(),
       };
 
   static const empty = UserPreferences();
 
-  factory UserPreferences.fromJson(Map<String, dynamic>? j) => j == null
-      ? empty
-      : UserPreferences(
-          sensor: j['sensor'] as String?,
-          body: j['body'] as String?,
-          filmSimFamilies: ((j['filmSimFamilies'] as List?) ?? const []).cast<String>(),
-          onboardedAt: DateTime.tryParse((j['onboardedAt'] ?? '') as String),
-        );
+  factory UserPreferences.fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    List<String> list(String plural, String singular) {
+      final many = (j[plural] as List?)?.cast<String>();
+      if (many != null && many.isNotEmpty) return many;
+      final one = j[singular] as String?; // accounts set up before multi-body
+      return one == null ? const [] : [one];
+    }
+
+    return UserPreferences(
+      bodies: list('bodies', 'body'),
+      sensors: list('sensors', 'sensor'),
+      filmSimFamilies: ((j['filmSimFamilies'] as List?) ?? const []).cast<String>(),
+      onboardedAt: DateTime.tryParse((j['onboardedAt'] ?? '') as String),
+    );
+  }
 }
 
 class AppUser {
