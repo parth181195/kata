@@ -17,26 +17,15 @@ import '../../core/fuji/slot_identity.dart';
 ///
 /// This is the "I refined it while shooting" path: write → shoot → tweak on the body →
 /// come back and keep the better version.
-Future<void> showPublishFromCamera(BuildContext context, WidgetRef ref, {required int slot, bool sheet = false}) async {
+Future<void> showPublishFromCamera(BuildContext context, WidgetRef ref, {required int slot}) async {
   final st = ref.read(cameraServiceProvider);
   if (st is! CameraReady || slot > st.slots.length) return;
   final ident = identifySlot(ref, st.caps.model, slot, st.slots[slot - 1]);
   final body = _PublishDialog(slot: slot, model: st.caps.model, preset: st.slots[slot - 1], identity: ident);
   // The sheet pops with the message to show: a toast raised from a route that is being
   // dismissed never reaches the screen, so the caller (still mounted) shows it.
-  final String? done;
-  if (sheet) {
-    done = await showKataSheet<String>(context, builder: (_) => body); // phone
-  } else {
-    done = await showDialog<String>(
-      context: context,
-      builder: (c) => Dialog(
-        backgroundColor: c.kata.bg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: c.kata.hairline)),
-        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600, maxHeight: 660), child: body),
-      ),
-    );
-  }
+  // showKataSheet is a bottom sheet on a phone and a centred panel on desktop
+  final done = await showKataSheet<String>(context, builder: (_) => body);
   if (!context.mounted || done == null) return;
   KataToast.show(context, done);
 }

@@ -206,7 +206,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               identity: identifySlot(ref, st.caps.model, sel, st.slots[sel - 1]),
               // Save / publish what is actually in the slot — including anything dialled in
               // on the body since Kata wrote it.
-              onSave: () => showPublishFromCamera(context, ref, slot: sel, sheet: true),
+              onSave: () => showPublishFromCamera(context, ref, slot: sel),
               onOverwrite: () {
                 KataToast.show(context, 'Pick a kata, then Write to camera');
                 context.go('/library');

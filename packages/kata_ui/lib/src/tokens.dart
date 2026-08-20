@@ -20,6 +20,22 @@ class KataStroke {
   static const emphasis = 2.0;
 }
 
+/// Ceilings for surfaces that are phone-shaped by default. Without these a dialog or sheet
+/// stretches across a desktop window and stops reading as a modal at all.
+class KataLayout {
+  /// A confirm dialog: wide enough for two buttons, never wider than a paragraph.
+  static const dialogWidth = 460.0;
+
+  /// A sheet's content (import, share, publish…) when it is shown as a centred panel.
+  static const sheetWidth = 560.0;
+
+  /// Below this, a bottom sheet is right; at or above it, use a centred panel.
+  static const sheetBreakpoint = 720.0;
+
+  /// A toast should hug its text rather than span the window.
+  static const toastWidth = 460.0;
+}
+
 class KataRadii {
   static const card = 18.0;
   static const cardSm = 14.0;

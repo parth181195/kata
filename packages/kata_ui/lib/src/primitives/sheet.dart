@@ -34,7 +34,13 @@ class KataSheet extends StatelessWidget {
   }
 }
 
-Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dismissible = true}) => showModalBottomSheet<T>(
+/// A sheet on a phone, a centred panel on anything desktop-sized. Bottom sheets rely on a
+/// thumb and a short screen; on a wide window they slide up from a corner of the user's
+/// vision and cover a fraction of it, so the same content is shown as a modal panel instead.
+Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dismissible = true}) {
+  final wide = MediaQuery.sizeOf(context).width >= KataLayout.sheetBreakpoint;
+  if (!wide) {
+    return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       isDismissible: dismissible,
@@ -47,3 +53,22 @@ Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builde
         child: SingleChildScrollView(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom), child: builder(c)),
       ),
     );
+  }
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: dismissible,
+    barrierColor: Colors.black.withValues(alpha: 0.60),
+    builder: (c) {
+      final p = c.kata;
+      return Dialog(
+        backgroundColor: p.bg,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: p.hairline, width: KataStroke.hairline)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: KataLayout.sheetWidth, maxHeight: MediaQuery.sizeOf(c).height * 0.86),
+          child: SingleChildScrollView(child: builder(c)),
+        ),
+      );
+    },
+  );
+}

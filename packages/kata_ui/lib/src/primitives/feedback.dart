@@ -81,20 +81,24 @@ Future<bool?> showKataDialog(BuildContext context, {required String title, requi
       return Dialog(
         backgroundColor: p.bg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: p.hairline, width: KataStroke.hairline)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title.toUpperCase(), style: KataType.displayStyle(size: 20, color: p.fg)),
-            const SizedBox(height: 10),
-            Text(body, style: KataType.bodyStyle(size: 12.5, color: p.dim, height: 1.5)),
-            const SizedBox(height: 18),
-            Row(children: [
-              Expanded(child: KataPillButton(label: cancelLabel, kind: KataButtonKind.secondary, display: false, height: 50, onPressed: () => Navigator.of(c).pop(false))),
-              const SizedBox(width: 10),
-              Expanded(child: KataPillButton(label: confirmLabel, kind: destructive ? KataButtonKind.danger : KataButtonKind.primary, display: !destructive, height: 50, onPressed: () => Navigator.of(c).pop(true))),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+        // phone dialogs fill the width; on a desktop window that reads as a banner, not a modal
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: KataLayout.dialogWidth),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title.toUpperCase(), style: KataType.displayStyle(size: 20, color: p.fg)),
+              const SizedBox(height: 10),
+              Text(body, style: KataType.bodyStyle(size: 12.5, color: p.dim, height: 1.5)),
+              const SizedBox(height: 18),
+              Row(children: [
+                Expanded(child: KataPillButton(label: cancelLabel, kind: KataButtonKind.secondary, display: false, height: 50, onPressed: () => Navigator.of(c).pop(false))),
+                const SizedBox(width: 10),
+                Expanded(child: KataPillButton(label: confirmLabel, kind: destructive ? KataButtonKind.danger : KataButtonKind.primary, display: !destructive, height: 50, onPressed: () => Navigator.of(c).pop(true))),
+              ]),
             ]),
-          ]),
+          ),
         ),
       );
     },
