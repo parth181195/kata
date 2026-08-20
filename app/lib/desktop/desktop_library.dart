@@ -8,6 +8,7 @@ import '../data/recipe_specs.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/ofr_io/export_sheet.dart';
 import '../features/share/share_composer_sheet.dart';
+import 'slot_dock.dart';
 
 final desktopSelectedRecipeProvider = StateProvider<String?>((_) => null);
 
@@ -40,7 +41,9 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
     final selId = ref.watch(desktopSelectedRecipeProvider);
     final selected = recipes.where((r) => r.id == selId).firstOrNull ?? recipes.firstOrNull;
 
-    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return Column(children: [
+      Expanded(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Expanded(
         child: Column(children: [
           Padding(
@@ -89,6 +92,9 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
         decoration: BoxDecoration(border: Border(left: BorderSide(color: p.hairline))),
         child: selected == null ? Center(child: Text('PICK A KATA', style: KataType.monoStyle(size: 10, color: p.muted, letterSpacing: 0.16))) : _DetailPane(recipe: selected),
       ),
+        ]),
+      ),
+      const SlotDock(),
     ]);
   }
 
@@ -155,7 +161,7 @@ class _DetailPane extends ConsumerWidget {
       const SizedBox(height: 16),
       KataCard(
         dashed: true,
-        child: Text('Drag this card onto a slot on the Camera board to queue a write.', style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.5)),
+        child: Text('Drag any card onto a slot in the dock below (or on the Camera board) to queue a write.', style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.5)),
       ),
     ]);
   }

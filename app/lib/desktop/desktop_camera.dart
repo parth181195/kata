@@ -7,6 +7,7 @@ import 'package:ofr/ofr.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe.dart';
 import '../features/camera/camera_art.dart';
+import 'slot_backups.dart';
 
 /// A queued write: recipe → slot. Cleared after the review dialog commits.
 final writeQueueProvider = StateProvider<Map<int, Recipe>>((_) => {});
@@ -88,6 +89,22 @@ class _Board extends ConsumerWidget {
           const SizedBox(width: 14),
           Text('${st.caps.slotCount} SLOTS · ${st.caps.model.toUpperCase()} · FW ${st.caps.firmware}', style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.14)),
           const Spacer(),
+          KataPillButton(label: 'Backups', kind: KataButtonKind.secondary, display: false, height: 34, expand: false, onPressed: () => showSlotBackupsDialog(context, ref)),
+          const SizedBox(width: 8),
+          KataPillButton(
+            label: 'Back up',
+            kind: KataButtonKind.secondary,
+            display: false,
+            height: 34,
+            expand: false,
+            onPressed: st.busy
+                ? null
+                : () async {
+                    final b = await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: false);
+                    if (context.mounted) KataToast.show(context, b == null ? 'Nothing new to back up' : 'Backed up ${b.slots.length} slot${b.slots.length == 1 ? '' : 's'}');
+                  },
+          ),
+          const SizedBox(width: 8),
           KataPillButton(label: 'Read all ↻', kind: KataButtonKind.secondary, display: false, height: 34, expand: false, onPressed: st.busy ? null : svc.refreshSlots),
           const SizedBox(width: 8),
           KataPillButton(
@@ -213,6 +230,8 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
     ),
   );
   if (ok != true) return;
+  // safety net: snapshot the slots as they are before touching anything
+  await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: true);
   // write sequentially; the service refreshes each slot after write
   final svc = ref.read(cameraServiceProvider.notifier);
   for (final e in queue.entries) {
