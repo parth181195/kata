@@ -208,3 +208,12 @@ p { margin: 0; }
 .faq details > p { margin: 0; padding: 0 0 20px; font: 400 13px/1.65 var(--body); color: var(--muted); max-width: 720px; }
 .faq details > p a { color: var(--dim); text-underline-offset: 3px; }
 .faq details > p em { font-style: normal; color: var(--dim); }
+
+/* Fuji X Weekly credit: text and the ask side by side, stacked on a phone. */
+.credit-box { max-width: 860px; margin: 0 auto; border: 1px solid var(--hair2); border-radius: 18px; padding: 26px 26px 28px; display: flex; gap: 26px; align-items: center; justify-content: space-between; }
+.credit-box p { max-width: 56ch; }
+.credit-box .btn { flex: none; }
+@media (max-width: 720px) {
+  .credit-box { flex-direction: column; align-items: flex-start; gap: 18px; padding: 22px 20px 24px; }
+  .credit-box .btn { width: 100%; }
+}
