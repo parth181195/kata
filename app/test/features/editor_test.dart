@@ -123,7 +123,7 @@ void _dupTests() {
   });
 
   testWidgets('switching colour → mono clears colour fields (no validation trap), and back', (t) async {
-    final c = await pumpKata(t, initialLocation: '/new?from=a');
+    await pumpKata(t, initialLocation: '/new?from=a');
     await t.pumpAndSettle();
     await t.tap(find.text('Film simulation'));
     await t.pumpAndSettle();

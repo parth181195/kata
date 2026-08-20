@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuji_ptp/fuji_ptp.dart';
 
@@ -35,7 +38,11 @@ class CameraFailed extends CameraState {
   final String? detail;
 }
 
-final usbHostProvider = Provider<UsbHost>((_) => UsbBridge());
+/// Android talks USB through the platform bridge; desktop goes straight to libusb.
+final usbHostProvider = Provider<UsbHost>((_) {
+  if (!kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) return LibusbHost();
+  return UsbBridge();
+});
 
 typedef FujiCameraFactory = FujiCamera Function(UsbLink link, Future<void> Function() reopenUsb);
 final fujiCameraFactoryProvider = Provider<FujiCameraFactory>(
