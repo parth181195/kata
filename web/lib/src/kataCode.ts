@@ -31,7 +31,7 @@ export function encodeKataCode(r: Ofr, credit?: string): string {
   if (wr !== 0 || wbb !== 0) wb += `/${sgnAlways(wr)}${sgnAlways(wbb)}`;
   b.push(wb);
   const num = (k: string, v: number | undefined) => { if (v) b.push(`${k}${sgn(v)}`); };
-  num('H', r.highlight); num('S', r.shadow); num('C', r.color); num('SH', r.sharpness); num('NR', r.high_iso_nr); num('CL', r.clarity);
+  num('HL', r.highlight); num('SD', r.shadow); num('CO', r.color); num('SH', r.sharpness); num('NR', r.high_iso_nr); num('CL', r.clarity);
   if (r.grain_roughness && r.grain_roughness !== 'Off') b.push(`GR-${LVL[r.grain_roughness] ?? 'W'}${r.grain_size === 'Large' ? 'L' : r.grain_size === 'Small' ? 'S' : ''}`);
   if (r.color_chrome_effect != null) b.push(`CCR-${LVL[r.color_chrome_effect] ?? 'W'}`);
   if (r.color_chrome_fx_blue != null) b.push(`CCB-${LVL[r.color_chrome_fx_blue] ?? 'W'}`);

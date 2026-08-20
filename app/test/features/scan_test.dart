@@ -14,7 +14,7 @@ class FakeScanner implements CodeScanner {
   Widget build(BuildContext context, void Function(String raw) onDetect) => Center(child: TextButton(onPressed: () => onDetect(payload), child: const Text('FAKE-DETECT')));
 }
 
-const _code = 'kata1:NN,DR100,WBA/+2-3,H-2,S-2,C+1,SH+1,GR-WS;n=Summer+in+Paris;a=heikki.k;v=xt5';
+const _code = 'kata1:NN,DR100,WBA/+2-3,HL-2,SD-2,CO+1,SH+1,GR-WS;n=Summer+in+Paris;a=heikki.k;v=xt5';
 
 void main() {
   testWidgets('scan → preview → Save to mine lands in the library', (t) async {

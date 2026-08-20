@@ -29,7 +29,7 @@ function SignInWall() {
         <p>342 film-simulation recipes with real frames, your saved katas, publishing and version history. Writing to the camera lives in the apps — this is everything else.</p>
         <div className="gsi" ref={slot} aria-label="Sign in with Google" />
         {error && <p style={{ color: 'var(--red)' }}>{error}</p>}
-        <p style={{ fontSize: 11 }}><a href="/" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>About Kata</a> · <a href="/privacy.html" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Privacy</a> · <a href="/kata.apk" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Get the app</a></p>
+        <p style={{ fontSize: 11 }}><a href="/" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>About Kata</a> · <a href="/privacy" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Privacy</a> · <a href="/kata.apk" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Get the app</a></p>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ const kodachrome = OfrRecipe(v: 1, name: 'Kodachrome 64', sensors: ['X-Trans IV'
 void main() {
   test('README Kodachrome round-trips; hash identical; payload compact', () {
     final code = KataCode.encode(kodachrome);
-    expect(code, 'kata1:CC,DR400,WBD/+2-5,H-1,S+0.5,C+2,SH-2,NR-4,GR-WS,CCR-W,CCB-O;n=Kodachrome+64;a=Fuji+X+Weekly;v=xt4');
+    expect(code, 'kata1:CC,DR400,WBD/+2-5,HL-1,SD+0.5,CO+2,SH-2,NR-4,GR-WS,CCR-W,CCB-O;n=Kodachrome+64;a=Fuji+X+Weekly;v=xt4');
     expect(code.length, lessThan(120));
     final r = KataCode.decode(code);
     expect(r.warnings, isEmpty);
@@ -26,7 +26,7 @@ void main() {
         whiteBalance: 'Kelvin', wbKelvin: 5800, whiteBalanceRed: 0, whiteBalanceBlue: -3, highlight: 2, shadow: 3, sharpness: 0,
         highIsoNr: -2, clarity: -2, monochromaticColorWarmCool: 2, monochromaticColorMagentaGreen: -1, extra: {'x_exposure_comp': -0.67});
     final code = KataCode.encode(mono);
-    expect(code, startsWith('kata1:ACR,DR200,DP-W,WB5800/+0-3,H+2,S+3,NR-2,CL-2,GR-SL,MW+2,MM-1,EC-0.67;n=Mono+Push;v=xt5,gfx;u='));
+    expect(code, startsWith('kata1:ACR,DR200,DP-W,WB5800/+0-3,HL+2,SD+3,NR-2,CL-2,GR-SL,MW+2,MM-1,EC-0.67;n=Mono+Push;v=xt5,gfx;u='));
     final r = KataCode.decode(code).recipe;
     expect(r.whiteBalance, 'Kelvin');
     expect(r.wbKelvin, 5800);
@@ -48,5 +48,16 @@ void main() {
     expect(KataCode.looksLike(' kata1:PV'), isTrue);
     expect(KataCode.looksLike('{"v":1}'), isFalse);
     expect(r.settingsCount, greaterThan(5));
+  });
+
+  test('cards printed with the first single-letter tokens still import', () {
+    final old = KataCode.decode('kata1:CC,DR400,WBD/+2-5,H-1,S+0.5,C+2,SH-2,NR-4,GR-WS,CCR-W,CCB-O;n=Kodachrome+64');
+    final now = KataCode.decode('kata1:CC,DR400,WBD/+2-5,HL-1,SD+0.5,CO+2,SH-2,NR-4,GR-WS,CCR-W,CCB-O;n=Kodachrome+64');
+    expect(old.warnings, isEmpty);
+    expect(old.recipe.highlight, -1);
+    expect(old.recipe.shadow, 0.5);
+    expect(old.recipe.color, 2);
+    expect(old.recipe.sharpness, -2); // SH was never ambiguous to the parser, only to a reader
+    expect(OfrHasher.compute(old.recipe), OfrHasher.compute(now.recipe));
   });
 }

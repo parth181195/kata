@@ -141,8 +141,14 @@ body { font-size: 12.5px; }
 .toast.err { background: var(--red); color: #fff; }
 .dots { display: inline-flex; gap: 4px; } .dots i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: pulse .9s infinite ease-in-out; } .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
 @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
-.swatch { width: 26px; height: 18px; display: flex; align-items: flex-end; gap: 1.5px; flex: none; }
-.swatch i { flex: 1; display: block; }
+.swatch { width: 26px; height: 18px; display: flex; align-items: stretch; gap: 1.5px; flex: none; }
+.swatch i { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: stretch; position: relative; }
+.swatch i::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--hair2); }
+.swatch i b, .swatch i u { display: block; background: var(--fg); position: relative; min-height: 0; }
+.swatch i b { margin-top: auto; }
+.swatch i u { margin-bottom: auto; opacity: .55; }
+.swatch.light i b, .swatch.light i u { background: #000; }
+.swatch.light i::before { background: rgba(0,0,0,.25); }
 @media (max-width: 760px) { .side { display: none; } .tbl { grid-template-columns: minmax(160px, 2fr) 70px 110px; } .tbl .hide-m { display: none !important; } }
 
 
@@ -192,3 +198,11 @@ body { font-size: 12.5px; }
 .frow .val { flex-wrap: wrap; row-gap: 8px; }
 .frow:has(.chip) { align-items: flex-start; }
 .frow:has(.chip) .lbl { padding-top: 9px; }
+
+/* dialogs — the browser's own confirm()/prompt() look nothing like the rest of this */
+.backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.62); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 60; }
+.dialog { width: min(420px, 100%); background: var(--bg); border: 1px solid var(--hair2); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.dialog h3 { margin: 0; font-size: 16px; }
+.dialog p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.dialog input, .dialog textarea { width: 100%; background: var(--surface); border: 1px solid var(--hair2); border-radius: 12px; color: var(--fg); padding: 10px 12px; font: inherit; font-size: 13px; resize: vertical; }
+.dialog .drow { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }

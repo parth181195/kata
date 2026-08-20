@@ -84,6 +84,8 @@ p { margin: 0; }
 .head h2, .h2 { font-size: clamp(32px, 4.2vw, 44px); line-height: 1.04; max-width: 520px; }
 .head p { font-size: 13.5px; line-height: 1.6; color: var(--muted); max-width: 340px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.grid4 .card { padding: 22px; gap: 14px; }
 .card { border: 1px solid var(--hair2); border-radius: 20px; padding: 26px; display: flex; flex-direction: column; gap: 18px; background: var(--bg); }
 .card .top { display: flex; align-items: center; justify-content: space-between; }
 .num { width: 34px; height: 34px; border: 1px solid var(--fg); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font: 800 14px/1 var(--display); }
@@ -115,8 +117,13 @@ p { margin: 0; }
 .recipe-card .tag { font: 500 8.5px/1 var(--body); letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
 .recipe-card .frame { border-radius: 4px; background: #f2f2f2 radial-gradient(#d9d9d9 1px, transparent 1px) 7px 7px / 14px 14px; color: #8a8a8a; }
 .recipe-card .name { font: 800 22px/1.02 var(--display); text-transform: uppercase; }
-.swatch { display: flex; align-items: flex-end; gap: 3px; width: 42px; height: 26px; flex: none; }
-.swatch i { flex: 1; display: block; }
+.swatch { display: flex; align-items: stretch; gap: 3px; width: 42px; height: 26px; flex: none; }
+.swatch i { flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative; }
+.swatch i::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0,0,0,.3); }
+.swatch b, .swatch u { display: block; background: #000; position: relative; }
+.swatch b:not([style*="height:0"]), .swatch u:not([style*="height:0"]) { min-height: 2px; }
+.swatch b { margin-top: auto; }
+.swatch u { margin-bottom: auto; opacity: .55; }
 .spec { border-top: 1px dotted var(--dim); padding-top: 11px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 6px; column-gap: 18px; font: 400 9.5px/1.5 var(--mono); color: var(--hair2); }
 .recipe-card .foot { border-top: 1px solid #000; padding-top: 11px; }
 .recipe-card .handle { font: 600 10px/1 var(--body); }
@@ -132,12 +139,17 @@ p { margin: 0; }
 .table .bodies { font: 400 11.5px/1.5 var(--body); color: var(--dim); }
 .table .val { font: 400 13px/1.4 var(--mono); }
 .table .val small { display: block; font-size: 9.5px; color: var(--muted); margin-top: 4px; letter-spacing: .02em; }
+.table .gen small { display: block; font: 400 9.5px/1.45 var(--body); color: var(--muted); margin-top: 6px; letter-spacing: 0; text-transform: none; }
 .chip { height: 26px; padding: 0 11px; border-radius: 13px; display: inline-flex; align-items: center; gap: 7px; font: 500 9.5px/1 var(--mono); white-space: nowrap; }
 .chip.full { background: var(--fg); color: #000; } .chip.full i { background: #000; }
 .chip.most { border: 1px solid var(--hair2); color: var(--dim); } .chip.most i { background: var(--muted); }
 .chip.ro { border: 1px solid var(--hair2); color: var(--muted); } .chip.ro i { border: 1.5px solid var(--muted); }
 .chip i { width: 5px; height: 5px; border-radius: 50%; display: block; }
 .table-note { font: 400 11px/1.6 var(--body); color: var(--muted); max-width: 720px; }
+
+.legend { font: 400 10px/1.7 var(--mono); color: var(--muted); letter-spacing: .02em; margin-top: -4px; }
+.cmd { border: 1px solid var(--hair2); border-radius: 12px; background: var(--surface); padding: 14px 16px; margin: 12px auto; max-width: 640px; overflow-x: auto; text-align: left; }
+.cmd code { font: 400 11px/1.75 var(--mono); color: var(--dim); white-space: pre; }
 
 /* free */
 .center { align-items: center; text-align: center; }
@@ -166,6 +178,7 @@ p { margin: 0; }
 .legal { font: 400 10px/1.5 var(--mono); color: var(--hair2); text-align: right; text-transform: uppercase; }
 
 /* responsive */
+@media (max-width: 1180px) { .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 980px) {
   .hero, .code-grid { grid-template-columns: 1fr; gap: 44px; }
   .grid3 { grid-template-columns: 1fr; }
@@ -187,6 +200,7 @@ p { margin: 0; }
 }
 @media (max-width: 720px) {
   :root { --gut: 20px; }
+  .grid4 { grid-template-columns: 1fr; }
   .links a.mono { display: none; }
   .hero { padding-top: 64px; padding-bottom: 56px; }
   .section, .get { padding-top: 64px; padding-bottom: 64px; }

@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router';
 import App from './App';
 import { AuthProvider } from './AuthProvider';
 import './app.css';
-import { ToastHost } from './ui';
+import { DialogHost, ToastHost } from './ui';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 10_000, refetchOnWindowFocus: false } } });
 
@@ -14,9 +14,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={qc}>
       <AuthProvider>
         <ToastHost>
+        <DialogHost>
           <BrowserRouter>
             <App />
           </BrowserRouter>
+        </DialogHost>
         </ToastHost>
       </AuthProvider>
     </QueryClientProvider>

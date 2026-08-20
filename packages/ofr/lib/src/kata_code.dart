@@ -4,7 +4,11 @@ import 'ofr_recipe.dart';
 /// Kata Code v1 — the compact, human-readable payload that lives inside the QR on every share card.
 ///
 /// `kata1:` + fixed-order body tokens (omitted = camera default) + `;k=v` meta (percent-encoded, `+` = space).
-/// Example: `kata1:CC,DR400,WB5800/+2-3,H+1,S-0.5,C+2,SH+1,NR-4,GR-WS,CCR-S,CCB-W;n=Kodachrome+64;a=Fuji+X+Weekly;v=xt4,xt5`
+/// Example: `kata1:CC,DR400,WB5800/+2-3,HL+1,SD-0.5,CO+2,SH+1,NR-4,GR-WS,CCR-S,CCB-W;n=Kodachrome+64;a=Fuji+X+Weekly;v=xt4,xt5`
+///
+/// Tone tokens are two letters (HL highlight, SD shadow, CO colour, SH sharpness, CL clarity,
+/// NR noise reduction) so a card stays readable off paper; the single-letter H/S/C of the
+/// first cards still decode.
 ///
 /// Decoding is forward-compatible: unknown tokens are skipped and reported in [KataCodeResult.warnings].
 class KataCode {
@@ -54,9 +58,11 @@ class KataCode {
     void num_(String k, num? v) {
       if (v != null && v != 0) b.add('$k${_sgn(v)}');
     }
-    num_('H', r.highlight);
-    num_('S', r.shadow);
-    num_('C', r.color);
+    // HL/SD/CO, not H/S/C: a printed card is read by people, and S/SH and C/CL/CCR were
+    // only unambiguous to the parser. Old codes still decode — see the aliases below.
+    num_('HL', r.highlight);
+    num_('SD', r.shadow);
+    num_('CO', r.color);
     num_('SH', r.sharpness);
     num_('NR', r.highIsoNr);
     num_('CL', r.clarity);
@@ -157,9 +163,9 @@ class KataCode {
         }
         final k = mm2.group(1)!, v = mm2.group(2)!;
         switch (k) {
-          case 'H': highlight = asNum(v);
-          case 'S': shadow = asNum(v);
-          case 'C': color = asInt(v);
+          case 'HL' || 'H': highlight = asNum(v);
+          case 'SD' || 'S': shadow = asNum(v);
+          case 'CO' || 'C': color = asInt(v);
           case 'SH': sharp = asInt(v) ?? 0;
           case 'NR': nr = asInt(v) ?? 0;
           case 'CL': clarity = asInt(v) ?? 0;

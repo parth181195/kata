@@ -5,7 +5,7 @@ import { specSummary, useDelete, useFavourites, useSavedRecipes, useMine, usePub
 import { useAuth } from './AuthProvider';
 import { encodeKataCode } from './kataCode';
 import type { Ofr, RecipeDto } from './types';
-import { Chip, Dots, Swatch, useToast } from './ui';
+import { Chip, Dots, Swatch, useDialog, useToast } from './ui';
 
 export const FILMS = ['Provia', 'Velvia', 'Astia', 'Classic Chrome', 'Pro Neg. Hi', 'Pro Neg. Std', 'Classic Negative', 'Eterna', 'Eterna Bleach Bypass', 'Nostalgic Negative', 'Reala Ace', 'Acros STD', 'Acros Yellow', 'Acros Red', 'Acros Green', 'Monochrome STD', 'Monochrome Yellow', 'Monochrome Red', 'Monochrome Green', 'Sepia'];
 export const MONO = new Set(FILMS.slice(11));
@@ -104,6 +104,7 @@ export function DetailPane({ r, full = false }: { r: RecipeDto; full?: boolean }
   const report = useReport();
   const del = useDelete();
   const toast = useToast();
+  const dialog = useDialog();
   const [qr, setQr] = useState<string>();
   const payload = useMemo(() => encodeKataCode(r.ofr, r.authorHandle ? `@${r.authorHandle}` : undefined), [r]);
   useEffect(() => {
@@ -133,8 +134,14 @@ export function DetailPane({ r, full = false }: { r: RecipeDto; full?: boolean }
         {!full && <button type="button" className="btn secondary" onClick={() => nav(`/r/${r.id}`)}>Open full page</button>}
         <button type="button" className="btn secondary" onClick={() => nav(`/library/new?from=${r.id}`)}>Duplicate to edit</button>
         {own && <button type="button" className="btn secondary" onClick={() => nav(`/library/edit/${r.id}`)}>Edit</button>}
-        {own && <button type="button" className="btn danger" onClick={() => { if (confirm(`Unpublish “${r.name}”?`)) del.mutate(r.id, { onSuccess: () => toast('Unpublished') }); }}>Unpublish</button>}
-        {!own && <button type="button" className="btn secondary" onClick={() => { const reason = prompt('What’s wrong with this kata?'); if (reason) report.mutate({ id: r.id, reason }, { onSuccess: () => toast('Sent to the curators') }); }}>Report</button>}
+        {own && <button type="button" className="btn danger" onClick={() => void (async () => {
+          if (await dialog.ask({ title: `Unpublish “${r.name}”?`, body: 'It disappears from the library and from anyone who saved it. Your copy stays in Mine.', confirmLabel: 'Unpublish', danger: true }))
+            del.mutate(r.id, { onSuccess: () => toast('Unpublished') });
+        })()}>Unpublish</button>}
+        {!own && <button type="button" className="btn secondary" onClick={() => void (async () => {
+          const reason = await dialog.askText({ title: 'Report this kata', body: 'What’s wrong with it? A curator reads every report.', placeholder: 'Wrong settings, stolen credit, spam…', multiline: true, confirmLabel: 'Send' });
+          if (reason) report.mutate({ id: r.id, reason }, { onSuccess: () => toast('Sent to the curators') });
+        })()}>Report</button>}
       </div>
       <div className="specs">
         {SPEC.filter(([k]) => (r.ofr as Record<string, unknown>)[k] != null).map(([k, label]) => (
@@ -263,6 +270,7 @@ export function Editor() {
   const from = params.get('from') ?? undefined;
   const nav = useNavigate();
   const toast = useToast();
+  const dialog = useDialog();
   const { client: api } = useAuth();
   const source = useRecipe(id ?? from);
   const publish = usePublish();
@@ -285,11 +293,11 @@ export function Editor() {
     const next = Math.round((cur + d) * 2) / 2;
     return next < min || next > max ? x : { ...x, [k]: next };
   });
-  const pasteCode = () => {
-    const code = prompt('Paste a kata1: code or OFR JSON');
+  const pasteCode = () => void (async () => {
+    const code = await dialog.askText({ title: 'Paste a Kata Code', body: 'A kata1: code or an OFR JSON document.', placeholder: 'kata1:CC,DR400,WB5800/+2-3,HL+1…', multiline: true, confirmLabel: 'Import' });
     if (!code) return;
-    toast('Paste import lands with the importer — use the app for now', true);
-  };
+    toast('Reading a code lands with the web importer — the apps import it today', true);
+  })();
   const save = () => {
     const doc: Ofr = { ...o, v: 1 } as Ofr;
     delete (doc as Record<string, unknown>).hash;
@@ -409,6 +417,7 @@ export function Editor() {
 export function Settings() {
   const { user, signOut, client: api } = useAuth();
   const toast = useToast();
+  const dialog = useDialog();
   const [handle, setHandle] = useState(user?.handle ?? '');
   const [name, setName] = useState(user?.displayName ?? '');
   const [cams, setCams] = useState<{ model: string; firmware: string; slots: number; lastSeen: string }[]>();
@@ -432,7 +441,9 @@ export function Settings() {
         <p style={{ fontSize: 11, color: 'var(--muted)', margin: '10px 0' }}>Your handle is the credit line on cards and Kata Codes you publish. Lowercase letters, digits, dots, underscores — 3–20 characters.</p>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" className="btn primary" onClick={() => void saveProfile()}>Save</button>
-          <button type="button" className="btn secondary" onClick={() => { if (confirm('Sign out?')) void signOut(); }}>Sign out</button>
+          <button type="button" className="btn secondary" onClick={() => void (async () => {
+            if (await dialog.ask({ title: 'Sign out?', body: 'Your katas stay on the server — signing back in brings them all with you.', confirmLabel: 'Sign out' })) void signOut();
+          })()}>Sign out</button>
         </div>
       </div>
       <div className="setcard">
