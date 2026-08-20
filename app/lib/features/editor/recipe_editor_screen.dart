@@ -70,6 +70,15 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     _dirty = true;
   });
 
+  /// Editor can be the root route (deep link / initialLocation) — fall back to Mine.
+  void _leave() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/mine');
+    }
+  }
+
   OfrRecipe get _current => _r.copyWith(
     name: _name.text.trim().isEmpty ? null : _name.text.trim(),
     sourceAttribution: _attr.text.trim().isEmpty ? null : _attr.text.trim(),
@@ -91,7 +100,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       }
       if (mounted) {
         KataToast.show(context, 'Saved to Mine');
-        context.pop();
+        _leave();
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -123,11 +132,23 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
         await repo.publish(ofr, draftId: _editing?.isDraft == true ? _editing!.id : null);
         if (mounted) KataToast.show(context, 'Published');
       }
-      if (mounted) context.pop();
+      if (mounted) _leave();
     } on RecipeConflict catch (e) {
       if (!mounted) return;
-      final open = await showKataDialog(context, title: 'Already in the library', body: 'A kata with exactly these settings exists. Open it instead?', confirmLabel: 'Open');
-      if (open == true && mounted) context.replace('/recipe/${e.existingId}');
+      final pick = await showKataMenu<String>(context, title: 'Already in the library', items: const [
+        KataMenuItem('open', 'Open the existing kata', icon: Icons.arrow_outward),
+        KataMenuItem('draft', 'Keep mine as a draft', icon: Icons.bookmark_outline, trailing: 'Mine'),
+        KataMenuItem('edit', 'Keep editing', icon: Icons.edit_outlined),
+      ]);
+      if (!mounted) return;
+      switch (pick) {
+        case 'open':
+          context.replace('/recipe/${e.existingId}');
+        case 'draft':
+          await _saveDraft();
+        default:
+          KataToast.show(context, 'Names don’t count for duplicates — change a setting to publish');
+      }
     } on RecipeInvalid catch (e) {
       if (mounted) KataToast.show(context, 'Rejected: ${e.issues.first}');
     } on ApiException catch (e) {
@@ -180,6 +201,13 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
               child: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
                 section('Identity', [
                   KataTextField(label: 'Name', controller: _name, hint: 'e.g. Kodachrome 64', onChanged: (_) => setState(() => _dirty = true)),
+                  const SizedBox(height: 6),
+                  Text(
+                    _name.text.trim().length > 25
+                        ? 'Cameras keep at most 25 characters — on the body this shows as “${_name.text.trim().substring(0, 25)}”. The full name lives in Kata.'
+                        : 'The name lives in Kata and on share cards. Bodies that store preset names keep 25 characters; the X-S20 stores none.',
+                    style: KataType.bodyStyle(size: 10.5, color: _name.text.trim().length > 25 ? p.dim : p.muted, height: 1.4),
+                  ),
                   gap(),
                   KataTextField(label: 'Credit', controller: _attr, hint: 'Attribution (optional)', onChanged: (_) => setState(() => _dirty = true)),
                   gap(),
@@ -195,7 +223,15 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                   ]),
                 ]),
                 section('Look', [
-                  KataPickerRow(label: 'Film simulation', value: r.filmSimulation, options: OfrEnums.filmSims, onChanged: (v) => _set((x) => x.copyWith(filmSimulation: v))),
+                  KataPickerRow(
+                    label: 'Film simulation',
+                    value: r.filmSimulation,
+                    options: OfrEnums.filmSims,
+                    // switching colour↔mono drops the fields the other family forbids, so validation never traps you
+                    onChanged: (v) => _set((x) => OfrEnums.isMonoName(v)
+                        ? x.copyWith(filmSimulation: v, clearColor: true, clearColorChrome: true)
+                        : x.copyWith(filmSimulation: v, clearMonochromatic: true, color: x.color ?? 0)),
+                  ),
                   KataPickerRow(label: 'Dynamic range', value: r.dynamicRange, hint: 'Camera default', options: OfrEnums.dynamicRanges, onChanged: (v) => _set((x) => x.copyWith(dynamicRange: v))),
                   KataPickerRow(label: 'D range priority', value: r.dRangePriority, options: OfrEnums.dRangePriorities, onChanged: (v) => _set((x) => x.copyWith(dRangePriority: v))),
                   KataPickerRow(label: 'Grain', value: r.grainRoughness, options: OfrEnums.grainRoughness, onChanged: (v) => _set((x) => x.copyWith(grainRoughness: v, clearGrainSize: v == 'Off'))),
@@ -233,8 +269,8 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                   if (mono) ...[
                     gap(),
                     two(
-                      KataStepper(label: 'Warm / cool', value: r.monochromaticColorWarmCool ?? 0, min: -18, max: 18, onChanged: (v) => _set((x) => x.copyWith(monochromaticColorWarmCool: v.toInt()))),
-                      KataStepper(label: 'Magenta / green', value: r.monochromaticColorMagentaGreen ?? 0, min: -18, max: 18, onChanged: (v) => _set((x) => x.copyWith(monochromaticColorMagentaGreen: v.toInt()))),
+                      KataStepper(label: 'Warm / cool', value: r.monochromaticColorWarmCool ?? 0, min: -9, max: 9, onChanged: (v) => _set((x) => x.copyWith(monochromaticColorWarmCool: v.toInt()))),
+                      KataStepper(label: 'Magenta / green', value: r.monochromaticColorMagentaGreen ?? 0, min: -9, max: 9, onChanged: (v) => _set((x) => x.copyWith(monochromaticColorMagentaGreen: v.toInt()))),
                     ),
                   ],
                 ]),

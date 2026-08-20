@@ -6,6 +6,7 @@ import 'package:kata/data/recipe_repository.dart';
 import '../helpers.dart';
 
 void main() {
+  _dupTests();
   testWidgets('new kata → name → save draft → appears in Mine as DRAFT → edit → publish → IN REVIEW; fake API has it', (t) async {
     final api = FakeRecipeApi.fromSeed(seedJson);
     final c = await pumpKata(t, initialLocation: '/mine', api: api);
@@ -25,7 +26,7 @@ void main() {
     await t.tap(find.text('X-TRANS V'));
     await t.pump();
     // first stepper is WB shift R (below the fold): +2
-    await t.ensureVisible(find.text('+').first);
+    await t.drag(find.byType(ListView).first, const Offset(0, -900));
     await t.pumpAndSettle();
     await t.tap(find.text('+').first);
     await t.pump();
@@ -71,7 +72,7 @@ void main() {
     await t.tap(find.text('PUBLISH').last);
     await t.pumpAndSettle();
     expect(find.text('ALREADY IN THE LIBRARY'), findsOneWidget);
-    await t.tap(find.text('OPEN'));
+    await t.tap(find.text('Open the existing kata'));
     await t.pumpAndSettle();
     expect(find.text('KODACHROME 64'), findsWidgets);
   });
@@ -87,5 +88,65 @@ void main() {
     await t.pumpAndSettle();
     expect(api.reports, [('a', 'Duplicate of another kata')]);
     expect(find.text('Thanks — sent to the curators'), findsOneWidget);
+  });
+}
+
+void _dupTests() {
+  testWidgets('duplicate + tweak publishes; rename-only conflict offers open/draft/keep', (t) async {
+    final api = FakeRecipeApi.fromSeed(seedJson);
+    final c = await pumpKata(t, initialLocation: '/new?from=a', api: api);
+    await t.pumpAndSettle();
+    // rename only → conflict menu with choices
+    await t.enterText(find.widgetWithText(TextField, 'e.g. Kodachrome 64').first, 'My Kodachrome');
+    await t.pump();
+    await t.tap(find.text('PUBLISH'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('PUBLISH').last);
+    await t.pumpAndSettle();
+    expect(find.text('ALREADY IN THE LIBRARY'), findsOneWidget);
+    expect(find.text('Keep mine as a draft'), findsOneWidget);
+    await t.tap(find.text('Keep editing'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Names don’t count'), findsOneWidget);
+    // tweak a setting → publish succeeds
+    await t.pump(const Duration(seconds: 4)); // let the hint toast clear
+    await t.drag(find.byType(ListView).first, const Offset(0, -900));
+    await t.pumpAndSettle();
+    await t.tap(find.text('+').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('PUBLISH'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('PUBLISH').last);
+    await t.pumpAndSettle();
+    expect(api.published.single.name, 'My Kodachrome');
+    expect(c.read(recipeRepositoryProvider).published.length, 1);
+  });
+
+  testWidgets('switching colour → mono clears colour fields (no validation trap), and back', (t) async {
+    final c = await pumpKata(t, initialLocation: '/new?from=a');
+    await t.pumpAndSettle();
+    await t.tap(find.text('Film simulation'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Acros STD'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('FIELD'), findsNothing); // no issue card
+    await t.drag(find.byType(ListView).first, const Offset(0, -1200));
+    await t.pumpAndSettle();
+    expect(find.text('WARM / COOL'), findsOneWidget);
+    await t.drag(find.byType(ListView).first, const Offset(0, 1200));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Film simulation'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Velvia'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('FIELD'), findsNothing);
+  });
+
+  testWidgets('long name shows the camera truncation hint', (t) async {
+    await pumpKata(t, initialLocation: '/new');
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'e.g. Kodachrome 64').first, 'A Very Long Recipe Name That Cameras Cannot Keep');
+    await t.pump();
+    expect(find.textContaining('at most 25 characters'), findsOneWidget);
   });
 }

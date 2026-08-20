@@ -173,6 +173,7 @@ class OfrRecipe {
     int? clarity,
     int? monochromaticColorWarmCool,
     int? monochromaticColorMagentaGreen,
+    bool clearMonochromatic = false,
     Map<String, dynamic>? extra,
   }) =>
       OfrRecipe(
@@ -199,8 +200,8 @@ class OfrRecipe {
         sharpness: sharpness ?? this.sharpness,
         highIsoNr: highIsoNr ?? this.highIsoNr,
         clarity: clarity ?? this.clarity,
-        monochromaticColorWarmCool: monochromaticColorWarmCool ?? this.monochromaticColorWarmCool,
-        monochromaticColorMagentaGreen: monochromaticColorMagentaGreen ?? this.monochromaticColorMagentaGreen,
+        monochromaticColorWarmCool: clearMonochromatic ? null : (monochromaticColorWarmCool ?? this.monochromaticColorWarmCool),
+        monochromaticColorMagentaGreen: clearMonochromatic ? null : (monochromaticColorMagentaGreen ?? this.monochromaticColorMagentaGreen),
         extra: extra ?? this.extra,
       );
 }
