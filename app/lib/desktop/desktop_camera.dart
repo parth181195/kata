@@ -12,6 +12,7 @@ import '../features/camera/camera_art.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/camera/publish_from_camera.dart';
 import 'slot_backups.dart';
+import '../features/camera/skip_notes.dart';
 import '../core/fuji/slot_identity.dart';
 
 /// A queued write: recipe → slot. Cleared after the review dialog commits.
@@ -325,6 +326,7 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
   bool _done = false;
   Object? _error;
   final _results = <int, WriteResult>{};
+  final _presets = <int, CameraPreset>{};
 
   @override
   void initState() {
@@ -343,6 +345,7 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
       if (mounted) setState(() { _slotIx = i; _fieldsDone = 0; _fieldsTotal = 0; });
       try {
         final preset = OfrMapper.toPreset(e.value.ofr).value;
+        _presets[e.key] = preset;
         final r = await svc.writeRecipe(e.key, preset, onProgress: (d, t) {
           if (mounted) setState(() { _fieldsDone = d; _fieldsTotal = t; });
         });
@@ -430,9 +433,11 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
     final settingsOk = _results.values.fold<int>(0, (a, r) => a + r.written.length);
     final settingsAll = _results.values.fold<int>(0, (a, r) => a + r.written.length + r.skipped.length);
     final names = _entries.where((e) => _results.containsKey(e.key)).map((e) => 'C${e.key} ${e.value.name}').join(' · ');
-    final skippedRows = <(int, int)>[for (final e in _results.entries) for (final code in e.value.skipped) (e.key, code)];
+    final causes = slotSkips(_results, _presets);
     final nameNote = _results.values.any((r) => r.warnings.any((w) => w.contains('PresetName')));
-    return Padding(
+    // the skip explanations can run long — the dialog is capped at 620 tall
+    return SingleChildScrollView(
+      child: Padding(
       padding: pad,
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -460,15 +465,9 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
             Expanded(child: Text("Turn the mode dial off and back to load the slots. The camera won't show the change until you do.", style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.5))),
           ]),
         ),
-        if (skippedRows.isNotEmpty) ...[
+        if (causes.isNotEmpty) ...[
           const SizedBox(height: 14),
-          Text('${skippedRows.length} SETTING${skippedRows.length == 1 ? '' : 'S'} SKIPPED', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: p.fg, letterSpacing: 0.16)),
-          const SizedBox(height: 6),
-          for (final (slot, code) in skippedRows.take(6))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 3),
-              child: Text('C$slot · ${FujiProp.name(code)} — NOT WRITTEN OVER USB, SET IN CAMERA', style: KataType.monoStyle(size: 8.5, color: p.muted)),
-            ),
+          SkippedSettingsCard(causes: causes, showSlot: _entries.length > 1),
         ],
         if (nameNote) ...[
           const SizedBox(height: 8),
@@ -491,6 +490,7 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
           Expanded(flex: 2, child: KataPillButton(label: 'Done', height: 46, onPressed: () => Navigator.of(context).pop<String?>(null))),
         ]),
       ]),
+    ),
     );
   }
 }

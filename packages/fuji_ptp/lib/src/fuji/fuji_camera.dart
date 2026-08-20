@@ -143,6 +143,7 @@ class FujiCamera {
         final warnings = <String>[];
         final written = <int>[];
         final skipped = <int>[];
+        final skipReasons = <int, int>{};
         final writtenBytes = <int, Uint8List>{};
         onProgress?.call(0, plan.length);
         var progressed = 0;
@@ -167,6 +168,7 @@ class FujiCamera {
             throw FujiCameraException('${hex16(w.code)} (${FujiProp.name(w.code)}) rejected: ${Resp.name(r.code)}');
           } else {
             skipped.add(w.code);
+            skipReasons[w.code] = r.code;
             warnings.add('${hex16(w.code)} ${FujiProp.name(w.code)}: rejected (${Resp.name(r.code)})');
           }
           onProgress?.call(++progressed, plan.length);
@@ -191,7 +193,7 @@ class FujiCamera {
             }
           }
         }
-        return WriteResult(ok: ok, slot: slot, warnings: warnings, written: written, skipped: skipped);
+        return WriteResult(ok: ok, slot: slot, warnings: warnings, written: written, skipped: skipped, skipReasons: skipReasons);
       });
 
   Future<bool> heartbeat() => _job(() async {

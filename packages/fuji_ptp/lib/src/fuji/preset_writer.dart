@@ -42,6 +42,7 @@ class WriteResult {
     this.warnings = const [],
     this.written = const [],
     this.skipped = const [],
+    this.skipReasons = const {},
     this.needsDialFlick = true,
   });
   final bool ok;
@@ -49,6 +50,10 @@ class WriteResult {
   final List<String> warnings;
   final List<int> written;
   final List<int> skipped;
+
+  /// Skipped property code -> the PTP response the camera answered with. The difference
+  /// between "this body has no such setting" and "it's locked right now" lives here.
+  final Map<int, int> skipReasons;
   final bool needsDialFlick;
 }
 

@@ -23,38 +23,47 @@ class SlotDock extends ConsumerWidget {
     final p = context.kata;
     final queue = ref.watch(writeQueueProvider);
     return Container(
-      height: 92,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 100,
+      padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
       decoration: BoxDecoration(border: Border(top: BorderSide(color: p.hairline)), color: p.bg),
       child: Row(children: [
-        Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(st.caps.model.toUpperCase(), style: KataType.displayStyle(size: 13, color: p.fg, letterSpacing: 0)),
-          const SizedBox(height: 3),
-          Text('DROP A CARD ON A SLOT', style: KataType.monoStyle(size: 8, color: p.muted, letterSpacing: 0.14)),
-        ]),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Row(children: [
-            for (var i = 1; i <= st.caps.slotCount; i++) ...[
-              Expanded(child: _DockSlot(slot: i, model: st.caps.model, preset: i <= st.slots.length ? st.slots[i - 1] : null, queued: queue[i])),
-              if (i < st.caps.slotCount) const SizedBox(width: 8),
-            ],
+        SizedBox(
+          width: 132,
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(st.caps.model.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 13, color: p.fg, letterSpacing: 0)),
+            const SizedBox(height: 4),
+            Text('DROP A CARD ON A SLOT', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 8, color: p.muted, letterSpacing: 0.14)),
           ]),
         ),
-        const SizedBox(width: 12),
-        IconButton(
+        const SizedBox(width: 14),
+        // slots take their share of the width but stop at a card width — stretched across a
+        // wide window the name and its tick end up half a screen apart
+        Expanded(
+          child: LayoutBuilder(builder: (context, box) {
+            const gap = 10.0;
+            final n = st.caps.slotCount;
+            final w = ((box.maxWidth - gap * (n - 1)) / n).clamp(0.0, 240.0);
+            return Row(children: [
+              for (var i = 1; i <= n; i++) ...[
+                SizedBox(width: w, height: 68, child: _DockSlot(slot: i, model: st.caps.model, preset: i <= st.slots.length ? st.slots[i - 1] : null, queued: queue[i])),
+                if (i < n) const SizedBox(width: gap),
+              ],
+            ]);
+          }),
+        ),
+        const SizedBox(width: 14),
+        _DockIcon(
+          icon: Icons.eject_outlined,
           tooltip: 'Eject — close the USB session so the camera can charge',
           onPressed: () => ref.read(cameraServiceProvider.notifier).disconnect(),
-          icon: Icon(Icons.eject_outlined, size: 16, color: p.muted),
-          visualDensity: VisualDensity.compact,
         ),
-        IconButton(
+        const SizedBox(width: 4),
+        _DockIcon(
+          icon: Icons.archive_outlined,
           tooltip: 'Slot backups',
           onPressed: () => showSlotBackupsDialog(context, ref),
-          icon: Icon(Icons.archive_outlined, size: 16, color: p.muted),
-          visualDensity: VisualDensity.compact,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         if (queue.isNotEmpty)
           KataPillButton(
             label: 'Write ${queue.length}',
@@ -65,6 +74,27 @@ class SlotDock extends ConsumerWidget {
         else
           Text('C1–C${st.caps.slotCount}', style: KataType.monoStyle(size: 10, color: p.muted)),
       ]),
+    );
+  }
+}
+
+/// IconButton's minimum tap size is bigger than this dock is tall, and it crowded the frame.
+class _DockIcon extends StatelessWidget {
+  const _DockIcon({required this.icon, required this.tooltip, required this.onPressed});
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(width: 34, height: 34, child: Icon(icon, size: 17, color: p.muted)),
+      ),
     );
   }
 }
@@ -97,7 +127,7 @@ class _DockSlot extends ConsumerWidget {
             onTap: queued == null ? null : () => ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(slot)),
             borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: active ? p.fg : p.hairline, width: active ? 1.5 : 1),
@@ -105,8 +135,8 @@ class _DockSlot extends ConsumerWidget {
               ),
               child: Row(children: [
                 if (thumb != null) ...[
-                  ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 40, height: 40, child: Image(image: thumb, fit: BoxFit.cover))),
-                  const SizedBox(width: 8),
+                  ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 38, height: 38, child: Image(image: thumb, fit: BoxFit.cover))),
+                  const SizedBox(width: 9),
                 ],
                 Expanded(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [

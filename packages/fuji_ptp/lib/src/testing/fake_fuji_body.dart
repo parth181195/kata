@@ -43,6 +43,10 @@ class FakeFujiBody implements UsbLink {
   /// Props the body rejects on write (simulates read-only / conditional props).
   final Set<int> rejectWrites = {};
 
+  /// Reject a write with a specific PTP response — a body that has the property but has it
+  /// locked (HDR on, say) answers differently from one that never had it.
+  final Map<int, int> rejectWritesWith = {};
+
   /// When set, 0xD18D writes longer than this respond InvalidDevicePropValue (0 = no names at all).
   int? nameMaxLen;
 
@@ -119,7 +123,9 @@ class FakeFujiBody implements UsbLink {
         }
       case Op.setDevicePropValue:
         final prop = cmd.params[0];
-        if (!supported.contains(prop) || rejectWrites.contains(prop)) {
+        if (rejectWritesWith.containsKey(prop)) {
+          _resp(cmd, rejectWritesWith[prop]!);
+        } else if (!supported.contains(prop) || rejectWrites.contains(prop)) {
           _resp(cmd, Resp.devicePropNotSupported);
         } else if (prop == 0xD18D && nameMaxLen != null && ByteReader(Uint8List.fromList(data!)).ptpString().length > nameMaxLen!) {
           _resp(cmd, Resp.invalidDevicePropValue);

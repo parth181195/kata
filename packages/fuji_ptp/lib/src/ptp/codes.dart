@@ -60,6 +60,39 @@ class Resp {
     0x2016: 'AccessDenied',
   };
 
+  /// Plain-language names for anything a user might see. Kept beside [names] so the two
+  /// can't drift; [name] stays the wire-level label for logs and the probe screen.
+  static const friendlyNames = <int, String>{
+    0xD18C: 'Slot',
+    0xD18D: 'Name',
+    0xD18E: 'Image size',
+    0xD18F: 'Image quality',
+    0xD190: 'Dynamic range',
+    0xD191: 'Unknown setting (D191)',
+    0xD192: 'Film simulation',
+    0xD193: 'Monochromatic colour (warm/cool)',
+    0xD194: 'Monochromatic colour (green/magenta)',
+    0xD195: 'Grain effect',
+    0xD196: 'Colour chrome effect',
+    0xD197: 'Colour chrome FX blue',
+    0xD198: 'Smooth skin effect',
+    0xD199: 'White balance',
+    0xD19A: 'WB shift (red)',
+    0xD19B: 'WB shift (blue)',
+    0xD19C: 'Colour temperature',
+    0xD19D: 'Highlight tone',
+    0xD19E: 'Shadow tone',
+    0xD19F: 'Colour',
+    0xD1A0: 'Sharpness',
+    0xD1A1: 'High ISO NR',
+    0xD1A2: 'Clarity',
+    0xD1A3: 'Long exposure NR',
+    0xD1A4: 'Colour space',
+    0xD1A5: 'Unknown setting (D1A5)',
+  };
+
+  static String friendly(int code) => friendlyNames[code] ?? name(code);
+
   static String name(int code) =>
       names[code] ?? '0x${code.toRadixString(16).toUpperCase().padLeft(4, '0')}';
 }
@@ -105,6 +138,39 @@ class FujiProp {
     0xD1A4: 'P:ColorSpace',
     0xD1A5: 'P:?D1A5',
   };
+
+  /// Plain-language names for anything a user might see. Kept beside [names] so the two
+  /// can't drift; [name] stays the wire-level label for logs and the probe screen.
+  static const friendlyNames = <int, String>{
+    0xD18C: 'Slot',
+    0xD18D: 'Name',
+    0xD18E: 'Image size',
+    0xD18F: 'Image quality',
+    0xD190: 'Dynamic range',
+    0xD191: 'Unknown setting (D191)',
+    0xD192: 'Film simulation',
+    0xD193: 'Monochromatic colour (warm/cool)',
+    0xD194: 'Monochromatic colour (green/magenta)',
+    0xD195: 'Grain effect',
+    0xD196: 'Colour chrome effect',
+    0xD197: 'Colour chrome FX blue',
+    0xD198: 'Smooth skin effect',
+    0xD199: 'White balance',
+    0xD19A: 'WB shift (red)',
+    0xD19B: 'WB shift (blue)',
+    0xD19C: 'Colour temperature',
+    0xD19D: 'Highlight tone',
+    0xD19E: 'Shadow tone',
+    0xD19F: 'Colour',
+    0xD1A0: 'Sharpness',
+    0xD1A1: 'High ISO NR',
+    0xD1A2: 'Clarity',
+    0xD1A3: 'Long exposure NR',
+    0xD1A4: 'Colour space',
+    0xD1A5: 'Unknown setting (D1A5)',
+  };
+
+  static String friendly(int code) => friendlyNames[code] ?? name(code);
 
   static String name(int code) =>
       names[code] ?? '0x${code.toRadixString(16).toUpperCase().padLeft(4, '0')}';

@@ -9,6 +9,7 @@ import '../../core/fuji/camera_service.dart';
 import '../../core/fuji/slot_identity.dart';
 import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
+import 'skip_notes.dart';
 
 /// Write a recipe into a slot: choose → writing → done / failed.
 class WriteSheet extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
   _Phase _phase = _Phase.choose;
   int? _slot;
   WriteResult? _result;
+  CameraPreset? _preset;
   List<String> _notes = const [];
   String? _error;
   late final AnimationController _progress = AnimationController(vsync: this, duration: const Duration(seconds: 3));
@@ -37,6 +39,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
   Future<void> _write(CameraReady st) async {
     final slot = _slot!;
     final m = OfrMapper.toPreset(widget.recipe.ofr);
+    _preset = m.value;
     _notes = m.notes;
     setState(() => _phase = _Phase.writing);
     _progress.forward(from: 0);
@@ -171,7 +174,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
     final p = context.kata;
     final r = _result!;
     final total = r.written.length + r.skipped.length;
-    final skippedRows = [for (final w in r.warnings) IssueRow(w.split(':').first, w.contains(':') ? w.substring(w.indexOf(':') + 1).trim() : '')];
+    final causes = slotSkips({r.slot: r}, {r.slot: ?_preset});
     return Container(
       color: p.bg,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -195,7 +198,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
               TextSpan(text: 'C${r.slot}', style: const TextStyle(fontWeight: FontWeight.w600)),
               const TextSpan(text: " and back to load it. The camera won't show the change until you do."),
             ]))),
-            if (skippedRows.isNotEmpty) ...[const SizedBox(height: 14), IssueCard(title: '${skippedRows.length} SETTING${skippedRows.length == 1 ? '' : 'S'} SKIPPED', rows: skippedRows)],
+            if (causes.isNotEmpty) ...[const SizedBox(height: 14), SkippedSettingsCard(causes: causes)],
             if (_notes.isNotEmpty) ...[const SizedBox(height: 14), IssueCard(title: '${_notes.length} NOTE${_notes.length == 1 ? '' : 'S'}', rows: [for (final n in _notes) IssueRow(n, '')])],
             const SizedBox(height: 14),
             Row(children: [
