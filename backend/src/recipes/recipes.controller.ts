@@ -34,9 +34,13 @@ export class RecipesController {
   ) {}
 
   // Sign-in is required to browse (user decision 2026-08-20) — the class guard covers reads too.
+  //
+  // Hidden recipes stay out of the feed for *everyone*, admins included: hiding is a
+  // moderation decision, and the admin console has its own "hidden" tab (GET /admin/queue)
+  // for working through them. An admin browsing the library should see the library.
   @Get()
-  list(@Query() dto: ListRecipesDto, @CurrentUser() u: AuthUser) {
-    return this.recipes.list(dto, { includeHidden: u.role === 'admin' });
+  list(@Query() dto: ListRecipesDto, @CurrentUser() _u: AuthUser) {
+    return this.recipes.list(dto, { includeHidden: false });
   }
 
   @Get('by-hash/:hash')

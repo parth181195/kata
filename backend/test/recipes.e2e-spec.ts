@@ -149,10 +149,10 @@ describe('recipes', () => {
       'Kodachrome 64',
     ]);
     expect(all.nextCursor).toBeNull();
-    // admin sees hidden
+    // hidden stays out of the feed for admins too: the admin console has its own hidden tab
     expect(
-      ((await http.get('/recipes').set(A)).body as Page).items.length,
-    ).toBe(3);
+      ((await http.get('/recipes').set(A)).body as Page).items.map((r) => r.name),
+    ).toEqual(['Mono Push', 'Kodachrome 64']);
     // filters
     expect(
       ((await http.get('/recipes?mono=true').set(U)).body as Page).items.map(

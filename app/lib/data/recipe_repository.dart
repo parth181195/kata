@@ -255,6 +255,7 @@ class RecipeRepository extends ChangeNotifier {
   List<Recipe> where(LibraryFilter f) {
     final q = f.query.trim().toLowerCase();
     final out = all.where((r) {
+      if (r.hidden) return false; // moderated out: never in the browse feed
       if (f.verifiedOnly && !r.verified) return false;
       if (f.mono != null && r.isMono != f.mono) return false;
       if (f.filmSim != null && r.ofr.filmSimulation != f.filmSim) return false;
