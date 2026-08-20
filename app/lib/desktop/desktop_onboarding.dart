@@ -85,12 +85,13 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
       const SizedBox(height: 12),
       Expanded(
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 48),
+          // no side padding: a selected row is a white block, and it should run to the
+          // window edge rather than stopping short of it
           itemCount: bodies.length,
           itemBuilder: (_, i) {
             final b = bodies[i];
             return KataListRow(
-              contentInset: 18, // the label sits inside the highlight, not on its edge
+              contentInset: 48, // text keeps the page's alignment; the ground runs edge to edge
               inkRadius: 0, // full-bleed list: square, like the rows themselves
               title: b.model,
               sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',

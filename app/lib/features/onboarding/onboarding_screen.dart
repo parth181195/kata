@@ -87,20 +87,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 12),
       Expanded(
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
           itemCount: bodies.length,
           itemBuilder: (_, i) {
             final b = bodies[i];
             final on = answers.bodies.contains(b.model);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: KataListRow(
-                inkRadius: 0,
-                title: b.model,
-                sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
-                selected: on,
-                onTap: () => ref.read(onboardingAnswersProvider.notifier).state = answers.toggleBody(b.model),
-              ),
+            return KataListRow(
+              inkRadius: 0,
+              contentInset: 20,
+              title: b.model,
+              sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
+              selected: on,
+              onTap: () => ref.read(onboardingAnswersProvider.notifier).state = answers.toggleBody(b.model),
             );
           },
         ),
