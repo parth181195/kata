@@ -23,7 +23,7 @@ class KataSectionHeader extends StatelessWidget {
 
 /// List row: title (+ optional sub), trailing value in mono, hairline below.
 class KataListRow extends StatelessWidget {
-  const KataListRow({super.key, required this.title, this.sub, this.value, this.onTap, this.onLongPress, this.trailing, this.enabled = true, this.contentInset = 0, this.selected = false, this.inkRadius = 12});
+  const KataListRow({super.key, required this.title, this.sub, this.value, this.onTap, this.onLongPress, this.trailing, this.enabled = true, this.contentInset = 0, this.selected = false, this.inkRadius = 0});
   final String title;
   final String? sub;
   final String? value;
@@ -36,8 +36,8 @@ class KataListRow extends StatelessWidget {
   /// mid-row and reads like a stray glyph.
   final bool selected;
 
-  /// Corner radius of the pressed/hover highlight. Rounded suits an inset card-like row;
-  /// pass 0 for a full-bleed list, where rounded corners float oddly against square rows.
+  /// Corner radius of the pressed/hover highlight. Square by default — Kata's rows are
+  /// square, and a rounded highlight floats inside them. Pass a radius for a card-like row.
   final double inkRadius;
 
   /// Pads the text *inside* the highlight. Zero on a phone, where the page's own margin does
@@ -76,9 +76,16 @@ class KataListRow extends StatelessWidget {
         Text('✓', style: KataType.bodyStyle(size: 14, weight: FontWeight.w700, color: p.bg, height: 1)),
       ],
     ]);
-    return DecoratedBox(
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline, width: KataStroke.hairline))),
-      child: Stack(clipBehavior: Clip.none, children: [
+    return Stack(clipBehavior: Clip.none, children: [
+      // The rule sits in the same band as the highlight — starting where the highlight starts
+      // and stopping where it stops, rather than running out to the screen edges.
+      Positioned(
+        left: -inkBleed,
+        right: -inkBleed,
+        bottom: 0,
+        child: Container(height: KataStroke.hairline, color: p.hairline),
+      ),
+      ...[
         // selected ground: bleeds exactly as far as the ink, so the white block lines up
         // with the pressed state instead of sitting inside it
         if (selected)
@@ -108,7 +115,7 @@ class KataListRow extends StatelessWidget {
             child: content,
           ),
         ),
-      ]),
-    );
+      ],
+    ]);
   }
 }

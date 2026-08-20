@@ -206,7 +206,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ]),
                       ),
                       const SizedBox(width: 12),
-                      SwatchBars(heights: sw.heights, greys: sw.greys, abbr: RecipeSpecs.filmAbbr(recipe.ofr)),
+                      SwatchBars(values: sw, abbr: RecipeSpecs.filmAbbr(recipe.ofr)),
                     ]),
                   ),
                 ]),

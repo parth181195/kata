@@ -5,18 +5,20 @@ import 'package:kata_ui/kata_ui.dart';
 Widget wrap(Widget w) => MaterialApp(theme: KataTheme.dark(), home: Scaffold(body: Center(child: w)));
 
 void main() {
-  test('SwatchBars.fromTones is deterministic and in range', () {
+  test('SwatchBars.fromTones maps each tone onto its own -1..1 range', () {
     final a = SwatchBars.fromTones(highlight: -1, shadow: 0.5, color: 2, sharpness: -2, clarity: 0);
     final b = SwatchBars.fromTones(highlight: -1, shadow: 0.5, color: 2, sharpness: -2, clarity: 0);
-    expect(a.heights, b.heights);
-    expect(a.heights.length, 5);
-    for (final h in a.heights) {
-      expect(h, inInclusiveRange(0.25, 1.0));
+    expect(a, b);
+    expect(a.length, 5);
+    for (final v in a) {
+      expect(v, inInclusiveRange(-1.0, 1.0));
     }
-    for (final g in a.greys) {
-      expect(g, inInclusiveRange(0, 3));
-    }
-    expect(a.heights, isNot(SwatchBars.fromTones(highlight: 2, shadow: 2, color: -4, sharpness: 4, clarity: 5).heights));
+    // 0 is neutral for every field and sits on the axis; the extremes reach the ends
+    expect(a[4], 0);
+    expect(SwatchBars.fromTones(highlight: 0, shadow: 0, color: 0, sharpness: 0, clarity: 0), [0.0, 0.0, 0.0, 0.0, 0.0]);
+    expect(SwatchBars.fromTones(highlight: 4, shadow: 4, color: 4, sharpness: 4, clarity: 5), [1.0, 1.0, 1.0, 1.0, 1.0]);
+    expect(SwatchBars.fromTones(highlight: -2, shadow: -2, color: -4, sharpness: -4, clarity: -5), [-1.0, -1.0, -1.0, -1.0, -1.0]);
+    expect(a, isNot(SwatchBars.fromTones(highlight: 2, shadow: 2, color: -4, sharpness: 4, clarity: 5)));
   });
   testWidgets('spec grid renders labels, values, rulers', (t) async {
     await t.pumpWidget(wrap(const SpecGrid([

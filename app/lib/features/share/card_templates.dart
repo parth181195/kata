@@ -144,7 +144,7 @@ class _S1 extends StatelessWidget {
             ]),
           ),
           const SizedBox(width: 12),
-          SwatchBars(heights: RecipeSpecs.swatch(r.ofr).heights, greys: RecipeSpecs.swatch(r.ofr).greys, abbr: RecipeSpecs.filmAbbr(r.ofr)),
+          SwatchBars(values: RecipeSpecs.swatch(r.ofr), abbr: RecipeSpecs.filmAbbr(r.ofr)),
         ]),
         const SizedBox(height: 11),
         Container(height: 1, decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.rule, style: BorderStyle.solid)))),

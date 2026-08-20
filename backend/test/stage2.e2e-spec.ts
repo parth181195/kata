@@ -143,6 +143,15 @@ describe('stage 2: user recipes + favourites', () => {
         .length,
     ).toBe(3);
 
+    // a list carries at most LIST_IMAGE_LIMIT frames per recipe — a page of fifty recipes
+    // shipping every photo is what made pull-to-refresh crawl. The full set lives on the
+    // single-recipe route.
+    await A.post(`/recipes/${r.id}/images`).attach('file', jpeg, 'p.jpg').expect(400); // still capped at 3 by upload
+    const listed = ((await A.get('/recipes').expect(200)).body as Page<R>).items.find((x) => x.id === r.id)!;
+    expect(listed.imageUrls.length).toBeLessThanOrEqual(3);
+    const mineListed = ((await A.get('/me/recipes').expect(200)).body as Page<R>).items.find((x) => x.id === r.id)!;
+    expect(mineListed.imageUrls.length).toBeLessThanOrEqual(3);
+
     // versions: publish = v1, edit = v2, list, revert → v3 with v1's settings
     const r2 = (
       await A.post('/recipes')

@@ -121,9 +121,9 @@ class _BigRuler extends StatelessWidget {
             // so a bare CustomPaint collapsed to zero and pinned the marker at the left edge.
             // The height is generous on purpose — this is a grab target, not a read-out.
             width: double.infinity,
-            height: 34,
+            height: 38,
             child: CustomPaint(
-              size: Size(box.maxWidth, 34),
+              size: Size(box.maxWidth, 38),
               painter: _BigRulerPainter(p.hairline, p.fg, p.muted, t, zeroT),
             ),
           ),
@@ -141,7 +141,7 @@ class _BigRulerPainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
     final tp = Paint()..color = tick..strokeWidth = 1;
-    final base = s.height - 16; // the band above the handle
+    final base = s.height - 20; // the band above the handle
     for (var x = 0.0; x <= s.width; x += 7) {
       c.drawLine(Offset(x, base - 8), Offset(x, base), tp);
     }
@@ -151,18 +151,12 @@ class _BigRulerPainter extends CustomPainter {
     }
     // A handle you can actually put a finger or cursor on: a wide block riding the bottom of
     // the scale, with a stem up through the ticks so the exact position stays readable.
-    const handleW = 16.0;
-    const handleH = 14.0;
+    const handleW = 20.0;
+    const handleH = 18.0;
     final x = (t * s.width).clamp(handleW / 2, s.width - handleW / 2);
-    final mp = Paint()..color = marker;
     c.drawLine(Offset(x, 0), Offset(x, s.height - handleH), Paint()..color = marker..strokeWidth = 2);
-    c.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(x - handleW / 2, s.height - handleH, handleW, handleH),
-        const Radius.circular(3),
-      ),
-      mp,
-    );
+    // square, like everything else here — and big enough to put a finger on
+    c.drawRect(Rect.fromLTWH(x - handleW / 2, s.height - handleH, handleW, handleH), Paint()..color = marker);
   }
 
   @override

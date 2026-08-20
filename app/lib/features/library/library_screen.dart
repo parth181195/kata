@@ -215,7 +215,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         color: p.fg,
                         backgroundColor: p.surface,
                         strokeWidth: 2,
-                        onRefresh: lib.sync,
+                        onRefresh: lib.refresh, // returns once the first page lands
                         child: layout == LibraryLayout.grid
                             ? GridView.builder(
                                 key: const ValueKey('library-grid'),

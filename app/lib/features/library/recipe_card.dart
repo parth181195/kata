@@ -100,7 +100,7 @@ class RecipeCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
             child: Row(children: [
-              SwatchBars(heights: sw.heights, greys: sw.greys, abbr: RecipeSpecs.filmAbbr(r.ofr), size: 30),
+              SwatchBars(values: sw, abbr: RecipeSpecs.filmAbbr(r.ofr), size: 30),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -130,7 +130,7 @@ class RecipeCard extends StatelessWidget {
               const SizedBox(height: 4),
               attribution,
               const SizedBox(height: 4),
-              SwatchBars(heights: sw.heights, greys: sw.greys, size: 16),
+              SwatchBars(values: sw, size: 16),
             ]),
           ),
           const SizedBox(width: 10),
@@ -154,7 +154,6 @@ class RecipeGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = recipe;
     final sw = RecipeSpecs.swatch(r.ofr);
-    const greys = [Colors.white, Color(0xFFD9D9D9), Color(0xFF8A8A8A), Color(0xFF2E2E2E)];
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: GestureDetector(
@@ -195,16 +194,8 @@ class RecipeGridTile extends StatelessWidget {
                   child: Text('${r.ofr.filmSimulation}\n${RecipeSpecs.dr(r.ofr)} · ${RecipeSpecs.wb(r.ofr)}'.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: const Color(0xFFD9D9D9), height: 1.35)),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 22,
-                  height: 16,
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    for (var i = 0; i < 4; i++) ...[
-                      if (i > 0) const SizedBox(width: 1.5),
-                      Expanded(child: FractionallySizedBox(heightFactor: sw.heights[i].clamp(0.05, 1), child: ColoredBox(color: greys[sw.greys[i] % 4]))),
-                    ],
-                  ]),
-                ),
+                // the same tone mark as everywhere else, so it says the same thing here
+                SwatchBars(values: sw, size: 22),
               ]),
             ]),
           ),

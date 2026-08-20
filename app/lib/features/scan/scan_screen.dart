@@ -175,7 +175,7 @@ class _Preview extends StatelessWidget {
               ]),
             ),
             const SizedBox(width: 12),
-            SwatchBars(heights: sw.heights, greys: sw.greys, abbr: RecipeSpecs.filmAbbr(r)),
+            SwatchBars(values: sw, abbr: RecipeSpecs.filmAbbr(r)),
           ]),
           const SizedBox(height: 12),
           const DottedDivider(),

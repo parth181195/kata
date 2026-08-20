@@ -84,7 +84,20 @@ class RecipeRepository extends ChangeNotifier {
 
   /// Pages through the API, upserts the cache, drops recipes the API no longer returns.
   /// Concurrent calls share the in-flight sync.
+  /// One request per 100 recipes rather than per 50: the sync is round-trip bound.
+  static const _pageSize = 100;
+
+  Completer<void> _firstPage = Completer<void>();
+
   Future<void> sync() => _inflight ??= _sync().whenComplete(() => _inflight = null);
+
+  /// What pull-to-refresh waits on: the first page, which is everything on screen. The rest
+  /// keeps loading behind it, so the spinner doesn't sit there for the whole library.
+  Future<void> refresh() {
+    if (_inflight == null) _firstPage = Completer<void>();
+    unawaited(sync());
+    return _firstPage.future;
+  }
 
   Future<void> _sync() async {
     syncing = true;
@@ -95,10 +108,17 @@ class RecipeRepository extends ChangeNotifier {
       final fresh = <Recipe>[];
       String? cursor;
       do {
-        final page = await _api.list(cursor: cursor);
+        final page = await _api.list(cursor: cursor, limit: _pageSize);
         fresh.addAll(page.items);
         seen.addAll(page.items.map((r) => r.id));
         cursor = page.nextCursor;
+        // show each page as it lands: a refresh that only paints at the end feels broken,
+        // and with 340 recipes that is several seconds of nothing
+        _cached
+          ..clear()
+          ..addAll(fresh);
+        notifyListeners();
+        if (!_firstPage.isCompleted) _firstPage.complete();
       } while (cursor != null);
       final now = DateTime.now();
       await _db.transaction(() async {
@@ -111,9 +131,6 @@ class RecipeRepository extends ChangeNotifier {
         await (_db.delete(_db.cachedRecipes)..where((c) => c.id.isNotIn(seen.toList()))).go();
         await _db.setMeta(_kLastSync, now.toIso8601String());
       });
-      _cached
-        ..clear()
-        ..addAll(fresh);
       lastSyncedAt = now;
       offline = false;
       offlineIsNetwork = false;

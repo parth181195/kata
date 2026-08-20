@@ -17,7 +17,7 @@ import {
 } from '../ofr';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListRecipesDto } from './dto/list-recipes.dto';
-import { RecipeDto, toRecipeDto } from './recipe.mapper';
+import { LIST_IMAGE_LIMIT, RecipeDto, toRecipeDto } from './recipe.mapper';
 
 interface ListOpts {
   includeHidden: boolean;
@@ -100,7 +100,7 @@ export class RecipesService {
               : [last.createdAt.toISOString(), last.id],
           )
         : null;
-    return { items: page.map(toRecipeDto), nextCursor };
+    return { items: page.map((x) => toRecipeDto(x, { images: LIST_IMAGE_LIMIT })), nextCursor };
   }
 
   async get(id: string, opts: ReadOpts): Promise<RecipeDto> {
@@ -331,7 +331,7 @@ export class RecipesService {
     const page = rows.slice(0, limit);
     const last = page[page.length - 1];
     return {
-      items: page.map(toRecipeDto),
+      items: page.map((x) => toRecipeDto(x, { images: LIST_IMAGE_LIMIT })),
       nextCursor:
         rows.length > limit && last
           ? encodeCursor([last.createdAt.toISOString(), last.id])

@@ -46,7 +46,7 @@ class KitScreen extends StatelessWidget {
           for (final e in sims.entries)
             Builder(builder: (_) {
               final s = SwatchBars.fromTones(highlight: e.value.$1, shadow: e.value.$2, color: e.value.$3, sharpness: e.value.$4, clarity: e.value.$5);
-              return Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(border: Border.all(color: p.hairline)), child: SwatchBars(heights: s.heights, greys: s.greys, abbr: e.key, size: 32));
+              return Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(border: Border.all(color: p.hairline)), child: SwatchBars(values: s, abbr: e.key, size: 32));
             }),
         ])),
         section('Spec grid', SpecGrid(RecipeSpecs.items(_kodachrome))),

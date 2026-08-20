@@ -386,10 +386,27 @@ class _DesktopEditorState extends ConsumerState<DesktopEditor> {
   /// Real compatibility, not guesswork: what the *connected* body would actually store.
   Widget _compatibility(KataPalette p, CameraReady? ready) {
     if (ready == null) {
-      return KataCard(
-        dashed: true,
-        child: Text('Plug a camera in to see exactly which of these fields it stores.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.5)),
-      );
+      // "plug a camera in" told nobody anything. Say what the recipe asks for and which
+      // bodies can take it, which is knowable without a camera attached.
+      final sims = _current.filmSimulation;
+      final gens = KnownBody.all.where((b) => b.usbWrite == UsbWrite.full).map((b) => b.generation).toSet().toList()..sort();
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (final line in [
+          '${OfrValidator.validate(_current).length} note${OfrValidator.validate(_current).length == 1 ? '' : 's'} on these settings',
+          '$sims needs a body that offers it — newer generations have the most',
+          'Kata writes to ${gens.join(', ')} bodies today',
+        ])
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('·', style: KataType.monoStyle(size: 11, color: p.muted)),
+              const SizedBox(width: 8),
+              Expanded(child: Text(line, style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.45))),
+            ]),
+          ),
+        const SizedBox(height: 4),
+        Text('CONNECT A CAMERA FOR THE EXACT LIST', style: KataType.monoStyle(size: 8.5, color: p.dim, letterSpacing: 0.14)),
+      ]);
     }
     final mapped = OfrMapper.toPreset(_current);
     final plan = PresetWriter.plan(mapped.value, ready.caps);

@@ -45,7 +45,8 @@ class RecipeSpecs {
 
   static String summary(OfrRecipe r) => '${r.filmSimulation} · ${dr(r)} · ${wb(r)}';
 
-  static ({List<double> heights, List<int> greys}) swatch(OfrRecipe r) => SwatchBars.fromTones(
+  /// Tone marks for a recipe: -1..1 per setting, in SwatchBars order.
+  static List<double> swatch(OfrRecipe r) => SwatchBars.fromTones(
       highlight: r.highlight ?? 0,
       shadow: r.shadow ?? 0,
       color: r.color ?? (r.monochromaticColorWarmCool ?? 0),
