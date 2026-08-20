@@ -36,7 +36,7 @@
 
 <section class="hero wrap dots" aria-labelledby="h1">
   <div class="hero-copy">
-    <span class="pill"><span class="dot"></span>ANDROID · USB-C · FREE, EVERY FEATURE</span>
+    <span class="pill"><span class="dot"></span>EARLY BUILD · ANDROID + LINUX · FREE, EVERY FEATURE</span>
     <h1 id="h1">Stop retyping<br>film recipes</h1>
     <p class="lede">Kata keeps every film-simulation recipe you love in one library and writes it straight into your Fujifilm's custom slots over USB-C. Twenty-two menu items, one tap.</p>
     <div class="ctas">
@@ -256,6 +256,10 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
       <p>Kata only uses Fujifilm's own backup/restore surface — the same one X&nbsp;RAW&nbsp;Studio uses from a computer — writing the same settings you'd change by hand in the menus. It never touches firmware. Worst case observed: the camera ignores a value it doesn't support — which Kata reports and skips.</p>
     </details>
     <details>
+      <summary>How finished is this?</summary>
+      <p>Early, and honest about it. The library, the editor, sharing and the USB writer all work today — the writer has been used on an X-S20 end to end, and the Linux desktop build drives the same engine. What that means for you: recipes you publish are safe (they live on the server with version history), and writes are guarded — you approve a diff first, and every slot is snapshotted before anything changes, so you can roll the camera back. What may still bite: bodies other than the X-S20 are less tested, some settings can't be written over USB at all and are skipped with a note, and the app is sideloaded rather than in the Play Store. If something misbehaves, that's worth reporting — it's how the supported-camera list grows.</p>
+    </details>
+    <details>
       <summary>iPhone? Desktop?</summary>
       <p>Android first, because it has proper USB host APIs — and there is a Linux desktop build now, on the same engine, with a slot board you can drag recipes onto. Windows and macOS aren't done: macOS needs code signing and a way past its own photo daemon, and Windows binds cameras to a driver libusb can't talk to, so it needs a different USB backend. iOS doesn't expose the low-level USB access Kata's writer needs, so an iPhone build would be browse-and-share only — and Apple charges US$99 every year just to ship a free app. If enough people want it we'll do it; for now, no.</p>
     </details>
@@ -270,6 +274,12 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
   <span class="mark lg" aria-hidden="true">型</span>
   <h2 id="get-h">The form you<br>fall back on</h2>
   <p class="lede">Android 8+, USB-C, free. Bring your camera and a data cable.</p>
+  <p class="small" style="max-width:52ch;margin:0 auto 18px">
+    <strong>Kata is under active development.</strong> Writing is proven on the X-S20 and follows the same
+    protocol Fujifilm's own software uses, but every body is a little different — expect rough edges, and
+    tell us when you find one. Nothing is sent to the camera until you approve a field-by-field diff, and
+    Kata backs up every slot before it writes, so a bad write is always undoable.
+  </p>
   <div class="ctas" style="justify-content:center">
     <a class="btn primary" href="/kata.apk" download>Get it on Android</a>
     <a class="btn" href="/kata-linux.tar.gz" download>Kata for Linux</a>
