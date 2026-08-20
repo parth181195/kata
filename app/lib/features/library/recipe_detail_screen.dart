@@ -232,21 +232,32 @@ class RecipeDetailScreen extends ConsumerWidget {
                     const SizedBox(width: 6),
                   ],
                 ]),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 72,
-                  child: Row(children: [
-                    for (var i = 0; i < 3; i++) ...[
-                      if (i > 0) const SizedBox(width: 6),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: recipe.imageUrls.length > 1 + i ? () => showImageViewer(context, urls: recipe.imageUrls, initialIndex: 1 + i, credit: attributionLine(recipe)) : null,
-                          child: FrameSlot(radius: 8, placeholder: 'frame', image: recipeImage(recipe.imageUrls.skip(1 + i).firstOrNull)),
-                        ),
-                      ),
-                    ],
-                  ]),
-                ),
+                // Extra frames beyond the hero — only the ones that exist. Tiles keep the width
+                // they would have in a full row of three, so one or two photos don't stretch.
+                if (recipe.imageUrls.length > 1) ...[
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, box) {
+                      final extras = recipe.imageUrls.skip(1).take(3).toList();
+                      final tile = (box.maxWidth - 12) / 3;
+                      return SizedBox(
+                        height: 72,
+                        child: Row(children: [
+                          for (var i = 0; i < extras.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 6),
+                            SizedBox(
+                              width: tile,
+                              child: GestureDetector(
+                                onTap: () => showImageViewer(context, urls: recipe.imageUrls, initialIndex: 1 + i, credit: attributionLine(recipe)),
+                                child: FrameSlot(radius: 8, image: recipeImage(extras[i])),
+                              ),
+                            ),
+                          ],
+                        ]),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 16),
                 const EyebrowDivider('Q-menu order'),
                 const SizedBox(height: 16),

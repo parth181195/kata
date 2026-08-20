@@ -88,7 +88,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 ),
               ]),
               const SizedBox(height: 12),
-              KataSearchField(hint: 'Search recipes, film sims, authors', controller: _search, onChanged: (q) => _setFilter((f) => f.copyWith(query: q))),
+              KataSearchField(hint: 'Search recipes, film sims, authors', height: KataSearchField.touch, controller: _search, onChanged: (q) => _setFilter((f) => f.copyWith(query: q))),
               const SizedBox(height: 12),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,

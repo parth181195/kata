@@ -56,30 +56,44 @@ class KataChip extends StatelessWidget {
 }
 
 class KataSearchField extends StatelessWidget {
-  const KataSearchField({super.key, this.hint = 'Search', this.onChanged, this.controller});
+  /// [height] 42 suits a dense desktop toolbar; phone screens should pass something at or
+  /// above the 48px touch target — [KataSearchField.touch].
+  const KataSearchField({super.key, this.hint = 'Search', this.onChanged, this.controller, this.height = 42});
+
+  /// Comfortable size for a primary, thumb-reached search box.
+  static const touch = 54.0;
+
   final String hint;
   final ValueChanged<String>? onChanged;
   final TextEditingController? controller;
+  final double height;
+
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
+    final big = height >= 48;
+    final text = big ? 14.0 : 12.5;
     return Container(
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(21), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
+      height: height,
+      padding: EdgeInsets.symmetric(horizontal: big ? 18 : 15),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(height / 2), border: Border.all(color: p.hairline, width: KataStroke.hairline)),
       child: Row(children: [
-        Container(width: 13, height: 13, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.muted, width: 1.5))),
-        const SizedBox(width: 10),
+        Container(
+          width: big ? 15 : 13,
+          height: big ? 15 : 13,
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: p.muted, width: 1.5)),
+        ),
+        SizedBox(width: big ? 12 : 10),
         Expanded(
           child: TextField(
             controller: controller,
             onChanged: onChanged,
-            style: KataType.bodyStyle(size: 12.5, color: p.fg, height: 1),
+            style: KataType.bodyStyle(size: text, color: p.fg, height: 1),
             decoration: InputDecoration(
               isDense: true,
               border: InputBorder.none,
               hintText: hint,
-              hintStyle: KataType.bodyStyle(size: 12.5, color: p.muted, height: 1),
+              hintStyle: KataType.bodyStyle(size: text, color: p.muted, height: 1),
               contentPadding: EdgeInsets.zero,
             ),
           ),
