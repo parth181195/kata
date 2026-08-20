@@ -85,5 +85,12 @@ void _rowTests() {
     final row = t.getRect(find.widgetWithText(KataListRow, 'X-S20'));
     expect(tick.right, closeTo(row.right - 18, 4), reason: 'at the end of the line, inside the inset');
     expect(find.text('✓'), findsOneWidget, reason: 'only the selected row gets one');
+
+    // the row inverts: white ground, black text
+    final p = KataTheme.dark().extension<KataPalette>()!;
+    final title = t.widget<Text>(find.text('X-S20'));
+    expect(title.style?.color, p.bg, reason: 'text is knocked out of the white ground');
+    final grounds = t.widgetList<DecoratedBox>(find.descendant(of: find.widgetWithText(KataListRow, 'X-S20'), matching: find.byType(DecoratedBox)));
+    expect(grounds.any((d) => (d.decoration as BoxDecoration).color == p.fg), isTrue, reason: 'and the ground is white');
   });
 }

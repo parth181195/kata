@@ -31,8 +31,9 @@ class KataListRow extends StatelessWidget {
   final Widget? trailing;
   final bool enabled;
 
-  /// Picked, in a list you choose from: the text brightens and a tick sits at the very end
-  /// of the line. Use this instead of passing a tick through [value], which floats mid-row.
+  /// Picked, in a list you choose from: the row inverts — white ground, black text, tick at
+  /// the end of the line. Use this instead of passing a tick through [value], which floats
+  /// mid-row and reads like a stray glyph.
   final bool selected;
 
   /// Corner radius of the pressed/hover highlight. Rounded suits an inset card-like row;
@@ -53,10 +54,10 @@ class KataListRow extends StatelessWidget {
     final content = Row(children: [
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 13, weight: FontWeight.w600, color: enabled ? p.fg : p.muted, height: 1.2)),
+          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 13, weight: FontWeight.w600, color: selected ? p.bg : (enabled ? p.fg : p.muted), height: 1.2)),
           if (sub != null) ...[
             const SizedBox(height: 3),
-            Text(sub!, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 11.5, color: selected ? p.fg : p.muted, height: 1.3)),
+            Text(sub!, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 11.5, color: selected ? p.bg.withValues(alpha: 0.66) : p.muted, height: 1.3)),
           ],
         ]),
       ),
@@ -66,18 +67,28 @@ class KataListRow extends StatelessWidget {
         // of the leftover space
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 220),
-          child: Text(value!.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.right, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: p.muted)),
+          child: Text(value!.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.right, style: KataType.monoStyle(size: 10.5, weight: FontWeight.w500, color: selected ? p.bg.withValues(alpha: 0.66) : p.muted)),
         ),
       ],
       if (trailing != null) ...[const SizedBox(width: 12), trailing!],
       if (selected) ...[
         const SizedBox(width: 12),
-        Text('✓', style: KataType.bodyStyle(size: 14, weight: FontWeight.w700, color: p.fg, height: 1)),
+        Text('✓', style: KataType.bodyStyle(size: 14, weight: FontWeight.w700, color: p.bg, height: 1)),
       ],
     ]);
     return DecoratedBox(
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline, width: KataStroke.hairline))),
       child: Stack(clipBehavior: Clip.none, children: [
+        // selected ground: bleeds exactly as far as the ink, so the white block lines up
+        // with the pressed state instead of sitting inside it
+        if (selected)
+          Positioned(
+            left: -inkBleed,
+            right: -inkBleed,
+            top: 0,
+            bottom: 0,
+            child: DecoratedBox(decoration: BoxDecoration(color: p.fg, borderRadius: BorderRadius.circular(inkRadius))),
+          ),
         // ink layer: bleeds past the text on both sides so the pressed state never starts on the label's first pixel
         Positioned(
           left: -inkBleed,
