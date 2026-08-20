@@ -70,9 +70,26 @@ class CameraService extends Notifier<CameraState> {
 
   UsbHost get _usb => ref.read(usbHostProvider);
 
-  Future<void> connect() => _connect(canReset: true);
+  /// Opt-in: the UI turns this on so a camera plugged in later connects by itself.
+  /// Off by default so tests (and any headless use) stay explicit.
+  bool _auto = false;
 
-  Future<void> _connect({required bool canReset}) async {
+  /// Watch for cameras and connect to whatever is (or becomes) plugged in.
+  Future<void> enableAutoConnect() async {
+    if (_auto) return;
+    _auto = true;
+    // Kick the host so its device poll starts, then take whatever is already attached.
+    try {
+      final devices = await _usb.listDevices();
+      if (devices.any((d) => d.vid == fujiVendorId) && state is CameraDisconnected) await connect(silent: true);
+    } catch (_) {/* no host / no permission: the Scan button still works */}
+  }
+
+  Future<void> connect({bool silent = false}) => _connect(canReset: true, silent: silent);
+
+  /// [silent] is the auto-connect path: never raise a permission dialog the user didn't ask
+  /// for (Android prompts on request), just stay disconnected until they tap Connect.
+  Future<void> _connect({required bool canReset, bool silent = false}) async {
     final devices = await _usb.listDevices();
     final fuji = devices.where((d) => d.vid == fujiVendorId).toList();
     if (fuji.isEmpty) {
@@ -82,9 +99,15 @@ class CameraService extends Notifier<CameraState> {
     final d = fuji.first;
     _deviceName = d.name;
     state = const CameraConnecting('permission');
-    if (!d.hasPermission && !await _usb.requestPermission(d.name)) {
-      state = const CameraFailed(CameraFailure.permissionDenied);
-      return;
+    if (!d.hasPermission) {
+      if (silent) {
+        state = const CameraDisconnected(reason: CameraFailure.permissionDenied);
+        return;
+      }
+      if (!await _usb.requestPermission(d.name)) {
+        state = const CameraFailed(CameraFailure.permissionDenied);
+        return;
+      }
     }
     try {
       state = const CameraConnecting('usb');
@@ -124,7 +147,7 @@ class CameraService extends Notifier<CameraState> {
         } catch (_) {}
         await _release(politely: false);
         await Future<void>.delayed(const Duration(milliseconds: 800));
-        return _connect(canReset: false);
+        return _connect(canReset: false, silent: silent);
       }
       await _release(politely: false);
       state = CameraFailed(CameraFailure.io, '$e');
@@ -191,6 +214,16 @@ class CameraService extends Notifier<CameraState> {
   }
 
   void _onUsbEvent(UsbEvent e) {
+    if (e.attached) {
+      // Fires once per physical plug (the host diffs its device list), so this can't loop:
+      // a failed auto-connect waits for the next plug or an explicit Scan. Ejecting leaves
+      // the device attached and therefore silent — the camera stays free to charge.
+      final busy = state is CameraReady || state is CameraConnecting;
+      if (_auto && !busy && (e.vid == null || e.vid == fujiVendorId)) {
+        unawaited(Future<void>.delayed(const Duration(milliseconds: 400), () => connect(silent: true)));
+      }
+      return;
+    }
     if (!e.attached && (e.deviceName == null || e.deviceName == _deviceName)) {
       _heartbeat?.cancel();
       _cam = null;

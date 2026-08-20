@@ -32,6 +32,10 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
     super.initState();
     // Send CloseSession before we die: otherwise the camera stays latched in USB RAW CONV
     // mode from its side and never falls back to charging until replugged.
+    // plug a camera in at any point and Kata picks it up on its own
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(cameraServiceProvider.notifier).enableAutoConnect();
+    });
     _lifecycle = AppLifecycleListener(onExitRequested: () async {
       await ref.read(cameraServiceProvider.notifier).disconnect();
       return AppExitResponse.exit;

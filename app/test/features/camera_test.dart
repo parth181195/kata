@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuji_ptp/testing.dart';
+import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:kata/core/fuji/camera_service.dart';
 import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/data/recipe.dart';
@@ -9,14 +10,17 @@ import '../helpers.dart';
 
 void main() {
   _supportedCameras();
-  testWidgets('disconnected shows checklist and Connect; connect → slot grid; slot panel saves to Mine', (t) async {
-    final host = FakeUsbHost(FakeFujiBody());
+  testWidgets('no camera shows the checklist; plugging one in connects by itself → slot grid; slot panel saves to Mine', (t) async {
+    final host = FakeUsbHost(FakeFujiBody(), present: false);
     final c = await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));
     expect(find.text('Camera off, plug in USB-C'), findsOneWidget);
     expect(find.text('CONNECT'), findsOneWidget);
     expect(find.text('DISCONNECTED'), findsOneWidget);
 
-    await t.tap(find.text('CONNECT'));
+    // plug it in: the host's attach event connects without a tap
+    host.present = true;
+    host.ctrl.add(const UsbEvent(attached: true, deviceName: '/dev/bus/usb/001/002', vid: 0x04CB));
+    await t.pump(const Duration(milliseconds: 500));
     await t.pumpAndSettle();
     expect(find.text('X-S20'), findsOneWidget);
     expect(find.text('CONNECTED'), findsOneWidget);
@@ -65,7 +69,7 @@ void _supportedCameras() {
   });
 
   testWidgets('camera tab links to the supported list', (t) async {
-    final host = FakeUsbHost(FakeFujiBody());
+    final host = FakeUsbHost(FakeFujiBody(), present: false);
     await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));
     await t.tap(find.text('Which cameras work?'));
     await t.pumpAndSettle();

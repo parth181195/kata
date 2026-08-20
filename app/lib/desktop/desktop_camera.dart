@@ -489,14 +489,21 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
   }
 }
 
-class _ReviewDialog extends StatelessWidget {
+class _ReviewDialog extends ConsumerWidget {
   const _ReviewDialog({required this.st, required this.queue});
   final CameraReady st;
   final Map<int, Recipe> queue;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = context.kata;
+    // Slots about to be overwritten that hold something we can't recover from the library:
+    // refined on the body, or built there from scratch. Say so before it's gone.
+    final atRisk = <int, SlotIdentity>{
+      for (final slot in queue.keys)
+        if (slot <= st.slots.length)
+          if (identifySlot(ref, st.caps.model, slot, st.slots[slot - 1]) case final id when id.match != SlotMatch.exact) slot: id,
+    };
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
@@ -507,6 +514,43 @@ class _ReviewDialog extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 12),
+      if (atRisk.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
+          child: KataCard(
+            dashed: true,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${atRisk.length == 1 ? 'C${atRisk.keys.first} HOLDS' : '${atRisk.length} SLOTS HOLD'} AN UNSAVED KATA', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: p.fg, letterSpacing: 0.16)),
+              const SizedBox(height: 6),
+              for (final e in atRisk.entries)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(children: [
+                    Expanded(
+                      child: Text(
+                        e.value.edited
+                            ? 'C${e.key} · "${e.value.origin!.name}" as you refined it on the camera isn\'t in your library — it will be lost.'
+                            : 'C${e.key} · these settings aren\'t in your library — they will be lost.',
+                        style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    KataPillButton(
+                      label: 'Save it first',
+                      kind: KataButtonKind.secondary,
+                      display: false,
+                      height: 28,
+                      expand: false,
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                        showPublishFromCamera(context, ref, slot: e.key);
+                      },
+                    ),
+                  ]),
+                ),
+            ]),
+          ),
+        ),
       Flexible(
         child: ListView(
           shrinkWrap: true,

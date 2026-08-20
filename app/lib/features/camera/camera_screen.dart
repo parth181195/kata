@@ -21,6 +21,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   bool _trouble = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Plug a camera in while this screen is open and it connects on its own. Silent: on
+    // Android a permission grant is a system dialog, so that still waits for a tap.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(cameraServiceProvider.notifier).enableAutoConnect();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final st = ref.watch(cameraServiceProvider);
     return Scaffold(

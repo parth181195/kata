@@ -64,4 +64,50 @@ void main() {
     expect(c.read(cameraServiceProvider), isA<CameraDisconnected>());
     expect(host.opened, isFalse);
   });
+
+  test('auto-connect: off by default, connects on attach once enabled', () async {
+    final host = FakeUsbHost(FakeFujiBody(), present: false);
+    final c = make(host);
+    final svc = c.read(cameraServiceProvider.notifier);
+
+    // nothing plugged in, auto not enabled yet
+    await svc.enableAutoConnect();
+    expect(c.read(cameraServiceProvider), isA<CameraDisconnected>());
+
+    // camera appears: the host emits attach, Kata takes it without a Scan tap
+    host.present = true;
+    host.ctrl.add(const UsbEvent(attached: true, deviceName: '/dev/bus/usb/001/002', vid: 0x04CB));
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    expect(c.read(cameraServiceProvider), isA<CameraReady>());
+  });
+
+  test('auto-connect stays silent when permission is not granted (no system prompt)', () async {
+    final host = FakeUsbHost(FakeFujiBody(), grant: false);
+    final c = make(host);
+    await c.read(cameraServiceProvider.notifier).enableAutoConnect();
+    final s = c.read(cameraServiceProvider);
+    expect(s, isA<CameraDisconnected>()); // not Failed: the user was never asked
+    expect((s as CameraDisconnected).reason, CameraFailure.permissionDenied);
+  });
+
+  test('ejecting does not auto-reconnect while the cable stays in', () async {
+    final host = FakeUsbHost(FakeFujiBody());
+    final c = make(host);
+    final svc = c.read(cameraServiceProvider.notifier);
+    await svc.enableAutoConnect();
+    expect(c.read(cameraServiceProvider), isA<CameraReady>());
+
+    await svc.disconnect(); // Eject: the camera can charge again
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    expect(c.read(cameraServiceProvider), isA<CameraDisconnected>(), reason: 'no attach event fires: the device never left');
+  });
+
+  test('auto-connect without enable does nothing on attach', () async {
+    final host = FakeUsbHost(FakeFujiBody());
+    final c = make(host);
+    c.read(cameraServiceProvider); // build the notifier so it subscribes
+    host.ctrl.add(const UsbEvent(attached: true, deviceName: '/dev/bus/usb/001/002', vid: 0x04CB));
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    expect(c.read(cameraServiceProvider), isA<CameraDisconnected>());
+  });
 }
