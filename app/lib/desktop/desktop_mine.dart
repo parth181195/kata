@@ -246,7 +246,10 @@ class _DesktopMineState extends ConsumerState<DesktopMine> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(r.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 13, color: p.fg, letterSpacing: 0)),
                 const SizedBox(height: 2),
-                Text(r.isDraft ? 'LOCAL DRAFT' : (r.verified ? 'VERIFIED' : 'IN REVIEW'), style: KataType.monoStyle(size: 8, color: p.muted, letterSpacing: 0.12)),
+                Text(
+                  r.isDraft ? 'LOCAL DRAFT' : (r.hidden ? 'HIDDEN BY A CURATOR' : (r.verified ? 'VERIFIED' : 'IN REVIEW')),
+                  style: KataType.monoStyle(size: 8, color: p.muted, letterSpacing: 0.12),
+                ),
               ]),
             ),
             Expanded(
@@ -261,7 +264,10 @@ class _DesktopMineState extends ConsumerState<DesktopMine> {
             ),
             Expanded(
               flex: 2,
-              child: Text(r.isDraft ? 'DRAFT' : 'PUBLISHED', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: r.isDraft ? p.dim : p.fg, letterSpacing: 0.12)),
+              child: Text(
+                r.isDraft ? 'DRAFT' : (r.hidden ? 'HIDDEN' : 'PUBLISHED'),
+                style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: r.isDraft || r.hidden ? p.dim : p.fg, letterSpacing: 0.12),
+              ),
             ),
             Expanded(
               flex: 1,

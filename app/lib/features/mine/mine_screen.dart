@@ -25,7 +25,8 @@ class _MineScreenState extends ConsumerState<MineScreen> {
     final lib = ref.watch(recipeRepositoryProvider);
     // design 5a: MINE = published under your name · SAVED = favourites · DRAFTS = local (imported / camera / new)
     final mine = lib.published.toList();
-    final favs = lib.all.where((r) => lib.favourites.contains(r.id)).toList();
+    // hidden katas drop out of Saved too: `all` is the raw cache, not the browse feed
+    final favs = lib.all.where((r) => lib.favourites.contains(r.id) && !r.hidden).toList();
     final drafts = lib.drafts.toList();
     final list = [mine, favs, drafts][_seg];
     final emptyCopy = [
