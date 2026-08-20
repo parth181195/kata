@@ -1,5 +1,5 @@
 export type Role = 'user' | 'admin';
-export interface UserDto { id: string; email: string; displayName: string; photoUrl: string | null; role: Role }
+export interface UserDto { id: string; email: string; displayName: string; photoUrl: string | null; role: Role; handle: string | null }
 export interface Tokens { accessToken: string; refreshToken: string; expiresIn: number; user: UserDto }
 export type Ofr = Record<string, unknown> & {
   name?: string; film_simulation?: string; dynamic_range?: string; d_range_priority?: string;
@@ -12,6 +12,7 @@ export type Ofr = Record<string, unknown> & {
 export interface RecipeDto {
   id: string; ofr: Ofr; hash: string; name: string; filmSim: string; isMono: boolean; sensors: string[];
   sourceUrl: string | null; sourceAttribution: string | null; authorId: string | null; reviewed: boolean; hidden: boolean;
-  imageUrls: string[]; favouritesCount: number; createdAt: string; updatedAt: string;
+  imageUrls: string[]; favouritesCount: number; version: number; authorHandle: string | null; authorName: string | null;
+  createdAt: string; updatedAt: string;
 }
 export interface Page<T> { items: T[]; nextCursor: string | null }
