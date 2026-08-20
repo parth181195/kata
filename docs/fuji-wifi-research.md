@@ -1,7 +1,8 @@
 # Fujifilm over Wi-Fi (PTP/IP) — what we know, and the one open question
 
-**Status (2026-08-20):** transport implemented and unit-tested; the decisive live probe has
-**not run yet** — the camera has not been put into wireless mode.
+**Status (2026-08-20): parked.** The transport is implemented and unit-tested, but the
+decisive probe never got to run: on an X-S20 we could not get the camera into a state where
+it listens for PTP/IP at all. Findings below. Kata remains cable-only for writing.
 
 ## Why bother
 
@@ -39,6 +40,31 @@ exact property Kata's USB heartbeat polls. So vendor props are reachable in prin
   already.** Wireless support is a transport plus UI, not a rewrite.
 - `test/ptpip_test.dart` — five tests against a scripted fake camera: handshake bytes, data-in
   reassembly across split frames, data-out framing, refusal handling, transaction numbering.
+
+## What we actually observed on an X-S20 (fw 3.30)
+
+| Step | Result |
+|------|--------|
+| `NETWORK SETTING` → register AP, manual password | **failed** — the camera would not join |
+| Same, via **WPS** | joined |
+| Camera idle after joining | **not on the network** — no ARP entry; it drops the link unless a wireless mode is running |
+| `WIRELESS TETHER SHOOTING` active | camera present at a DHCP address, pings at Wi-Fi latency, **zero TCP ports open across all 65535** |
+| UDP listen (55740-3, 15740, 5353, 1900, 8266, 34567) for 90 s | nothing from the camera — no discovery broadcast |
+
+**Conclusion:** in tether mode the X-S20 is a TCP *client*, not a server. It expects Fujifilm's
+own desktop software (X Acquire / PC AutoSave) to announce itself, then dials out to it. There
+is nothing to connect *to*, so the client we built cannot reach it in this mode.
+
+The untested path is the **smartphone connection** mode (XApp / Camera Remote pairing-wait),
+which is what every published reverse-engineering project uses and where the camera is
+documented to act as a PTP/IP server on 55740. If this is ever picked up again, that is the
+only mode worth trying, and the probe below is ready to run against it.
+
+A second, arguably better lead: let the camera dial *us*. A listener on 55740/55741/55742
+captures its opening handshake the moment it tries to reach a tethering host — that reveals
+the protocol without needing the camera to serve anything. `scratchpad/cam_trap.py` in the
+session notes did exactly this; it just never caught a connection because the camera only
+dials a host it has been told about.
 
 ## The open question
 
