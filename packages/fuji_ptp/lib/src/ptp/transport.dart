@@ -24,8 +24,21 @@ class PtpException implements Exception {
   String toString() => 'PtpException: $message';
 }
 
+/// The PTP transaction surface the Fuji layer talks to, so the same camera logic runs over
+/// USB bulk ([PtpTransport]) or TCP (`PtpIpTransport`, Wi-Fi).
+abstract class PtpSession {
+  /// Command with an optional inbound data phase.
+  Future<PtpResult> sendCommand(int opcode, [List<int> params, int timeoutMs]);
+
+  /// Command with an outbound data phase (SetDevicePropValue, SendObject…).
+  Future<PtpResult> sendDataCommand(int opcode, List<int> params, Uint8List data, [int timeoutMs]);
+
+  /// Start numbering transactions from scratch (after a session is re-opened).
+  void resetTransactionIds();
+}
+
 /// PTP transaction layer over a [UsbLink].
-class PtpTransport {
+class PtpTransport implements PtpSession {
   PtpTransport(this.link, {this.readChunk = 64 * 1024, this.log});
 
   final UsbLink link;
@@ -33,6 +46,7 @@ class PtpTransport {
   final void Function(String)? log;
   int _txn = 0;
 
+  @override
   void resetTransactionIds() => _txn = 0;
   int _next() => ++_txn;
 
@@ -60,6 +74,7 @@ class PtpTransport {
   }
 
   /// Command with optional inbound data phase.
+  @override
   Future<PtpResult> sendCommand(int opcode, [List<int> params = const [], int timeoutMs = 5000]) async {
     final tid = _next();
     await _send(PtpContainer(type: ContainerType.command, code: opcode, transactionId: tid, params: params), timeoutMs);
@@ -76,6 +91,7 @@ class PtpTransport {
   }
 
   /// Command with outbound data phase (SetDevicePropValue, SendObject…).
+  @override
   Future<PtpResult> sendDataCommand(int opcode, List<int> params, Uint8List data, [int timeoutMs = 5000]) async {
     final tid = _next();
     await _send(PtpContainer(type: ContainerType.command, code: opcode, transactionId: tid, params: params), timeoutMs);

@@ -21,7 +21,7 @@ class FujiCamera {
   FujiCamera(this._ptp, {Future<void> Function()? reopenUsb, this.slotSettle = const Duration(milliseconds: 120)})
       : _reopenUsb = reopenUsb;
 
-  final PtpTransport _ptp;
+  final PtpSession _ptp;
   final Future<void> Function()? _reopenUsb;
   final Duration slotSettle;
 
