@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><script src="./image-slot.js"></script><style>
+html,body{margin:0;background:#f0eee9;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 Inter,system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Inter,system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-opt:target .dv-oid{background:#D71921;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.6 Inter,system-ui,sans-serif;color:rgba(0,0,0,.5)}
+a{color:#1a1a1a}a:hover{color:#D71921}
+.k-dark a{color:#fff;text-decoration:underline;text-underline-offset:3px}.k-dark a:hover{color:#D9D9D9}
+</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Kata for desktop — the build that <em style="font-style:normal">can</em> write. Native USB, so it gets what the phone can't: all seven slots at once, drag between them, batch write, and a diff before anything is overwritten.</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Slot board — library left, camera right, drag across</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span><span style="width:1px;height:12px;background:#2E2E2E"></span><span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">X-S20 · FW 3.10 · USB-C</span></div>
+    <span style="height:26px;padding:0 10px;border-radius:13px;background:#fff;display:flex;align-items:center;gap:7px;font:500 9.5px/1 'JetBrains Mono',monospace;color:#000;flex:none"><span style="width:5px;height:5px;border-radius:50%;background:#000"></span>CONNECTED</span>
+  </div>
+  <div style="flex:1;min-height:0;display:flex">
+
+    <div style="width:378px;flex:none;border-right:1px solid #1A1A1A;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:11px;border-bottom:1px solid #1A1A1A;flex:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font:800 18px/1 Doto,monospace;color:#fff;text-transform:uppercase">Library</span>
+          <span style="height:32px;padding:0 12px;border:1px solid #2E2E2E;border-radius:16px;display:flex;align-items:center;gap:7px;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">MINE 12<span style="width:0;height:0;border:4px solid transparent;border-top-color:#8A8A8A;margin-top:4px"></span></span>
+        </div>
+        <div style="height:38px;border:1px solid #2E2E2E;border-radius:19px;display:flex;align-items:center;gap:10px;padding:0 14px"><span style="width:12px;height:12px;border:1.5px solid #8A8A8A;border-radius:50%;flex:none"></span><span style="font:400 12px/1 Inter,sans-serif;color:#8A8A8A">Search 128 recipes</span></div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:14px;padding:11px;display:flex;gap:11px;align-items:center;cursor:grab" style-hover="border-color:#8A8A8A">
+          <span style="width:11px;display:flex;flex-direction:column;gap:3px;flex:none"><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span></span>
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-l1" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Kodachrome 64</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">CLASSIC CHR · DR400</div></div>
+          <span style="width:22px;height:16px;display:flex;align-items:flex-end;gap:1.5px;flex:none"><span style="flex:1;height:70%;background:#D9D9D9"></span><span style="flex:1;height:40%;background:#8A8A8A"></span><span style="flex:1;height:100%;background:#fff"></span><span style="flex:1;height:30%;background:#2E2E2E"></span></span>
+        </div>
+        <div style="flex:none;border:1.5px solid #fff;border-radius:14px;padding:11px;display:flex;gap:11px;align-items:center;cursor:grabbing">
+          <span style="width:11px;display:flex;flex-direction:column;gap:3px;flex:none"><span style="height:1.5px;background:#fff"></span><span style="height:1.5px;background:#fff"></span><span style="height:1.5px;background:#fff"></span></span>
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-l2" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Monochrome Push</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">ACROS +R · DR200</div></div>
+          <span style="font:500 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#8A8A8A;flex:none">→ C3</span>
+        </div>
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:14px;padding:11px;display:flex;gap:11px;align-items:center;cursor:grab" style-hover="border-color:#8A8A8A">
+          <span style="width:11px;display:flex;flex-direction:column;gap:3px;flex:none"><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span></span>
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-l3" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Slide Film</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">VELVIA · DR400</div></div>
+          <span style="width:22px;height:16px;display:flex;align-items:flex-end;gap:1.5px;flex:none"><span style="flex:1;height:50%;background:#8A8A8A"></span><span style="flex:1;height:80%;background:#D9D9D9"></span><span style="flex:1;height:35%;background:#2E2E2E"></span><span style="flex:1;height:100%;background:#fff"></span></span>
+        </div>
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:14px;padding:11px;display:flex;gap:11px;align-items:center;cursor:grab" style-hover="border-color:#8A8A8A">
+          <span style="width:11px;display:flex;flex-direction:column;gap:3px;flex:none"><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span></span>
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-l4" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Winter Chrome</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">CLASSIC CHR · DR200</div></div>
+          <span style="width:22px;height:16px;display:flex;align-items:flex-end;gap:1.5px;flex:none"><span style="flex:1;height:85%;background:#D9D9D9"></span><span style="flex:1;height:60%;background:#fff"></span><span style="flex:1;height:35%;background:#8A8A8A"></span><span style="flex:1;height:75%;background:#2E2E2E"></span></span>
+        </div>
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:14px;padding:11px;display:flex;gap:11px;align-items:center;cursor:grab" style-hover="border-color:#8A8A8A">
+          <span style="width:11px;display:flex;flex-direction:column;gap:3px;flex:none"><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span><span style="height:1.5px;background:#2E2E2E"></span></span>
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-l5" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Ilford Look</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">ACROS +G · DR400</div></div>
+          <span style="width:22px;height:16px;display:flex;align-items:flex-end;gap:1.5px;flex:none"><span style="flex:1;height:95%;background:#fff"></span><span style="flex:1;height:25%;background:#2E2E2E"></span><span style="flex:1;height:60%;background:#8A8A8A"></span><span style="flex:1;height:85%;background:#D9D9D9"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:15px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #1A1A1A;flex:none">
+        <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+          <span style="font:800 18px/1 Doto,monospace;color:#fff;text-transform:uppercase">Camera slots</span>
+          <span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">7 SLOTS · ON DIAL C2 · READ 40S AGO</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex:none">
+          <span style="height:36px;padding:0 14px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">READ ALL ↻</span>
+          <span style="height:36px;padding:0 14px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">BACK UP</span>
+          <span style="height:36px;padding:0 17px;border-radius:18px;background:#fff;display:flex;align-items:center;gap:9px;font:800 13px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9"><span style="width:12px;height:12px;border:2px solid #000;border-radius:50%"></span>Write 2 changes</span>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:18px 22px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:min-content;gap:14px">
+
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="width:30px;height:30px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff">C1</span><span style="width:24px;height:24px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;font:400 10px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer">↻</span></div>
+          <div style="position:relative;min-width:0;overflow:hidden;height:88px;border-radius:10px"><image-slot id="kd-c1" shape="rect" placeholder="frame"></image-slot></div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#fff;text-transform:uppercase">Kodachrome 64</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">CLASSIC CHROME<br>DR400 · 5800K</div></div>
+        </div>
+
+        <div style="flex:none;border:1.5px solid #fff;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="width:30px;height:30px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#000">C2</span><span style="height:20px;padding:0 8px;border:1px solid #fff;border-radius:10px;display:flex;align-items:center;font:500 8.5px/1 'JetBrains Mono',monospace;color:#fff">ON DIAL</span></div>
+          <div style="position:relative;min-width:0;overflow:hidden;height:88px;border-radius:10px"><image-slot id="kd-c2" shape="rect" placeholder="frame"></image-slot></div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#fff;text-transform:uppercase">Nostalgic Neg</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">NOSTALGIC NEG<br>DR200 · AUTO</div></div>
+        </div>
+
+        <div style="flex:none;border:1.5px dashed #fff;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px;background:#0A0A0A">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="width:30px;height:30px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff">C3</span><span style="height:20px;padding:0 8px;border-radius:10px;background:#fff;display:flex;align-items:center;font:500 8.5px/1 'JetBrains Mono',monospace;color:#000">QUEUED</span></div>
+          <div style="height:88px;border:1px dashed #2E2E2E;border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#D9D9D9">DROP TO<br>REPLACE</div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#fff;text-transform:uppercase">Monochrome Push</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">WAS ACROS PUSH<br>REVERT ↺</div></div>
+        </div>
+
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="width:30px;height:30px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff">C4</span><span style="width:24px;height:24px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;font:400 10px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer">↻</span></div>
+          <div style="position:relative;min-width:0;overflow:hidden;height:88px;border-radius:10px"><image-slot id="kd-c4" shape="rect" placeholder="frame"></image-slot></div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#fff;text-transform:uppercase">Slide Film</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">VELVIA<br>DR400 · AUTO</div></div>
+        </div>
+
+        <div style="flex:none;border:1.5px dashed #fff;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px;background:#0A0A0A">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="width:30px;height:30px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff">C5</span><span style="height:20px;padding:0 8px;border-radius:10px;background:#fff;display:flex;align-items:center;font:500 8.5px/1 'JetBrains Mono',monospace;color:#000">QUEUED</span></div>
+          <div style="position:relative;min-width:0;overflow:hidden;height:88px;border-radius:10px"><image-slot id="kd-c5" shape="rect" placeholder="frame"></image-slot></div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#fff;text-transform:uppercase">Winter Chrome</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">WAS EMPTY<br>NEW</div></div>
+        </div>
+
+        <div style="flex:none;border:1px dashed #2E2E2E;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px">
+          <span style="width:30px;height:30px;border:1px dashed #8A8A8A;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#8A8A8A">C6</span>
+          <div style="height:88px;border:1px dashed #1A1A1A;border-radius:10px"></div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#8A8A8A;text-transform:uppercase">Empty</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">FACTORY DEFAULT<br>DROP TO FILL</div></div>
+        </div>
+
+        <div style="flex:none;border:1px dashed #2E2E2E;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:11px">
+          <span style="width:30px;height:30px;border:1px dashed #8A8A8A;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#8A8A8A">C7</span>
+          <div style="height:88px;border:1px dashed #1A1A1A;border-radius:10px"></div>
+          <div><div style="font:800 13px/1.1 Doto,monospace;color:#8A8A8A;text-transform:uppercase">Empty</div><div style="margin-top:5px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">FACTORY DEFAULT<br>DROP TO FILL</div></div>
+        </div>
+
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:10px">
+          <span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">PENDING</span>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:800 11px/1 Doto,monospace;color:#fff;width:20px;flex:none">C3</span><span style="font:400 9.5px/1.3 'JetBrains Mono',monospace;color:#D9D9D9;min-width:0">MONOCHROME<br>PUSH</span></div>
+            <div style="height:1px;background:#1A1A1A"></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:800 11px/1 Doto,monospace;color:#fff;width:20px;flex:none">C5</span><span style="font:400 9.5px/1.3 'JetBrains Mono',monospace;color:#D9D9D9;min-width:0">WINTER<br>CHROME</span></div>
+          </div>
+          <span style="margin-top:auto;font:500 9px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#8A8A8A;cursor:pointer">CLEAR QUEUE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Write review — field-level diff before anything changes</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span><span style="width:1px;height:12px;background:#2E2E2E"></span><span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">WRITE REVIEW · 2 SLOTS</span></div>
+  </div>
+  <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:26px">
+    <div style="width:900px;border:1px solid #2E2E2E;border-radius:20px;background:#000;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:22px 26px;border-bottom:1px solid #1A1A1A;display:flex;align-items:flex-start;justify-content:space-between;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <span style="font:800 24px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Review 2 writes</span>
+          <span style="font:400 11.5px/1.5 Inter,sans-serif;color:#8A8A8A">Nothing is sent to the camera until you confirm. Slots not listed here are untouched.</span>
+        </div>
+        <span style="height:30px;padding:0 12px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;gap:8px;font:500 9.5px/1 'JetBrains Mono',monospace;color:#D9D9D9;flex:none"><span style="width:5px;height:5px;border-radius:50%;background:#fff"></span>BACKUP TAKEN 2M AGO</span>
+      </div>
+
+      <div style="padding:20px 26px;display:flex;flex-direction:column;gap:18px">
+        <div style="border:1px solid #2E2E2E;border-radius:16px;overflow:hidden">
+          <div style="padding:13px 15px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;gap:12px">
+            <span style="width:30px;height:30px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff;flex:none">C3</span>
+            <span style="font:400 11px/1.3 'JetBrains Mono',monospace;color:#8A8A8A;flex:1;min-width:0">ACROS PUSH → <span style="color:#fff">MONOCHROME PUSH</span></span>
+            <span style="font:500 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A;flex:none">7 FIELDS CHANGE</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:1px;background:#1A1A1A">
+            <div style="background:#0A0A0A;padding:8px 12px;font:500 8px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">FIELD</div>
+            <div style="background:#0A0A0A;padding:8px 12px;font:500 8px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">IN CAMERA</div>
+            <div style="background:#0A0A0A;padding:8px 12px;font:500 8px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">AFTER WRITE</div>
+            <div style="background:#000;padding:10px 12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Film sim</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">ACROS +R</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#fff">ACROS +R</div>
+            <div style="background:#000;padding:10px 12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Highlight</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">+1</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#fff">+2</div>
+            <div style="background:#000;padding:10px 12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Shadow</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">+1</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#fff">+3</div>
+            <div style="background:#000;padding:10px 12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Grain</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">WEAK / SMALL</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#fff">STRONG / LARGE</div>
+            <div style="background:#000;padding:10px 12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Clarity</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">0</div>
+            <div style="background:#000;padding:10px 12px;font:400 11.5px/1 'JetBrains Mono',monospace;color:#fff">−2</div>
+          </div>
+        </div>
+
+        <div style="border:1px solid #2E2E2E;border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px">
+          <span style="width:30px;height:30px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff;flex:none">C5</span>
+          <span style="font:400 11px/1.3 'JetBrains Mono',monospace;color:#8A8A8A;flex:1;min-width:0">EMPTY → <span style="color:#fff">WINTER CHROME</span></span>
+          <span style="font:500 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A;flex:none">22 FIELDS SET</span>
+          <span style="display:block;width:8px;height:8px;border-right:1.5px solid #8A8A8A;border-bottom:1.5px solid #8A8A8A;transform:rotate(45deg);margin-top:-4px;flex:none"></span>
+        </div>
+
+        <div style="border:1px solid #D71921;border-radius:16px;padding:14px;display:flex;gap:12px;align-items:flex-start">
+          <span style="width:7px;height:7px;border-radius:50%;background:#D71921;margin-top:5px;flex:none"></span>
+          <div style="font:400 11.5px/1.5 Inter,sans-serif;color:#D9D9D9;flex:1"><strong style="font-weight:600;color:#fff">C3 holds an unsaved kata.</strong> Acros Push isn't in your library — it will be lost unless you save it first.</div>
+          <span style="height:34px;padding:0 13px;border:1px solid #fff;border-radius:17px;display:flex;align-items:center;font:600 11px/1 Inter,sans-serif;color:#fff;cursor:pointer;flex:none" style-hover="background:#fff;color:#000">Save to library</span>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding:18px 26px;border-top:1px solid #1A1A1A;display:flex;align-items:center;gap:14px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer"><span style="width:18px;height:18px;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 10px/1 Inter,sans-serif;color:#000">✓</span><span style="font:400 11.5px/1 Inter,sans-serif;color:#D9D9D9">Back up all slots before writing</span></label>
+        <span style="margin-left:auto;height:48px;padding:0 20px;border:1px solid #2E2E2E;border-radius:24px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer;flex:none" style-hover="border-color:#fff">Cancel</span>
+        <span style="height:48px;padding:0 24px;border-radius:24px;background:#fff;display:flex;align-items:center;gap:10px;font:800 14px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer;flex:none" style-hover="background:#D9D9D9"><span style="width:13px;height:13px;border:2px solid #000;border-radius:50%"></span>Write both slots</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Writing → done, with skipped fields</div>
+<div class="dv-row" style="display:flex;gap:20px">
+<div class="k-dark" style="width:670px;height:520px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:40px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 14px;gap:10px">
+    <div style="display:flex;gap:7px;flex:none"><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span></div>
+    <span style="flex:1;text-align:center;font:400 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">WRITING · DO NOT UNPLUG</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:0 60px">
+    <div style="display:grid;grid-template-columns:repeat(11,10px);gap:8px">
+      <span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#fff"></span><span style="width:10px;height:10px;border-radius:50%;background:#D9D9D9"></span><span style="width:10px;height:10px;border-radius:50%;background:#8A8A8A"></span><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span><span style="width:10px;height:10px;border-radius:50%;background:#1A1A1A"></span><span style="width:10px;height:10px;border-radius:50%;background:#1A1A1A"></span><span style="width:10px;height:10px;border-radius:50%;background:#1A1A1A"></span><span style="width:10px;height:10px;border-radius:50%;background:#1A1A1A"></span><span style="width:10px;height:10px;border-radius:50%;background:#1A1A1A"></span>
+    </div>
+    <div style="text-align:center;display:flex;flex-direction:column;gap:10px">
+      <span style="font:800 26px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Writing C5 · 14/22</span>
+      <span style="font:400 11.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">SLOT 2 OF 2 · C3 DONE · KEEP THE CABLE IN</span>
+    </div>
+    <div style="width:100%;height:2px;background:#1A1A1A"><div style="width:78%;height:2px;background:#fff"></div></div>
+    <span style="font:400 11px/1 Inter,sans-serif;color:#8A8A8A;text-decoration:underline;text-underline-offset:3px;cursor:pointer">Cancel remaining</span>
+  </div>
+</div>
+
+<div class="k-dark" style="width:670px;height:520px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:40px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 14px;gap:10px">
+    <div style="display:flex;gap:7px;flex:none"><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span><span style="width:10px;height:10px;border-radius:50%;background:#2E2E2E"></span></div>
+    <span style="flex:1;text-align:center;font:400 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">WRITE COMPLETE</span>
+  </div>
+  <div style="flex:1;min-height:0;padding:26px 28px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;gap:16px">
+      <span style="width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:600 22px/1 Inter,sans-serif;color:#000;flex:none">✓</span>
+      <div style="min-width:0"><div style="font:800 22px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">2 slots written</div><div style="margin-top:6px;font:400 11.5px/1.4 Inter,sans-serif;color:#8A8A8A">C3 Monochrome Push · C5 Winter Chrome · 43 of 44 settings</div></div>
+    </div>
+    <div style="border:1px solid #fff;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start">
+      <span style="width:22px;height:22px;border:1px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 10px/1 Doto,monospace;color:#fff;flex:none">!</span>
+      <div style="font:400 11.5px/1.5 Inter,sans-serif;color:#fff">Turn the mode dial off <strong style="font-weight:600">C3</strong> and back to load it. The camera won't show the change until you do.</div>
+    </div>
+    <div style="border:1px solid #D71921;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:11px">
+      <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#D71921"></span><span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#D9D9D9">1 SETTING SKIPPED</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px dotted #2E2E2E;padding-top:10px">
+        <span style="font:400 11.5px/1.4 Inter,sans-serif;color:#D9D9D9">C5 · Clarity −2</span>
+        <span style="font:400 10.5px/1.4 'JetBrains Mono',monospace;color:#8A8A8A">NOT WRITABLE OVER USB — SET IN CAMERA</span>
+      </div>
+    </div>
+    <div style="margin-top:auto;display:flex;align-items:center;gap:12px">
+      <span style="height:44px;padding:0 16px;border:1px solid #2E2E2E;border-radius:22px;display:flex;align-items:center;font:600 11.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">View write log</span>
+      <span style="height:44px;padding:0 16px;border:1px solid #2E2E2E;border-radius:22px;display:flex;align-items:center;font:600 11.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Undo from backup</span>
+      <span style="margin-left:auto;height:44px;padding:0 22px;border-radius:22px;background:#fff;display:flex;align-items:center;font:800 13px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9">Done</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Not connected — the one screen the web build can't have</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span></div>
+    <span style="height:26px;padding:0 10px;border:1px solid #2E2E2E;border-radius:13px;display:flex;align-items:center;gap:7px;font:500 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A;flex:none"><span style="width:5px;height:5px;border-radius:50%;border:1.5px solid #8A8A8A"></span>NO CAMERA</span>
+  </div>
+  <div style="flex:1;min-height:0;display:flex">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:40px;background-image:repeating-linear-gradient(135deg,#0A0A0A 0 7px,#000 7px 14px)">
+      <div style="width:420px;height:230px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;justify-content:center;background:#000">
+        <span style="font:500 10px/1.7 'JetBrains Mono',monospace;color:#8A8A8A;letter-spacing:.1em;text-align:center">[ LINE-ART PLACEHOLDER ]<br>MIRRORLESS BODY · USB-C PORT HIGHLIGHTED</span>
+      </div>
+      <div style="text-align:center;display:flex;flex-direction:column;gap:12px;max-width:420px">
+        <span style="font:800 30px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Plug in a camera</span>
+        <span style="font:400 12.5px/1.6 Inter,sans-serif;color:#8A8A8A">You can browse, edit and publish without one. Writing needs a data cable and two menu settings.</span>
+      </div>
+      <div style="display:flex;gap:12px">
+        <span style="height:50px;padding:0 22px;border-radius:25px;background:#fff;display:flex;align-items:center;font:800 14px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9">Scan for camera</span>
+        <span style="height:50px;padding:0 20px;border:1px solid #2E2E2E;border-radius:25px;display:flex;align-items:center;font:600 12.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Browse library instead</span>
+      </div>
+    </div>
+    <div style="width:430px;flex:none;border-left:1px solid #1A1A1A;padding:26px;display:flex;flex-direction:column;gap:20px">
+      <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#8A8A8A">SETUP · ONCE PER BODY</span>
+      <div style="display:flex;gap:13px;align-items:flex-start">
+        <span style="width:26px;height:26px;border:1px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#fff;flex:none">1</span>
+        <div style="flex:1"><div style="font:600 13px/1.35 Inter,sans-serif;color:#fff">Use a data cable</div><div style="margin-top:3px;font:400 11.5px/1.45 Inter,sans-serif;color:#8A8A8A">Charge-only cables won't appear. Camera off while you plug in.</div></div>
+      </div>
+      <div style="height:1px;background:repeating-linear-gradient(to right,#2E2E2E 0 2px,transparent 2px 5px)"></div>
+      <div style="display:flex;gap:13px;align-items:flex-start">
+        <span style="width:26px;height:26px;border:1px solid #8A8A8A;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#8A8A8A;flex:none">2</span>
+        <div style="flex:1">
+          <div style="font:600 13px/1.35 Inter,sans-serif;color:#fff">Set two camera menu items</div>
+          <div style="margin-top:9px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;gap:12px"><span style="font:500 9.5px/1.3 Inter,sans-serif;letter-spacing:.12em;color:#8A8A8A">CONNECTION MODE</span><span style="font:400 11px/1.35 'JetBrains Mono',monospace;color:#fff;text-align:right">USB RAW CONV./<br>BACKUP RESTORE</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px"><span style="font:500 9.5px/1.3 Inter,sans-serif;letter-spacing:.12em;color:#8A8A8A">USB POWER SUPPLY</span><span style="font:400 11px/1.35 'JetBrains Mono',monospace;color:#fff">OFF / COMM ON</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="height:1px;background:repeating-linear-gradient(to right,#2E2E2E 0 2px,transparent 2px 5px)"></div>
+      <div style="display:flex;gap:13px;align-items:flex-start">
+        <span style="width:26px;height:26px;border:1px solid #8A8A8A;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px/1 Doto,monospace;color:#8A8A8A;flex:none">3</span>
+        <div style="flex:1"><div style="font:600 13px/1.35 Inter,sans-serif;color:#fff">Power on</div><div style="margin-top:3px;font:400 11.5px/1.45 Inter,sans-serif;color:#8A8A8A">Kata reads your slots first — nothing is written until you review a diff.</div></div>
+      </div>
+      <div style="margin-top:auto;border:1px solid #2E2E2E;border-radius:16px;padding:15px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">RECENT BODIES</span>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11.5px/1 Inter,sans-serif;color:#D9D9D9">X-S20</span><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">4 SLOTS BACKED UP</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11.5px/1 Inter,sans-serif;color:#D9D9D9">X-T5</span><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">7 SLOTS BACKED UP</span></div>
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#D9D9D9;cursor:pointer">RESTORE FROM BACKUP ›</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Editor — every field visible, live compatibility</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:11px">
+      <span style="font:800 13px/1 Doto,monospace;color:#fff;text-transform:uppercase">Winter Chrome</span>
+      <span style="height:22px;padding:0 9px;border-radius:11px;background:#1A1A1A;display:flex;align-items:center;font:500 9px/1 'JetBrains Mono',monospace;color:#fff">DRAFT V3</span>
+      <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">SAVED 12S AGO</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;flex:none">
+      <span style="height:30px;padding:0 12px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">HISTORY</span>
+      <span style="height:30px;padding:0 12px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">PUBLISH</span>
+      <span style="height:30px;padding:0 13px;border-radius:15px;background:#fff;display:flex;align-items:center;gap:7px;font:800 11px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9"><span style="width:10px;height:10px;border:2px solid #000;border-radius:50%"></span>Write to C5</span>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+    <div style="width:470px;flex:none;border-right:1px solid #1A1A1A;padding:20px 22px;display:flex;flex-direction:column;gap:16px;min-height:0">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8A8A8A">REFERENCE FRAMES</span><span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#D9D9D9;cursor:pointer">ADD +</span></div>
+      <div style="position:relative;min-width:0;overflow:hidden;height:290px;border-radius:14px;flex:none"><image-slot id="kd-e1" shape="rect" placeholder="drop a frame shot with this kata"></image-slot></div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;flex:none">
+        <div style="position:relative;min-width:0;overflow:hidden;height:70px;border-radius:9px;border:1.5px solid #fff"><image-slot id="kd-e2" shape="rect" placeholder="frame"></image-slot></div>
+        <div style="position:relative;min-width:0;overflow:hidden;height:70px;border-radius:9px"><image-slot id="kd-e3" shape="rect" placeholder="frame"></image-slot></div>
+        <div style="position:relative;min-width:0;overflow:hidden;height:70px;border-radius:9px"><image-slot id="kd-e4" shape="rect" placeholder="frame"></image-slot></div>
+        <div style="height:70px;border:1px dashed #2E2E2E;border-radius:9px;display:flex;align-items:center;justify-content:center;font:400 9px/1.4 'JetBrains Mono',monospace;color:#8A8A8A;text-align:center">DROP<br>HERE</div>
+      </div>
+      <div style="margin-top:auto;border:1px solid #2E2E2E;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;flex:none">
+        <span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">COMPATIBILITY</span>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:16px;height:16px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:600 9px/1 Inter,sans-serif;color:#000;flex:none">✓</span><span style="font:400 11.5px/1.4 Inter,sans-serif;color:#D9D9D9">X-Trans V — all 22 fields</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:16px;height:16px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:600 9px/1 Inter,sans-serif;color:#000;flex:none">✓</span><span style="font:400 11.5px/1.4 Inter,sans-serif;color:#D9D9D9">X-Trans IV — 20 fields, Clarity skipped</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:16px;height:16px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;font:400 9px/1 Inter,sans-serif;color:#8A8A8A;flex:none">!</span><span style="font:400 11.5px/1.4 Inter,sans-serif;color:#8A8A8A">X-Trans III — Reala Ace unavailable</span></div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;padding:20px 24px;display:flex;flex-direction:column;gap:16px;min-height:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8A8A8A">SETTINGS · 22 FIELDS</span>
+        <div style="display:flex;gap:9px">
+          <span style="height:32px;padding:0 12px;border:1px solid #2E2E2E;border-radius:16px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">PASTE CODE</span>
+          <span style="height:32px;padding:0 12px;border:1px solid #2E2E2E;border-radius:16px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">READ FROM C1</span>
+          <span style="height:32px;padding:0 12px;border:1px solid #2E2E2E;border-radius:16px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">RESET</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;flex:none">
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px;cursor:pointer" style-hover="border-color:#8A8A8A"><span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">FILM SIM</span><div style="display:flex;align-items:center;justify-content:space-between;gap:9px"><span style="font:800 14px/1 Doto,monospace;color:#fff;text-transform:uppercase">Classic Chrome</span><span style="width:0;height:0;border:4px solid transparent;border-top-color:#8A8A8A;margin-top:4px;flex:none"></span></div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px;cursor:pointer" style-hover="border-color:#8A8A8A"><span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">DYNAMIC RANGE</span><div style="display:flex;align-items:center;justify-content:space-between;gap:9px"><span style="font:400 15px/1 'JetBrains Mono',monospace;color:#fff">DR200</span><span style="width:0;height:0;border:4px solid transparent;border-top-color:#8A8A8A;margin-top:4px;flex:none"></span></div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px;cursor:pointer" style-hover="border-color:#8A8A8A"><span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">WHITE BALANCE</span><div style="display:flex;align-items:center;justify-content:space-between;gap:9px"><span style="font:400 15px/1 'JetBrains Mono',monospace;color:#fff">AUTO</span><span style="width:0;height:0;border:4px solid transparent;border-top-color:#8A8A8A;margin-top:4px;flex:none"></span></div></div>
+      </div>
+      <div style="border:1.5px solid #fff;border-radius:14px;padding:15px;flex:none">
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">HIGHLIGHT</span><span style="font:400 20px/1 'JetBrains Mono',monospace;color:#fff">+1</span></div>
+        <div style="margin-top:13px;position:relative;height:28px">
+          <div style="position:absolute;left:0;right:0;top:10px;height:18px;background:repeating-linear-gradient(to right,#8A8A8A 0 1px,transparent 1px 13px)"></div>
+          <div style="position:absolute;left:56%;top:0;width:2px;height:28px;background:#fff"></div>
+        </div>
+        <div style="margin-top:6px;display:flex;justify-content:space-between;font:400 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A"><span>−2</span><span>0</span><span>+4</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;flex:none">
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">SHADOW</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">−0.5</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">COLOR</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">+2</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">SHARPNESS</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">+1</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">GRAIN</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">WK/SM</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">CC</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">STRONG</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">CC BLUE</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">WEAK</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">HIGH ISO NR</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">−4</div></div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px"><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">CLARITY</div><div style="margin-top:7px;font:400 15px/1 'JetBrains Mono',monospace;color:#fff">0</div></div>
+      </div>
+      <div style="margin-top:auto;border:1px solid #2E2E2E;border-radius:16px;padding:14px;display:flex;align-items:center;gap:14px;flex:none">
+        <span style="width:56px;height:56px;background:repeating-conic-gradient(#D9D9D9 0 25%,#000 0 50%) 0 0/14px 14px;flex:none"></span>
+        <div style="min-width:0"><div style="font:600 11.5px/1.35 Inter,sans-serif;color:#fff">Kata Code · live</div><div style="margin-top:4px;font:400 9.5px/1.5 'JetBrains Mono',monospace;color:#8A8A8A">kata1:CC,DR200,WBA,H+1,S-0.5,C+2,SH+1,GR-WS<br>218 BYTES · UPDATES AS YOU TYPE</div></div>
+        <span style="margin-left:auto;height:36px;padding:0 14px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;font:600 11px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer;flex:none" style-hover="border-color:#fff">Share card…</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Sign-in / first run</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+  </div>
+  <div style="flex:1;min-height:0;display:flex">
+    <div style="width:580px;flex:none;display:flex;flex-direction:column;justify-content:space-between;padding:48px 52px;background-image:radial-gradient(#141414 1px,transparent 1px);background-size:16px 16px">
+      <div style="display:flex;align-items:center;gap:13px">
+        <span style="width:44px;height:44px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;font:400 19px/1 Doto,monospace;color:#fff">型</span>
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font:900 22px/1 Doto,monospace;color:#fff;letter-spacing:.06em;text-transform:uppercase">Kata</span><span style="font:500 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8A8A8A">FOR MACOS · V1.2</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <div style="font:800 42px/1.04 Doto,monospace;color:#fff;text-transform:uppercase">The build that<br>writes</div>
+        <div style="font:400 13.5px/1.6 Inter,sans-serif;color:#8A8A8A;max-width:390px;text-wrap:pretty">Native USB, all seven slots at once, batch write with a diff, and automatic slot backups before anything changes.</div>
+        <div style="display:flex;flex-direction:column;gap:13px;max-width:380px">
+          <div style="height:54px;border-radius:27px;background:#fff;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer" style-hover="background:#D9D9D9"><span style="width:18px;height:18px;border:1.5px solid #000;border-radius:50%;border-right-color:transparent"></span><span style="font:600 14.5px/1 Inter,sans-serif;color:#000">Continue with Google</span></div>
+          <div style="height:54px;border:1px solid #2E2E2E;border-radius:27px;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer" style-hover="border-color:#fff"><span style="width:16px;height:16px;background:repeating-conic-gradient(#D9D9D9 0 25%,#000 0 50%) 0 0/4px 4px"></span><span style="font:600 13.5px/1 Inter,sans-serif;color:#D9D9D9">Scan a code from your phone</span></div>
+          <div style="height:54px;border:1px solid #2E2E2E;border-radius:27px;display:flex;align-items:center;justify-content:center;font:600 13.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Use without an account</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px"><span style="width:5px;height:5px;border-radius:50%;background:#2E2E2E"></span><span style="font:400 11px/1 Inter,sans-serif;color:#8A8A8A">Writing works offline either way. Sign in only to sync a library.</span></div>
+      </div>
+      <a href="#1f" style="font:400 11px/1 Inter,sans-serif;color:#8A8A8A">Privacy · Not affiliated with Fujifilm</a>
+    </div>
+    <div style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:2px">
+      <div style="position:relative;min-width:0;overflow:hidden"><image-slot id="kd-s1" shape="rect" placeholder="sample frame"></image-slot></div>
+      <div style="position:relative;min-width:0;overflow:hidden"><image-slot id="kd-s2" shape="rect" placeholder="sample frame"></image-slot></div>
+      <div style="position:relative;min-width:0;overflow:hidden"><image-slot id="kd-s3" shape="rect" placeholder="sample frame"></image-slot></div>
+      <div style="position:relative;min-width:0;overflow:hidden"><image-slot id="kd-s4" shape="rect" placeholder="sample frame"></image-slot></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Library browse + recipe detail — read all 22 fields before writing</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span><span style="width:1px;height:12px;background:#2E2E2E"></span><span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">LIBRARY · 128 RECIPES</span></div>
+    <span style="height:26px;padding:0 10px;border-radius:13px;background:#fff;display:flex;align-items:center;gap:7px;font:500 9.5px/1 'JetBrains Mono',monospace;color:#000;flex:none"><span style="width:5px;height:5px;border-radius:50%;background:#000"></span>X-S20</span>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+    <div style="width:186px;flex:none;border-right:1px solid #1A1A1A;padding:18px 0;display:flex;flex-direction:column;gap:2px">
+      <div style="padding:0 12px;display:flex;flex-direction:column;gap:2px">
+        <div style="height:36px;border-radius:9px;background:#1A1A1A;padding:0 11px;display:flex;align-items:center;gap:10px"><span style="width:15px;height:12px;border:1.5px solid #fff;border-radius:2px"></span><span style="font:600 12px/1 Inter,sans-serif;color:#fff">Library</span></div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;gap:10px;cursor:pointer" style-hover="background:#0A0A0A"><span style="width:14px;height:14px;border:1.5px solid #8A8A8A;border-radius:50%"></span><span style="font:600 12px/1 Inter,sans-serif;color:#8A8A8A">Mine</span></div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;gap:10px;cursor:pointer" style-hover="background:#0A0A0A"><span style="width:12px;height:15px;border:1.5px solid #8A8A8A;border-bottom-color:transparent"></span><span style="font:600 12px/1 Inter,sans-serif;color:#8A8A8A">Saved</span></div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;gap:10px;cursor:pointer" style-hover="background:#0A0A0A"><span style="width:14px;height:14px;border:1.5px solid #8A8A8A"></span><span style="font:600 12px/1 Inter,sans-serif;color:#8A8A8A">Camera</span></div>
+      </div>
+      <div style="margin-top:18px;padding:0 16px;display:flex;flex-direction:column;gap:11px">
+        <span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">FILM SIM</span>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11px/1 Inter,sans-serif;color:#fff">Classic Chrome</span><span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">14</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Acros</span><span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">22</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Nostalgic Neg</span><span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">9</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Velvia</span><span style="font:400 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">7</span></div>
+        </div>
+        <div style="height:1px;background:repeating-linear-gradient(to right,#2E2E2E 0 2px,transparent 2px 5px)"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 11px/1 Inter,sans-serif;color:#D9D9D9">Fits X-S20</span><span style="width:36px;height:22px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:0 3px;box-sizing:border-box;cursor:pointer"><span style="width:16px;height:16px;border-radius:50%;background:#000"></span></span></div>
+      </div>
+    </div>
+
+    <div style="width:400px;flex:none;border-right:1px solid #1A1A1A;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:14px 18px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;gap:10px;flex:none">
+        <div style="flex:1;min-width:0;height:36px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;gap:10px;padding:0 13px"><span style="width:12px;height:12px;border:1.5px solid #8A8A8A;border-radius:50%;flex:none"></span><span style="font:400 11.5px/1 Inter,sans-serif;color:#8A8A8A">Search recipes</span></div>
+        <span style="height:36px;padding:0 12px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;gap:7px;font:500 9.5px/1 'JetBrains Mono',monospace;color:#D9D9D9;cursor:pointer;flex:none" style-hover="border-color:#fff">NEWEST<span style="width:0;height:0;border:4px solid transparent;border-top-color:#8A8A8A;margin-top:4px"></span></span>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:14px 18px;display:flex;flex-direction:column;gap:11px">
+        <div style="flex:none;border:1.5px solid #fff;border-radius:16px;overflow:hidden;cursor:pointer">
+          <div style="position:relative;min-width:0;overflow:hidden;height:150px"><image-slot id="kd-b1" shape="rect" placeholder="sample frame"></image-slot></div>
+          <div style="padding:12px;display:flex;align-items:center;gap:11px">
+            <div style="flex:1;min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Kodachrome 64</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#D9D9D9">CLASSIC CHROME · DR400</div></div>
+            <span style="width:15px;height:15px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:600 9px/1 Inter,sans-serif;color:#000;flex:none">✓</span>
+          </div>
+        </div>
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:16px;padding:11px;display:flex;gap:11px;align-items:center;cursor:pointer" style-hover="border-color:#8A8A8A">
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-b2" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 14px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Monochrome Push</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">ACROS +R · DR200</div></div>
+        </div>
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:16px;padding:11px;display:flex;gap:11px;align-items:center;cursor:pointer" style-hover="border-color:#8A8A8A">
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-b3" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 14px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Slide Film</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">VELVIA · DR400</div></div>
+        </div>
+        <div style="flex:none;border:1px solid #2E2E2E;border-radius:16px;padding:11px;display:flex;gap:11px;align-items:center;cursor:pointer" style-hover="border-color:#8A8A8A">
+          <div style="position:relative;min-width:0;overflow:hidden;width:60px;height:60px;border-radius:10px;flex:none"><image-slot id="kd-b4" shape="rect" placeholder="frame"></image-slot></div>
+          <div style="flex:1;min-width:0"><div style="font:800 14px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Nostalgic Neg</div><div style="margin-top:4px;font:400 10px/1.35 'JetBrains Mono',monospace;color:#8A8A8A">NOST NEG · DR200</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0">
+      <div style="flex:1;min-height:0;position:relative;min-width:0;overflow:hidden"><image-slot id="kd-b5" shape="rect" placeholder="hero sample frame — shot with this kata"></image-slot></div>
+      <div style="flex:none;border-top:1px solid #1A1A1A;padding:18px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+          <div style="min-width:0;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="font:800 26px/1.02 Doto,monospace;color:#fff;text-transform:uppercase">Kodachrome 64</span>
+              <span style="width:17px;height:17px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:600 10px/1 Inter,sans-serif;color:#000;flex:none">✓</span>
+            </div>
+            <a href="#1g" style="font:400 11.5px/1.4 Inter,sans-serif;color:#fff">Fuji X Weekly — fujixweekly.com ↗</a>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;flex:none">
+            <span style="width:44px;height:44px;border:1px solid #2E2E2E;border-radius:22px;display:flex;align-items:center;justify-content:center;font:400 15px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">♡</span>
+            <span style="height:44px;padding:0 15px;border:1px solid #2E2E2E;border-radius:22px;display:flex;align-items:center;font:600 11.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Duplicate to edit</span>
+            <span style="height:48px;padding:0 20px;border-radius:24px;background:#fff;display:flex;align-items:center;gap:10px;font:800 14px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9"><span style="width:12px;height:12px;border:2px solid #000;border-radius:50%"></span>Write to slot…</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));row-gap:15px;column-gap:14px;border-top:1px dotted #2E2E2E;padding-top:15px">
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">FILM SIM</div><div style="margin-top:6px;font:800 13px/1 Doto,monospace;color:#fff;text-transform:uppercase">Cl. Chrome</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">DR</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">DR400</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">GRAIN</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">WK/SM</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">CC</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">STRONG</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">CC BLUE</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">WEAK</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">WB</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">5800K</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">WB SHIFT</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">+2 / −3</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">HIGHLIGHT</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">+1</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">SHADOW</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">−0.5</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">COLOR</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">+2</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">SHARPNESS</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">+1</div></div>
+          <div><div style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">HIGH ISO NR</div><div style="margin-top:6px;font:400 14px/1 'JetBrains Mono',monospace;color:#fff">−4</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1h">
+<div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Mine — drafts, versions, write straight from the row</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span><span style="width:1px;height:12px;background:#2E2E2E"></span><span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">MINE · 12 KATAS</span></div>
+    <span style="height:26px;padding:0 10px;border-radius:13px;background:#fff;display:flex;align-items:center;gap:7px;font:500 9.5px/1 'JetBrains Mono',monospace;color:#000;flex:none"><span style="width:5px;height:5px;border-radius:50%;background:#000"></span>X-S20</span>
+  </div>
+
+  <div style="border-bottom:1px solid #1A1A1A;padding:16px 26px;display:flex;align-items:center;gap:14px;flex:none">
+    <span style="font:800 20px/1 Doto,monospace;color:#fff;text-transform:uppercase">Mine</span>
+    <div style="height:34px;border:1px solid #2E2E2E;border-radius:17px;display:flex;padding:3px;box-sizing:border-box;flex:none">
+      <span style="padding:0 13px;border-radius:14px;background:#1A1A1A;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#fff">ALL 12</span>
+      <span style="padding:0 13px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">PUBLISHED 6</span>
+      <span style="padding:0 13px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">DRAFTS 2</span>
+      <span style="padding:0 13px;display:flex;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;color:#8A8A8A">IN SLOTS 4</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:11px">
+      <span style="height:38px;padding:0 14px;border:1px solid #2E2E2E;border-radius:19px;display:flex;align-items:center;font:600 11.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Import .ofr.json</span>
+      <span style="height:38px;padding:0 14px;border:1px solid #2E2E2E;border-radius:19px;display:flex;align-items:center;font:600 11.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Read from camera</span>
+      <span style="height:38px;padding:0 16px;border-radius:19px;background:#fff;display:flex;align-items:center;gap:9px;font:600 12px/1 Inter,sans-serif;color:#000;cursor:pointer" style-hover="background:#D9D9D9"><span style="width:11px;height:11px;position:relative"><span style="position:absolute;left:0;top:4.75px;width:11px;height:1.5px;background:#000"></span><span style="position:absolute;left:4.75px;top:0;width:1.5px;height:11px;background:#000"></span></span>New kata</span>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;overflow:hidden">
+    <div style="display:grid;grid-template-columns:44px minmax(0,1.5fr) minmax(0,1.2fr) 92px 84px 108px 104px 148px;gap:1px;background:#1A1A1A">
+      <div style="background:#0A0A0A;padding:10px 12px"></div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">KATA</div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">SETTINGS</div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">SENSOR</div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">VERSION</div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">STATE</div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">IN SLOT</div>
+      <div style="background:#0A0A0A;padding:10px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">ACTIONS</div>
+
+      <div style="background:#000;padding:11px 12px;display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 10px/1 Inter,sans-serif;color:#000">✓</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:12px;min-width:0"><div style="position:relative;min-width:0;overflow:hidden;width:46px;height:46px;border-radius:8px;flex:none"><image-slot id="kd-m1" shape="rect" placeholder="frame"></image-slot></div><div style="min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Winter Chrome</div><div style="margin-top:4px;font:400 9.5px/1 Inter,sans-serif;color:#8A8A8A">edited 12s ago</div></div></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 10.5px/1.4 'JetBrains Mono',monospace;color:#D9D9D9">CLASSIC CHR · DR200<br>AUTO WB · H+1</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#D9D9D9">V</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#fff">V3</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center"><span style="height:24px;padding:0 10px;border-radius:12px;background:#1A1A1A;display:flex;align-items:center;gap:6px;font:500 9px/1 'JetBrains Mono',monospace;color:#fff"><span style="width:5px;height:5px;border-radius:50%;background:#fff"></span>DRAFT</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center"><span style="height:24px;padding:0 9px;border-radius:12px;background:#fff;display:flex;align-items:center;font:800 10px/1 Doto,monospace;color:#000">C5</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:7px">
+        <span style="height:30px;padding:0 11px;border-radius:15px;background:#fff;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#000;cursor:pointer;flex:none">Write</span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:11px;height:11px;border:1.5px solid #D9D9D9;border-radius:2px"></span></span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:3px;height:3px;border-radius:50%;background:#D9D9D9;box-shadow:0 -5px 0 #D9D9D9,0 5px 0 #D9D9D9"></span></span>
+      </div>
+
+      <div style="background:#000;padding:11px 12px;display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #2E2E2E"></span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:12px;min-width:0"><div style="position:relative;min-width:0;overflow:hidden;width:46px;height:46px;border-radius:8px;flex:none"><image-slot id="kd-m2" shape="rect" placeholder="frame"></image-slot></div><div style="min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Acros Push</div><div style="margin-top:4px;font:400 9.5px/1 Inter,sans-serif;color:#8A8A8A">written 11 times</div></div></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 10.5px/1.4 'JetBrains Mono',monospace;color:#D9D9D9">ACROS +R · DR200<br>WARM +2 · H+2</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#D9D9D9">V</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#fff">V4</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center"><span style="height:24px;padding:0 10px;border-radius:12px;background:#fff;display:flex;align-items:center;gap:6px;font:500 9px/1 'JetBrains Mono',monospace;color:#000"><span style="width:5px;height:5px;border-radius:50%;background:#000"></span>PUBLISHED</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center"><span style="height:24px;padding:0 9px;border:1px solid #2E2E2E;border-radius:12px;display:flex;align-items:center;font:800 10px/1 Doto,monospace;color:#D9D9D9">C3</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:7px">
+        <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer;flex:none" style-hover="border-color:#fff">Rewrite</span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:11px;height:11px;border:1.5px solid #D9D9D9;border-radius:2px"></span></span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:3px;height:3px;border-radius:50%;background:#D9D9D9;box-shadow:0 -5px 0 #D9D9D9,0 5px 0 #D9D9D9"></span></span>
+      </div>
+
+      <div style="background:#000;padding:11px 12px;display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #2E2E2E"></span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:12px;min-width:0"><div style="position:relative;min-width:0;overflow:hidden;width:46px;height:46px;border-radius:8px;flex:none"><image-slot id="kd-m3" shape="rect" placeholder="frame"></image-slot></div><div style="min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#fff;text-transform:uppercase">Summer In Paris</div><div style="margin-top:4px;font:400 9.5px/1 Inter,sans-serif;color:#8A8A8A">from @heikki.k</div></div></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 10.5px/1.4 'JetBrains Mono',monospace;color:#D9D9D9">NOST NEG · DR100<br>WB SHIFT · H−2</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#D9D9D9">V</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#fff">V1</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center"><span style="height:24px;padding:0 10px;border:1px solid #2E2E2E;border-radius:12px;display:flex;align-items:center;font:500 9px/1 'JetBrains Mono',monospace;color:#D9D9D9">DUPLICATE</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#8A8A8A">—</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:7px">
+        <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer;flex:none" style-hover="border-color:#fff">Write</span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:11px;height:11px;border:1.5px solid #D9D9D9;border-radius:2px"></span></span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:3px;height:3px;border-radius:50%;background:#D9D9D9;box-shadow:0 -5px 0 #D9D9D9,0 5px 0 #D9D9D9"></span></span>
+      </div>
+
+      <div style="background:#000;padding:11px 12px;display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #1A1A1A"></span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:12px;min-width:0"><div style="position:relative;min-width:0;overflow:hidden;width:46px;height:46px;border-radius:8px;flex:none"><image-slot id="kd-m4" shape="rect" placeholder="frame"></image-slot></div><div style="min-width:0"><div style="font:800 15px/1.05 Doto,monospace;color:#8A8A8A;text-transform:uppercase">Untitled draft</div><div style="margin-top:4px;font:400 9.5px/1 Inter,sans-serif;color:#8A8A8A">no film sim set</div></div></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 10.5px/1.4 'JetBrains Mono',monospace;color:#8A8A8A">—</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#8A8A8A">—</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#8A8A8A">V1</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center"><span style="height:24px;padding:0 10px;border:1px solid #1A1A1A;border-radius:12px;display:flex;align-items:center;font:500 9px/1 'JetBrains Mono',monospace;color:#8A8A8A">INCOMPLETE</span></div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;font:400 11px/1 'JetBrains Mono',monospace;color:#8A8A8A">—</div>
+      <div style="background:#000;padding:10px 12px;display:flex;align-items:center;gap:7px">
+        <span style="height:30px;padding:0 11px;border:1px solid #1A1A1A;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#8A8A8A;flex:none">Write</span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:11px;height:11px;border:1.5px solid #D9D9D9;border-radius:2px"></span></span>
+        <span style="width:30px;height:30px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="border-color:#fff"><span style="width:3px;height:3px;border-radius:50%;background:#D9D9D9;box-shadow:0 -5px 0 #D9D9D9,0 5px 0 #D9D9D9"></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid #1A1A1A;padding:14px 26px;display:flex;align-items:center;gap:14px;flex:none">
+    <span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">1 SELECTED · 4 OF 12 SHOWN</span>
+    <span style="margin-left:auto;height:38px;padding:0 15px;border:1px solid #2E2E2E;border-radius:19px;display:flex;align-items:center;font:600 11.5px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Export selection</span>
+    <span style="height:38px;padding:0 16px;border-radius:19px;background:#fff;display:flex;align-items:center;gap:9px;font:800 12px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9"><span style="width:11px;height:11px;border:2px solid #000;border-radius:50%"></span>Write selection</span>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1i">
+<div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Share composer + import</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span><span style="width:1px;height:12px;background:#2E2E2E"></span><span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">SHARE CARD · KODACHROME 64</span></div>
+  </div>
+  <div style="flex:1;min-height:0;display:flex">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #1A1A1A">
+      <div style="padding:16px 26px;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;gap:12px;flex:none">
+        <span style="font:800 18px/1 Doto,monospace;color:#fff;text-transform:uppercase">Preview</span>
+        <div style="margin-left:auto;display:flex;gap:10px">
+          <span style="height:36px;padding:0 13px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;font:600 11px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Copy JSON</span>
+          <span style="height:36px;padding:0 13px;border:1px solid #2E2E2E;border-radius:18px;display:flex;align-items:center;font:600 11px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Save PNG</span>
+          <span style="height:36px;padding:0 15px;border-radius:18px;background:#fff;display:flex;align-items:center;font:800 12px/1 Doto,monospace;color:#000;text-transform:uppercase;cursor:pointer" style-hover="background:#D9D9D9">Share</span>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:28px;background-image:radial-gradient(#141414 1px,transparent 1px);background-size:16px 16px">
+        <div style="width:400px;background:#fff;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:900 13px/1 Doto,monospace;color:#000;letter-spacing:.05em;text-transform:uppercase">Kata 型</span><span style="font:500 8px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">S1 · RECIPE CARD</span></div>
+          <div style="position:relative;min-width:0;overflow:hidden;height:250px"><image-slot id="kd-sc1" shape="rect" placeholder="your frame"></image-slot></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div style="min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font:800 21px/1.02 Doto,monospace;color:#000;text-transform:uppercase">Kodachrome 64</span><span style="font:500 8px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">CLASSIC CHROME · X-TRANS IV/V</span></div>
+            <span style="width:40px;height:25px;display:flex;align-items:flex-end;gap:2px;flex:none"><span style="flex:1;height:70%;background:#8A8A8A"></span><span style="flex:1;height:40%;background:#D9D9D9"></span><span style="flex:1;height:100%;background:#000"></span><span style="flex:1;height:30%;background:#D9D9D9"></span><span style="flex:1;height:55%;background:#2E2E2E"></span></span>
+          </div>
+          <div style="border-top:1px dotted #D9D9D9;padding-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:6px;column-gap:18px;font:400 9px/1.5 'JetBrains Mono',monospace;color:#2E2E2E">
+            <span>DR 400</span><span>WB 5800K R+2 B−3</span><span>HIGHLIGHT +1</span><span>SHADOW −0.5</span><span>COLOR +2</span><span>GRAIN WEAK/SMALL</span>
+          </div>
+          <div style="border-top:1px solid #000;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 9.5px/1 Inter,sans-serif;color:#000">@heikki.k</span><span style="font:400 7.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">SCAN TO IMPORT · 22 SETTINGS</span></div>
+            <span style="width:40px;height:40px;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 0 0/10px 10px"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="width:400px;flex:none;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:18px 22px;border-bottom:1px solid #1A1A1A;display:flex;flex-direction:column;gap:13px;flex:none">
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8A8A8A">TEMPLATE</span>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px">
+          <div style="border:1.5px solid #fff;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer"><div style="height:30px;background:#1A1A1A;border-radius:3px"></div><span style="font:500 8px/1 'JetBrains Mono',monospace;color:#fff;text-align:center">S1</span></div>
+          <div style="border:1px solid #2E2E2E;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer" style-hover="border-color:#8A8A8A"><div style="height:30px;display:grid;grid-template-columns:1fr 1fr;gap:3px"><span style="background:#1A1A1A;border-radius:2px"></span><span style="background:#1A1A1A;border-radius:2px"></span><span style="background:#1A1A1A;border-radius:2px"></span><span style="background:#2E2E2E;border-radius:2px"></span></div><span style="font:500 8px/1 'JetBrains Mono',monospace;color:#8A8A8A;text-align:center">S2</span></div>
+          <div style="border:1px solid #2E2E2E;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer" style-hover="border-color:#8A8A8A"><div style="height:30px;border:1px solid #2E2E2E;border-radius:3px;display:flex;align-items:flex-end"><span style="height:9px;width:100%;background:#1A1A1A"></span></div><span style="font:500 8px/1 'JetBrains Mono',monospace;color:#8A8A8A;text-align:center">S3</span></div>
+          <div style="border:1px solid #2E2E2E;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer" style-hover="border-color:#8A8A8A"><div style="height:30px;background:#0A0A0A;border:1px solid #2E2E2E;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;background:repeating-conic-gradient(#8A8A8A 0 25%,#0A0A0A 0 50%) 0 0/4px 4px"></span></div><span style="font:500 8px/1 'JetBrains Mono',monospace;color:#8A8A8A;text-align:center">S4</span></div>
+        </div>
+      </div>
+      <div style="padding:18px 22px;border-bottom:1px solid #1A1A1A;display:flex;flex-direction:column;gap:13px;flex:none">
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8A8A8A">OPTIONS</span>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 12px/1 Inter,sans-serif;color:#D9D9D9">Invert card</span><span style="width:44px;height:26px;border-radius:13px;border:1px solid #2E2E2E;display:flex;align-items:center;padding:0 4px;box-sizing:border-box;cursor:pointer"><span style="width:18px;height:18px;border-radius:50%;background:#2E2E2E"></span></span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 12px/1 Inter,sans-serif;color:#D9D9D9">Embed Kata Code</span><span style="width:44px;height:26px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;box-sizing:border-box;cursor:pointer"><span style="width:18px;height:18px;border-radius:50%;background:#000"></span></span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 12px/1 Inter,sans-serif;color:#D9D9D9">Ratio</span>
+          <div style="height:30px;border:1px solid #2E2E2E;border-radius:15px;display:flex;padding:2px;box-sizing:border-box"><span style="padding:0 11px;border-radius:13px;background:#fff;display:flex;align-items:center;font:500 9.5px/1 'JetBrains Mono',monospace;color:#000">4:5</span><span style="padding:0 11px;display:flex;align-items:center;font:500 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">1:1</span><span style="padding:0 11px;display:flex;align-items:center;font:500 9.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">9:16</span></div>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;padding:18px 22px;display:flex;flex-direction:column;gap:13px">
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8A8A8A">IMPORT A KATA</span>
+        <div style="border:1px dashed #2E2E2E;border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <span style="width:36px;height:36px;border:1px solid #2E2E2E;border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="width:15px;height:15px;background:repeating-conic-gradient(#8A8A8A 0 25%,#000 0 50%) 0 0/3.75px 3.75px"></span></span>
+          <span style="font:600 12px/1.35 Inter,sans-serif;color:#fff">Drop a card image or .ofr.json</span>
+          <span style="font:400 10.5px/1.45 Inter,sans-serif;color:#8A8A8A;max-width:230px">The code is read straight out of the picture — a screenshot from anywhere works.</span>
+        </div>
+        <div style="border:1px solid #2E2E2E;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:9px">
+          <span style="font:500 8.5px/1 Inter,sans-serif;letter-spacing:.16em;color:#8A8A8A">OR PASTE THE TEXT</span>
+          <div style="border:1px solid #2E2E2E;border-radius:10px;background:#0A0A0A;padding:11px;font:400 9.5px/1.65 'JetBrains Mono',monospace;color:#8A8A8A;white-space:pre">kata1:NC,DR100,WBS/+1-2,H-2,
+S-2,C+1,SH+1;n=Summer+In+Paris</div>
+          <span style="height:38px;border-radius:19px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 11.5px/1 Inter,sans-serif;color:#000;cursor:pointer" style-hover="background:#D9D9D9">Review 22 fields</span>
+        </div>
+        <div style="margin-top:auto;border:1px solid #2E2E2E;border-radius:14px;padding:12px;display:flex;align-items:center;gap:11px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#fff;flex:none"></span>
+          <span style="font:400 11px/1.45 Inter,sans-serif;color:#D9D9D9">Imported katas can be written straight to a slot from here.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1j">
+<div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>Settings — camera profiles &amp; slot backups</div>
+<div class="k-dark" style="width:1360px;height:860px;background:#000;border:1px solid #2E2E2E;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:44px;flex:none;border-bottom:1px solid #1A1A1A;display:flex;align-items:center;padding:0 16px;gap:14px">
+    <div style="display:flex;gap:8px;flex:none"><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span><span style="width:11px;height:11px;border-radius:50%;background:#2E2E2E"></span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:900 12px/1 Doto,monospace;color:#D9D9D9;letter-spacing:.06em;text-transform:uppercase">Kata 型</span><span style="width:1px;height:12px;background:#2E2E2E"></span><span style="font:400 10.5px/1 'JetBrains Mono',monospace;color:#8A8A8A">SETTINGS</span></div>
+  </div>
+  <div style="flex:1;min-height:0;display:flex">
+    <div style="width:200px;flex:none;border-right:1px solid #1A1A1A;padding:18px 0;display:flex;flex-direction:column;gap:2px">
+      <div style="padding:0 12px;display:flex;flex-direction:column;gap:2px">
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer" style-hover="background:#0A0A0A">Account</div>
+        <div style="height:36px;border-radius:9px;background:#1A1A1A;padding:0 11px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#fff;cursor:pointer">Camera profiles</div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer" style-hover="background:#0A0A0A">Slot backups</div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer" style-hover="background:#0A0A0A">Write behaviour</div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer" style-hover="background:#0A0A0A">Appearance</div>
+        <div style="height:36px;border-radius:9px;padding:0 11px;display:flex;align-items:center;font:600 12px/1 Inter,sans-serif;color:#8A8A8A;cursor:pointer" style-hover="background:#0A0A0A">Data &amp; export</div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;padding:24px 28px;display:flex;flex-direction:column;gap:24px;min-height:0;max-width:860px">
+      <div style="display:flex;flex-direction:column;gap:13px">
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#8A8A8A">CAMERA PROFILES</span>
+        <div style="border:1px solid #2E2E2E;border-radius:16px;overflow:hidden">
+          <div style="padding:15px 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #1A1A1A">
+            <span style="width:34px;height:34px;border:1px solid #fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 11px/1 Doto,monospace;color:#fff;flex:none">XS</span>
+            <div style="flex:1;min-width:0"><div style="font:600 12.5px/1.3 Inter,sans-serif;color:#fff">X-S20</div><div style="margin-top:3px;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#8A8A8A">X-TRANS V · FW 3.10 · 4 SLOTS · 20 FILM SIMS</div></div>
+            <span style="height:26px;padding:0 10px;border-radius:13px;background:#fff;display:flex;align-items:center;gap:6px;font:500 9px/1 'JetBrains Mono',monospace;color:#000;flex:none"><span style="width:5px;height:5px;border-radius:50%;background:#000"></span>CONNECTED</span>
+          </div>
+          <div style="padding:15px 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #1A1A1A">
+            <span style="width:34px;height:34px;border:1px solid #2E2E2E;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 11px/1 Doto,monospace;color:#D9D9D9;flex:none">T5</span>
+            <div style="flex:1;min-width:0"><div style="font:600 12.5px/1.3 Inter,sans-serif;color:#fff">X-T5</div><div style="margin-top:3px;font:400 10.5px/1.3 'JetBrains Mono',monospace;color:#8A8A8A">X-TRANS V · FW 2.11 · 7 SLOTS · LAST SEEN 3D AGO</div></div>
+            <span style="height:32px;padding:0 12px;border:1px solid #2E2E2E;border-radius:16px;display:flex;align-items:center;font:600 11px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer;flex:none" style-hover="border-color:#fff">Manage</span>
+          </div>
+          <div style="padding:15px 18px;display:flex;align-items:center;gap:14px">
+            <span style="width:34px;height:34px;border:1px dashed #8A8A8A;border-radius:9px;display:flex;align-items:center;justify-content:center;font:400 14px/1 Inter,sans-serif;color:#8A8A8A;flex:none">+</span>
+            <div style="flex:1;min-width:0"><div style="font:600 12.5px/1.3 Inter,sans-serif;color:#D9D9D9">Add a body manually</div><div style="margin-top:3px;font:400 10.5px/1.3 Inter,sans-serif;color:#8A8A8A">For planning katas without the camera on hand</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:13px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#8A8A8A">SLOT BACKUPS · 11 STORED</span>
+          <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#D9D9D9;cursor:pointer">BACK UP NOW</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 128px 96px minmax(0,1fr) 176px;gap:1px;background:#1A1A1A">
+          <div style="background:#0A0A0A;padding:9px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">TAKEN</div>
+          <div style="background:#0A0A0A;padding:9px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">BODY</div>
+          <div style="background:#0A0A0A;padding:9px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">SLOTS</div>
+          <div style="background:#0A0A0A;padding:9px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">TRIGGER</div>
+          <div style="background:#0A0A0A;padding:9px 12px;font:500 8.5px/1.3 Inter,sans-serif;letter-spacing:.14em;color:#8A8A8A">ACTIONS</div>
+
+          <div style="background:#000;padding:12px;font:400 11px/1 'JetBrains Mono',monospace;color:#fff">TODAY 14:02</div>
+          <div style="background:#000;padding:12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">X-S20</div>
+          <div style="background:#000;padding:12px;font:400 11px/1 'JetBrains Mono',monospace;color:#D9D9D9">4</div>
+          <div style="background:#000;padding:12px;font:400 11px/1.3 Inter,sans-serif;color:#8A8A8A">Auto — before writing C3, C5</div>
+          <div style="background:#000;padding:9px 12px;display:flex;align-items:center;gap:8px">
+            <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Restore</span>
+            <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Export</span>
+          </div>
+
+          <div style="background:#000;padding:12px;font:400 11px/1 'JetBrains Mono',monospace;color:#fff">17 AUG 09:41</div>
+          <div style="background:#000;padding:12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">X-T5</div>
+          <div style="background:#000;padding:12px;font:400 11px/1 'JetBrains Mono',monospace;color:#D9D9D9">7</div>
+          <div style="background:#000;padding:12px;font:400 11px/1.3 Inter,sans-serif;color:#8A8A8A">Manual</div>
+          <div style="background:#000;padding:9px 12px;display:flex;align-items:center;gap:8px">
+            <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Restore</span>
+            <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Export</span>
+          </div>
+
+          <div style="background:#000;padding:12px;font:400 11px/1 'JetBrains Mono',monospace;color:#fff">02 AUG 18:20</div>
+          <div style="background:#000;padding:12px;font:400 11px/1 Inter,sans-serif;color:#D9D9D9">X-S20</div>
+          <div style="background:#000;padding:12px;font:400 11px/1 'JetBrains Mono',monospace;color:#D9D9D9">4</div>
+          <div style="background:#000;padding:12px;font:400 11px/1.3 Inter,sans-serif;color:#8A8A8A">Auto — first connection</div>
+          <div style="background:#000;padding:9px 12px;display:flex;align-items:center;gap:8px">
+            <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Restore</span>
+            <span style="height:30px;padding:0 11px;border:1px solid #2E2E2E;border-radius:15px;display:flex;align-items:center;font:600 10px/1 Inter,sans-serif;color:#D9D9D9;cursor:pointer" style-hover="border-color:#fff">Export</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:13px">
+        <span style="font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#8A8A8A">WRITE BEHAVIOUR</span>
+        <div style="border:1px solid #2E2E2E;border-radius:16px;overflow:hidden">
+          <div style="padding:14px 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #1A1A1A">
+            <div style="flex:1;min-width:0"><div style="font:600 12.5px/1.3 Inter,sans-serif;color:#fff">Back up slots before every write</div><div style="margin-top:3px;font:400 10.5px/1.3 Inter,sans-serif;color:#8A8A8A">Recommended — makes any write undoable</div></div>
+            <span style="width:44px;height:26px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;box-sizing:border-box;cursor:pointer;flex:none"><span style="width:18px;height:18px;border-radius:50%;background:#000"></span></span>
+          </div>
+          <div style="padding:14px 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #1A1A1A">
+            <div style="flex:1;min-width:0"><div style="font:600 12.5px/1.3 Inter,sans-serif;color:#fff">Always show the diff</div><div style="margin-top:3px;font:400 10.5px/1.3 Inter,sans-serif;color:#8A8A8A">Off writes immediately from the slot board</div></div>
+            <span style="width:44px;height:26px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;box-sizing:border-box;cursor:pointer;flex:none"><span style="width:18px;height:18px;border-radius:50%;background:#000"></span></span>
+          </div>
+          <div style="padding:14px 18px;display:flex;align-items:center;gap:14px">
+            <div style="flex:1;min-width:0"><div style="font:600 12.5px/1.3 Inter,sans-serif;color:#fff">Warn when a slot holds an unsaved kata</div><div style="margin-top:3px;font:400 10.5px/1.3 Inter,sans-serif;color:#8A8A8A">Offers to save it to your library first</div></div>
+            <span style="width:44px;height:26px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;box-sizing:border-box;cursor:pointer;flex:none"><span style="width:18px;height:18px;border-radius:50%;background:#000"></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Desktop-only capabilities: all seven slots at once, drag library→slot, batch write with a field-level diff, automatic slot backup and restore, and read-from-slot as an editor source. The website version is <a href="./Kata Web.dc.html">Kata Web</a> — same screens minus every write path.</p>
+</section>
+
+</x-dc>
+</body>
+</html>
