@@ -267,7 +267,7 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
   final backup = await ref.read(slotBackupsProvider.notifier).takeBackup(st, auto: true);
   if (!context.mounted) return;
   // 1c: writing progress -> done, with skipped fields. Not dismissible mid-write.
-  await showDialog<void>(
+  final action = await showDialog<String>(
     context: context,
     barrierDismissible: false,
     builder: (c) => Dialog(
@@ -279,6 +279,8 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
       ),
     ),
   );
+  // Restore runs on the caller's context/ref — the dialog's are disposed by now.
+  if (action == 'undo' && backup != null && context.mounted) await restoreBackup(context, ref, backup);
 }
 
 class _WritingDialog extends ConsumerStatefulWidget {
@@ -301,7 +303,10 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
   @override
   void initState() {
     super.initState();
-    _run();
+    // writeRecipe mutates providers: never during the build that created this dialog
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _run();
+    });
   }
 
   Future<void> _run() async {
@@ -333,9 +338,11 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PopScope(canPop: _done || _error != null, child: _body(context));
+
+  Widget _body(BuildContext context) {
     final p = context.kata;
-    final pad = const EdgeInsets.fromLTRB(24, 22, 24, 22);
+    const pad = EdgeInsets.fromLTRB(24, 22, 24, 22);
     if (_error != null) {
       final e = _entries[_slotIx];
       final msg = '$_error'.replaceFirst('FujiCameraException: ', '');
@@ -362,7 +369,7 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
           Row(children: [
             KataDotsLoader(dot: 5, color: p.fg),
             const SizedBox(width: 10),
-            Text('WRITING · DO NOT UNPLUG', style: KataType.displayStyle(size: 20, color: p.fg)),
+            Flexible(child: Text('WRITING · DO NOT UNPLUG', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 18, color: p.fg))),
           ]),
           const SizedBox(height: 14),
           Text('Writing C${e.key}${_fieldsTotal > 0 ? ' · $_fieldsDone/$_fieldsTotal' : ''}', style: KataType.monoStyle(size: 12, weight: FontWeight.w500, color: p.fg)),
@@ -450,16 +457,12 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
                 kind: KataButtonKind.secondary,
                 display: false,
                 height: 46,
-                onPressed: () {
-                  final nav = Navigator.of(context);
-                  nav.pop();
-                  restoreBackup(context, ref, widget.backup!);
-                },
+                onPressed: () => Navigator.of(context).pop('undo'),
               ),
             ),
             const SizedBox(width: 10),
           ],
-          Expanded(flex: 2, child: KataPillButton(label: 'Done', height: 46, onPressed: () => Navigator.of(context).pop())),
+          Expanded(flex: 2, child: KataPillButton(label: 'Done', height: 46, onPressed: () => Navigator.of(context).pop<String?>(null))),
         ]),
       ]),
     );

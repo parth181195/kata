@@ -63,10 +63,15 @@ class _DesktopShellState extends ConsumerState<DesktopShell> {
     };
     return Scaffold(
       body: DropTarget(
-        onDragEntered: (_) => setState(() => _dropHover = true),
+        onDragEntered: (_) {
+          if (ModalRoute.of(context)?.isCurrent != true) return;
+          setState(() => _dropHover = true);
+        },
         onDragExited: (_) => setState(() => _dropHover = false),
         onDragDone: (d) async {
           setState(() => _dropHover = false);
+          // A dialog (e.g. the import sheet itself) is on top: let it own the drop.
+          if (ModalRoute.of(context)?.isCurrent != true) return;
           final f = d.files.firstOrNull;
           if (f == null) return;
           final nav = Navigator.of(context);

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
@@ -44,6 +44,9 @@ ImportOutcome? parseImportText(String text, {String sourceLabel = 'pasted text'}
   ];
   return ImportOutcome(recipe: r, kind: ImportKind.ofrJson, warnings: warnings, sourceLabel: sourceLabel);
 }
+
+/// compute() entry point: QR decoding is CPU-bound, so it runs off the UI isolate.
+ImportOutcome? _parseFileArgs((String, Uint8List) a) => parseImportFile(a.$1, a.$2);
 
 /// Parse a dropped/picked file: card image (QR), .ofr.json, or a text file holding a code.
 ImportOutcome? parseImportFile(String path, Uint8List bytes) {
@@ -126,8 +129,9 @@ class _ImportDialogState extends ConsumerState<_ImportDialog> {
 
   Future<void> _takeFile(String path, Uint8List bytes) async {
     setState(() => _busy = true);
+    await Future<void>.delayed(Duration.zero); // let the loader paint before the decode
     try {
-      final out = parseImportFile(path, bytes);
+      final out = await compute(_parseFileArgs, (path, bytes));
       if (out != null && out.kind == ImportKind.kataCode) _ctrl.text = KataCode.encode(out.recipe, credit: out.recipe.sourceAttribution);
       _apply(out, null);
     } on FormatException catch (e) {
