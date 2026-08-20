@@ -44,10 +44,19 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
     final a = ref.watch(onboardingAnswersProvider);
     final counts = familyCounts(ref.watch(recipeRepositoryProvider));
     final bodies = onboardingBodies(_search.text).take(40).toList();
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: ListView(padding: const EdgeInsets.all(32), shrinkWrap: true, children: [
+    return SingleChildScrollView(
+      // breathing room on every side: this sits on an otherwise empty window
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Container(
+            padding: const EdgeInsets.all(34),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: p.hairline),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('SET KATA UP', style: KataType.displayStyle(size: 28, color: p.fg)),
           const SizedBox(height: 8),
           Text('Two questions, so the library opens on katas that suit your camera. Change or clear any of it later — nothing is hidden from you.',
@@ -58,8 +67,9 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
           KataSearchField(hint: 'Search bodies', controller: _search, onChanged: (_) => setState(() {})),
           const SizedBox(height: 10),
           SizedBox(
-            height: 190,
+            height: 200,
             child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               itemCount: bodies.length,
               itemBuilder: (_, i) {
                 final b = bodies[i];
@@ -97,8 +107,10 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
             ),
             const SizedBox(width: 12),
             KataPillButton(label: 'Start', height: 46, expand: false, loading: _busy, onPressed: _busy ? null : () => _save(skipped: false)),
-          ]),
-        ]),
+              ]),
+            ]),
+          ),
+        ),
       ),
     );
   }

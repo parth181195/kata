@@ -5,13 +5,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe_repository.dart';
-import '../features/onboarding/onboarding_state.dart';
 import 'desktop_import.dart';
 import 'slot_backups.dart';
 
@@ -39,7 +39,7 @@ class DesktopSettings extends ConsumerWidget {
               title: 'My camera & looks',
               sub: 'What the library opens on',
               value: user.preferences.body ?? user.preferences.sensor ?? 'SET UP',
-              onTap: () => ref.read(redoOnboardingProvider.notifier).state = true,
+              onTap: () => GoRouter.of(context).push('/onboarding'),
             ),
           if (user != null) KataListRow(title: 'Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),
 

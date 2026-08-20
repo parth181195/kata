@@ -8,6 +8,7 @@ import 'package:kata_ui/kata_ui.dart';
 
 import 'core/auth/auth_repository.dart';
 import 'features/auth/sign_in_screen.dart';
+import 'desktop/desktop_onboarding.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'desktop/desktop_shell.dart';
 import 'features/camera/camera_screen.dart';
@@ -78,7 +79,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/boot', pageBuilder: (_, s) => _page(s, const BootScreen())),
       GoRoute(path: '/signin', pageBuilder: (_, s) => _page(s, const SignInScreen())),
-      GoRoute(path: '/onboarding', pageBuilder: (_, s) => _page(s, const OnboardingScreen())),
+      // one route, the right shape per platform: paged steps on a phone, one card on desktop
+      GoRoute(
+        path: '/onboarding',
+        pageBuilder: (c, s) => _page(
+          s,
+          isDesktop ? DesktopOnboarding(onDone: () => c.go('/library')) : const OnboardingScreen(),
+        ),
+      ),
       GoRoute(path: '/recipe/:id', pageBuilder: (_, s) => _page(s, RecipeDetailScreen(id: s.pathParameters['id']!))),
       GoRoute(path: '/new', pageBuilder: (_, s) => _page(s, RecipeEditorScreen(from: s.uri.queryParameters['from']))),
       GoRoute(path: '/edit/:id', pageBuilder: (_, s) => _page(s, RecipeEditorScreen(id: s.pathParameters['id']!))),

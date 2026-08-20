@@ -8,13 +8,11 @@ import 'package:ofr/ofr.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
-import '../features/onboarding/onboarding_state.dart';
 import 'desktop_camera.dart';
 import 'desktop_editor.dart';
 import 'desktop_import.dart';
 import 'desktop_library.dart';
 import 'desktop_mine.dart';
-import 'desktop_onboarding.dart';
 import 'desktop_settings.dart';
 
 /// Desktop shell per Kata Desktop.dc.html: 52px top bar (wordmark · context · camera pill · account)
@@ -125,14 +123,6 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
     final p = context.kata;
     final cam = ref.watch(cameraServiceProvider);
     final user = ref.watch(sessionProvider).valueOrNull?.user;
-    if (ref.watch(needsOnboardingProvider)) {
-      return Scaffold(
-        body: DesktopOnboarding(onDone: () {
-          ref.read(redoOnboardingProvider.notifier).state = false;
-          setState(() => _section = DesktopSection.library);
-        }),
-      );
-    }
     final body = switch (_section) {
       DesktopSection.library => const DesktopLibrary(),
       DesktopSection.saved => const DesktopLibrary(savedOnly: true),
