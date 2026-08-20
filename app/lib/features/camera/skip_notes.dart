@@ -13,6 +13,20 @@ List<SlotSkip> slotSkips(Map<int, WriteResult> results, Map<int, CameraPreset> p
           for (final c in explainSkips(e.value.skipped, preset: presets[e.key]!, reasons: e.value.skipReasons)) (slot: e.key, cause: c),
     ];
 
+/// Everything worth saying about a write that isn't a skipped field: values the camera
+/// stored differently, and bodies that don't keep slot names. These come back through
+/// [WriteResult.mismatched] / warnings rather than [WriteResult.skipped], so they'd vanish
+/// if the skip card were the only thing on screen.
+List<String> writeNotes(Map<int, WriteResult> results, {bool showSlot = false}) => [
+      for (final e in results.entries) ...[
+        if (e.value.mismatched.isNotEmpty)
+          '${showSlot ? 'C${e.key}: ' : ''}${e.value.mismatched.map(FujiProp.friendly).join(', ')} read back different — '
+              'the camera stored its own value, so check ${e.value.mismatched.length == 1 ? 'it' : 'them'} on the body.',
+        if (e.value.warnings.any((w) => w.contains('PresetName')))
+          '${showSlot ? 'C${e.key}: ' : ''}This body doesn\'t keep slot names, so the kata name isn\'t shown on the camera. The settings are all there.',
+      ],
+    ];
+
 /// "5 SETTINGS SKIPPED" with a reason under each group, because a bare list of property
 /// names tells the photographer nothing about what to change on the camera.
 class SkippedSettingsCard extends StatelessWidget {

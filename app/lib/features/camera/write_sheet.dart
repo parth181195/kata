@@ -175,6 +175,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
     final r = _result!;
     final total = r.written.length + r.skipped.length;
     final causes = slotSkips({r.slot: r}, {r.slot: ?_preset});
+    final notes = [...writeNotes({r.slot: r}), ..._notes];
     return Container(
       color: p.bg,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -199,7 +200,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
               const TextSpan(text: " and back to load it. The camera won't show the change until you do."),
             ]))),
             if (causes.isNotEmpty) ...[const SizedBox(height: 14), SkippedSettingsCard(causes: causes)],
-            if (_notes.isNotEmpty) ...[const SizedBox(height: 14), IssueCard(title: '${_notes.length} NOTE${_notes.length == 1 ? '' : 'S'}', rows: [for (final n in _notes) IssueRow(n, '')])],
+            if (notes.isNotEmpty) ...[const SizedBox(height: 14), IssueCard(title: '${notes.length} NOTE${notes.length == 1 ? '' : 'S'}', rows: [for (final n in notes) IssueRow(n, '')])],
             const SizedBox(height: 14),
             Row(children: [
               Expanded(child: KataPillButton(label: 'Write another', kind: KataButtonKind.secondary, display: false, height: 52, onPressed: () => setState(() { _phase = _Phase.choose; _slot = null; _result = null; }))),

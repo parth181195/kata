@@ -34,6 +34,11 @@ class Resp {
   static const invalidStorageId = 0x2008;
   static const invalidObjectHandle = 0x2009;
   static const devicePropNotSupported = 0x200A;
+  static const objectWriteProtected = 0x200D;
+  static const storeReadOnly = 0x200E;
+  static const accessDenied = 0x200F;
+  static const invalidCodeFormat = 0x2016;
+  static const invalidDevicePropFormat = 0x201B;
   static const invalidDevicePropValue = 0x201C;
   static const invalidParameter = 0x201D;
   static const sessionAlreadyOpen = 0x201E;
@@ -50,14 +55,17 @@ class Resp {
     invalidStorageId: 'InvalidStorageID',
     invalidObjectHandle: 'InvalidObjectHandle',
     devicePropNotSupported: 'DevicePropNotSupported',
+    objectWriteProtected: 'ObjectWriteProtected',
+    storeReadOnly: 'StoreReadOnly',
+    accessDenied: 'AccessDenied',
+    invalidCodeFormat: 'InvalidCodeFormat',
+    invalidDevicePropFormat: 'InvalidDevicePropFormat',
     invalidDevicePropValue: 'InvalidDevicePropValue',
     invalidParameter: 'InvalidParameter',
     sessionAlreadyOpen: 'SessionAlreadyOpen',
     deviceBusy: 'DeviceBusy',
-    0x2020: 'InvalidDevicePropFormat',
-    0x2021: 'InvalidDevicePropValue',
     0x201F: 'TransactionCancelled',
-    0x2016: 'AccessDenied',
+    0x2020: 'SpecificationOfDestinationUnsupported',
   };
 
   /// Plain-language names for anything a user might see. Kept beside [names] so the two

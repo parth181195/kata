@@ -43,6 +43,7 @@ class WriteResult {
     this.written = const [],
     this.skipped = const [],
     this.skipReasons = const {},
+    this.mismatched = const [],
     this.needsDialFlick = true,
   });
   final bool ok;
@@ -54,6 +55,10 @@ class WriteResult {
   /// Skipped property code -> the PTP response the camera answered with. The difference
   /// between "this body has no such setting" and "it's locked right now" lives here.
   final Map<int, int> skipReasons;
+
+  /// Props the camera accepted and then read back as something else. [ok] is false when this
+  /// isn't empty — the slot doesn't hold what we sent.
+  final List<int> mismatched;
   final bool needsDialFlick;
 }
 

@@ -53,6 +53,18 @@ void main() {
     await t.pumpAndSettle();
   });
 
+  testWidgets('the connection guide opens from the connect screen and answers the usual failures', (t) async {
+    final host = FakeUsbHost(FakeFujiBody(), present: false);
+    await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));
+    await t.tap(find.text('Connection guide'));
+    await t.pumpAndSettle();
+    expect(find.text('CONNECTION GUIDE'), findsOneWidget);
+    expect(find.text('No camera found'), findsOneWidget);
+    expect(find.text("Couldn't claim the camera"), findsOneWidget);
+    // the cable is the usual culprit, so it gets its own section
+    expect(find.textContaining('Charge-only cables'), findsOneWidget);
+  });
+
   testWidgets('no device → NO CAMERA pill + Connect stays', (t) async {
     final host = FakeUsbHost(FakeFujiBody(), present: false);
     await pumpKata(t, initialLocation: '/camera', overrides: fakeCameraOverrides(host));

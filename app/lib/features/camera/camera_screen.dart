@@ -8,6 +8,7 @@ import '../../core/fuji/camera_service.dart';
 import '../../core/fuji/slot_identity.dart';
 import 'publish_from_camera.dart';
 import 'camera_art.dart';
+import 'connection_guide.dart';
 import 'slot_panel.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
@@ -18,7 +19,6 @@ class CameraScreen extends ConsumerStatefulWidget {
 
 class _CameraScreenState extends ConsumerState<CameraScreen> {
   int? _selected;
-  bool _trouble = false;
 
   @override
   void initState() {
@@ -110,24 +110,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
             const SizedBox(height: 16),
           ],
           InkWell(
-            onTap: () => setState(() => _trouble = !_trouble),
+            onTap: () => showConnectionGuide(context),
             child: Container(
-              padding: const EdgeInsets.only(top: 13, bottom: 10),
+              padding: const EdgeInsets.only(top: 13, bottom: 13),
               decoration: BoxDecoration(border: Border(top: BorderSide(color: p.surface))),
               child: Row(children: [
-                Expanded(child: Text('Troubleshooting', style: KataType.bodyStyle(size: 12.5, weight: FontWeight.w600, color: p.dim, height: 1))),
-                Icon(_trouble ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 16, color: p.muted),
+                Expanded(child: Text('Connection guide', style: KataType.bodyStyle(size: 12.5, weight: FontWeight.w600, color: p.dim, height: 1))),
+                Text('CABLES · OTG · WHAT WENT WRONG', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.12)),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, size: 16, color: p.muted),
               ]),
             ),
           ),
-          if (_trouble)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                '• Close other apps that use USB (file managers, gallery importers).\n• Use the cable that came with the camera; many C-C cables are charge-only.\n• X-M5: try CONNECTION MODE → USB TETHER SHOOTING (FIXED).\n• If the phone says "Charging this device", replug with the camera already on.',
-                style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.5),
-              ),
-            ),
         ]),
       ),
       Padding(

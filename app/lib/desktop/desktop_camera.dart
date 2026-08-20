@@ -9,6 +9,7 @@ import 'package:ofr/ofr.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe.dart';
 import '../features/camera/camera_art.dart';
+import '../features/camera/connection_guide.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/camera/publish_from_camera.dart';
 import 'slot_backups.dart';
@@ -69,6 +70,15 @@ class _NotConnected extends ConsumerWidget {
               ChecklistStep(n: 3, title: 'Power on', sub: Text('Kata reads your slots first — nothing is written until you review a diff.', style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.4))),
               const SizedBox(height: 10),
               KataCard(dashed: true, child: Text('Linux: needs the udev rule from docs/ops/kata-desktop.md once, then replug.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.5))),
+              const SizedBox(height: 12),
+              KataPillButton(
+                label: 'Connection guide',
+                kind: KataButtonKind.secondary,
+                display: false,
+                height: 36,
+                expand: false,
+                onPressed: () => showConnectionGuide(context),
+              ),
             ]),
           ),
         ]),
@@ -392,17 +402,22 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
       final e = _entries[_slotIx];
       final doneSlots = _results.keys.map((k) => 'C$k').join(' · ');
       final frac = (_slotIx + (_fieldsTotal == 0 ? 0.0 : _fieldsDone / _fieldsTotal)) / _entries.length;
+      // the same dot matrix the phone shows while writing — one dot per property landing
       return Padding(
-        padding: pad,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            KataDotsLoader(dot: 5, color: p.fg),
-            const SizedBox(width: 10),
-            Flexible(child: Text('WRITING · DO NOT UNPLUG', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 18, color: p.fg))),
-          ]),
-          const SizedBox(height: 14),
-          Text('Writing C${e.key}${_fieldsTotal > 0 ? ' · $_fieldsDone/$_fieldsTotal' : ''}', style: KataType.monoStyle(size: 12, weight: FontWeight.w500, color: p.fg)),
+        padding: const EdgeInsets.fromLTRB(24, 34, 24, 26),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Center(child: DotMatrixProgress(progress: frac, animated: true, dot: 9, gap: 8)),
+          const SizedBox(height: 28),
+          Center(
+            child: Text(_fieldsTotal == 0 ? 'WRITING' : 'WRITING $_fieldsDone/$_fieldsTotal',
+                style: KataType.displayStyle(size: 26, color: p.fg, letterSpacing: 0)),
+          ),
           const SizedBox(height: 10),
+          Center(
+            child: Text('SETTINGS → C${e.key} · DO NOT UNPLUG',
+                textAlign: TextAlign.center, style: KataType.monoStyle(size: 11, color: p.muted, height: 1.5)),
+          ),
+          const SizedBox(height: 26),
           ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: SizedBox(
@@ -413,10 +428,12 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
               ]),
             ),
           ),
-          const SizedBox(height: 10),
-          Text('SLOT ${_slotIx + 1} OF ${_entries.length}${doneSlots.isEmpty ? '' : ' · $doneSlots DONE'} · KEEP THE CABLE IN',
-              style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.14)),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
+          Center(
+            child: Text('SLOT ${_slotIx + 1} OF ${_entries.length}${doneSlots.isEmpty ? '' : ' · $doneSlots DONE'} · ${e.value.name.toUpperCase()}',
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: p.muted, letterSpacing: 0.14)),
+          ),
+          const SizedBox(height: 22),
           KataPillButton(
             label: _cancel ? 'Cancelling after this slot…' : 'Cancel remaining',
             kind: KataButtonKind.secondary,
@@ -434,7 +451,7 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
     final settingsAll = _results.values.fold<int>(0, (a, r) => a + r.written.length + r.skipped.length);
     final names = _entries.where((e) => _results.containsKey(e.key)).map((e) => 'C${e.key} ${e.value.name}').join(' · ');
     final causes = slotSkips(_results, _presets);
-    final nameNote = _results.values.any((r) => r.warnings.any((w) => w.contains('PresetName')));
+    final notes = writeNotes(_results, showSlot: _entries.length > 1);
     // the skip explanations can run long — the dialog is capped at 620 tall
     return SingleChildScrollView(
       child: Padding(
@@ -469,9 +486,9 @@ class _WritingDialogState extends ConsumerState<_WritingDialog> {
           const SizedBox(height: 14),
           SkippedSettingsCard(causes: causes, showSlot: _entries.length > 1),
         ],
-        if (nameNote) ...[
-          const SizedBox(height: 8),
-          Text('NAMES NOT STORED ON THIS BODY', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.12)),
+        if (notes.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          IssueCard(title: '${notes.length} NOTE${notes.length == 1 ? '' : 'S'}', rows: [for (final n in notes) IssueRow(n, '')]),
         ],
         const SizedBox(height: 18),
         Row(children: [

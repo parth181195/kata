@@ -175,6 +175,7 @@ class FujiCamera {
         }
         // Verify
         var ok = true;
+        final mismatched = <int>[];
         for (final code in written) {
           final r = await _get(code);
           if (!r.ok) continue;
@@ -189,11 +190,12 @@ class FujiCamera {
               warnings.add("0xD18D PresetName: body kept '${ByteReader(got).ptpString()}' — it may not store names");
             } else {
               ok = false;
+              mismatched.add(code);
               warnings.add('${hex16(code)} ${FujiProp.name(code)}: verify mismatch (wrote ${hex(expected)} read ${hex(got)})');
             }
           }
         }
-        return WriteResult(ok: ok, slot: slot, warnings: warnings, written: written, skipped: skipped, skipReasons: skipReasons);
+        return WriteResult(ok: ok, slot: slot, warnings: warnings, written: written, skipped: skipped, skipReasons: skipReasons, mismatched: mismatched);
       });
 
   Future<bool> heartbeat() => _job(() async {

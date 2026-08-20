@@ -48,6 +48,7 @@ List<SkipCause> explainSkips(List<int> skipped, {required CameraPreset preset, M
   final toneHit = skipped.where(_toneLockGroup.contains).toList();
   if (toneHit.contains(0xD191) || toneHit.length >= 2) {
     final clarity = toneHit.contains(0xD1A2);
+    final resp = reasons[toneHit.first];
     take(_toneLockGroup.contains);
     out.add(SkipCause(
       headline: clarity ? 'HDR is on (or D-Range Priority)' : 'D-Range Priority is on (or HDR)',
@@ -55,8 +56,9 @@ List<SkipCause> explainSkips(List<int> skipped, {required CameraPreset preset, M
           ? 'HDR takes over dynamic range, the tone curve and clarity, so the camera refuses them over USB — '
               'it turned down settings it had just handed us. Everything else was written.'
           : 'D-Range Priority drives dynamic range and the highlight/shadow curve itself, so the camera '
-              'keeps those fields for its own use. Everything else was written.',
-      fix: 'Set HDR to OFF and D-Range Priority to OFF on the camera (IQ menu), then write again.',
+              'keeps those fields for its own use. Everything else was written.'
+          '${resp == null ? '' : ' (camera said ${Resp.name(resp)})'}',
+      fix: 'Set HDR and D-Range Priority to OFF on the camera, then write again.',
       codes: toneHit,
     ));
   }
@@ -113,8 +115,8 @@ List<SkipCause> explainSkips(List<int> skipped, {required CameraPreset preset, M
 String _bucket(int? resp) => switch (resp) {
       Resp.devicePropNotSupported || Resp.operationNotSupported || Resp.parameterNotSupported => 'unsupported',
       Resp.deviceBusy => 'busy',
-      0x2016 => 'locked',
-      Resp.invalidDevicePropValue || 0x2020 || 0x2021 || Resp.invalidParameter => 'value',
+      Resp.accessDenied || Resp.storeReadOnly => 'locked',
+      Resp.invalidDevicePropValue || Resp.invalidDevicePropFormat || Resp.invalidParameter => 'value',
       _ => 'refused',
     };
 
