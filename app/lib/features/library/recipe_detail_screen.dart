@@ -19,6 +19,7 @@ import '../history/version_history_sheet.dart';
 import '../share/share_composer_sheet.dart';
 import 'image_viewer.dart';
 import 'credit_line.dart';
+import 'support_card.dart';
 import 'recipe_card.dart';
 
 class RecipeDetailScreen extends ConsumerWidget {
@@ -252,6 +253,10 @@ class RecipeDetailScreen extends ConsumerWidget {
                 const EyebrowDivider('Q-menu order'),
                 const SizedBox(height: 16),
                 SpecGrid(RecipeSpecs.items(recipe.ofr)),
+                if (SupportCard.isFxw(recipe)) ...[
+                  const SizedBox(height: 16),
+                  SupportCard(recipe: recipe),
+                ],
                 const SizedBox(height: 16),
                 if (!ready)
                   KataCard(

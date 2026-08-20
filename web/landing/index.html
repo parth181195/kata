@@ -109,12 +109,12 @@
       <span class="pill hollow"><span class="dot"></span>THE KATA CODE · ROADMAP · NEXT RELEASE</span>
       <h2 id="code-h" class="h2">A recipe you<br>can screenshot</h2>
       <p class="lede">The code on every Kata card <em>contains</em> the recipe — not a link to one. Repost it, print it, photograph it off someone's screen: it still imports, offline, with no account and no dead URLs.</p>
-      <div class="payload" aria-label="Example Kata Code payload">kata1:CC,DR400,WB5800/+2-3,H+1,S-0.5,
+      <div class="payload" aria-label="Example Kata Code">kata1:CC,DR400,WB5800/+2-3,H+1,S-0.5,
 C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
       <div class="bullets">
         <div><i></i>Works with no signal — on location, in a basement studio</div>
         <div><i></i>Credit travels with the recipe automatically</div>
-        <div><i></i>Already today: paste OFR JSON, or export <code>.ofr.json</code></div>
+        <div><i></i>Already today: paste a recipe as text, or save it as a file</div>
       </div>
     </div>
     <div>
@@ -175,7 +175,7 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
       <div role="cell" data-l="Write support"><span class="chip ro"><i></i>READ ONLY</span></div>
     </div>
   </div>
-  <p class="table-note">Writing uses the same USB protocol as Fujifilm's X RAW Studio (camera set to <span class="mono" style="letter-spacing:.06em">USB RAW CONV./BACKUP RESTORE</span>). Verified end-to-end on the X-S20; other bodies follow the documented per-generation field sets and are flagged in the app until someone confirms them — <a href="#get" style="color:#d9d9d9;text-decoration:underline;text-underline-offset:3px">reports welcome</a>.</p>
+  <p class="table-note">Kata talks to your camera the same way Fujifilm's own X RAW Studio software does (camera set to <span class="mono" style="letter-spacing:.06em">USB RAW CONV./BACKUP RESTORE</span>). Verified end-to-end on the X-S20; other bodies follow the documented per-generation field sets and are flagged in the app until someone confirms them — <a href="#get" style="color:#d9d9d9;text-decoration:underline;text-underline-offset:3px">reports welcome</a>.</p>
 </section>
 
 <section id="free" class="section alt" aria-labelledby="free-h">
@@ -200,7 +200,7 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
         <span class="mono" style="font-size:9.5px;letter-spacing:.18em">SHARE</span>
         <h3 style="font-size:21px">Cards &amp; codes</h3>
         <div class="check">
-          <div>Import any <code>.ofr.json</code> or pasted recipe</div>
+          <div>Import a recipe file, or paste one as text</div>
           <div>Export your katas as Open Fuji Recipe JSON</div>
           <div class="soon">Share cards &amp; scan-to-import Kata Codes — next release</div>
           <div class="soon">Publish katas under your handle — next release</div>
@@ -241,11 +241,12 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
     </details>
     <details>
       <summary>What's a Kata Code?</summary>
-      <p>A QR whose payload <em>is</em> the recipe — not a link to a server. Screenshot a card, print it, photograph it off a friend's phone: scanning it in Kata rebuilds the full recipe offline. Scan it with a normal QR app and you just see readable text starting with <span class="mono" style="letter-spacing:.02em;text-transform:none">kata1:</span>.</p>
+      <p>A QR code that holds the recipe <em>itself</em>, rather than a link to a website. Screenshot a card, print it, photograph it off a friend's phone: scanning it in Kata rebuilds the full recipe offline. Scan it with a normal QR app and you just see readable text starting with <span class="mono" style="letter-spacing:.02em;text-transform:none">kata1:</span>.</p>
     </details>
     <details>
       <summary>Where do the recipes come from?</summary>
-      <p>The seed library is 340 recipes from <a href="https://fujixweekly.com" style="text-decoration:underline">Fuji X Weekly</a>, imported with attribution, a link back to every original post, and sample photos used with permission. Community publishing adds more — everything is public immediately and curators review for the verified badge.</p>
+      <p>The starting library is 340 recipes from <a href="https://fujixweekly.com" style="text-decoration:underline">Fuji X Weekly</a>, imported with credit, a link back to every original post, and sample photos used with permission. Community publishing adds more — everything is public immediately and curators review for the verified badge.</p>
+      <p>Ritchie Roesch works those recipes out on real cameras and gives them away free. Without that there would be nothing here to seed, so if you shoot with them, please <a href="https://fujixweekly.com/2021/10/22/why-should-you-become-a-fuji-x-weekly-app-patron/" style="text-decoration:underline">become a Fuji X Weekly App Patron</a> — it's what keeps the recipes coming.</p>
     </details>
     <details>
       <summary>Does the camera store the recipe name?</summary>
@@ -257,16 +258,28 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
     </details>
     <details>
       <summary>How finished is this?</summary>
-      <p>Early, and honest about it. The library, the editor, sharing and the USB writer all work today — the writer has been used on an X-S20 end to end, and the Linux desktop build drives the same engine. What that means for you: recipes you publish are safe (they live on the server with version history), and writes are guarded — you approve a diff first, and every slot is snapshotted before anything changes, so you can roll the camera back. What may still bite: bodies other than the X-S20 are less tested, some settings can't be written over USB at all and are skipped with a note, and the app is sideloaded rather than in the Play Store. If something misbehaves, that's worth reporting — it's how the supported-camera list grows.</p>
+      <p>Early, and honest about it. The library, the editor, sharing and the USB writer all work today — the writer has been used on an X-S20 end to end, and the Linux desktop build drives the same engine. What that means for you: recipes you publish are safe (they live on the server with version history), and writes are guarded — you approve a diff first, and every slot is snapshotted before anything changes, so you can roll the camera back. What may still bite: bodies other than the X-S20 are less tested, some settings can't be written over USB at all and are skipped with a note, and you install the app from this site rather than the Play Store. If something misbehaves, that's worth reporting — it's how the supported-camera list grows.</p>
     </details>
     <details>
       <summary>iPhone? Desktop?</summary>
-      <p>Android first, because it has proper USB host APIs — and there is a Linux desktop build now, on the same engine, with a slot board you can drag recipes onto. Windows and macOS aren't done: macOS needs code signing and a way past its own photo daemon, and Windows binds cameras to a driver libusb can't talk to, so it needs a different USB backend. iOS doesn't expose the low-level USB access Kata's writer needs, so an iPhone build would be browse-and-share only — and Apple charges US$99 every year just to ship a free app. If enough people want it we'll do it; for now, no.</p>
+      <p>Android first, because Android lets an app talk to a camera over the cable. There's a Linux version now too, with a slot board you can drag recipes onto. Windows and Mac aren't ready — on both, the system grabs the camera before Kata can, and getting past that is a separate piece of work for each. iPhones don't let apps talk to cameras over USB at all, so an iPhone version could only browse and share, never write — and Apple charges US$99 a year to publish even a free app. If enough people want one, we'll do it; for now, no.</p>
     </details>
     <details>
       <summary>Is it really free? What's the catch?</summary>
       <p>Free, open source (MIT), no tiers, no ads, no analytics. It exists because retyping 22 menu items per recipe is miserable. The catch is that it's one person's project — report bugs and they get fixed.</p>
     </details>
+  </div>
+</section>
+
+<section class="wrap" aria-labelledby="credit-h" style="padding-top:0">
+  <div style="border:1px solid var(--hair2);border-radius:18px;padding:26px 24px;max-width:720px;margin:0 auto">
+    <h2 id="credit-h" style="font-size:19px;margin:0 0 10px">The recipes aren't ours</h2>
+    <p class="small" style="margin:0 0 14px">
+      Nearly every kata Kata ships with came from <a href="https://fujixweekly.com" style="text-decoration:underline">Fuji X Weekly</a>, where
+      Ritchie Roesch works them out on real cameras, photographs the results and publishes them free. Kata just carries them to your camera.
+      If you use them, that work is worth paying for.
+    </p>
+    <a class="btn" href="https://fujixweekly.com/2021/10/22/why-should-you-become-a-fuji-x-weekly-app-patron/" rel="noopener">Become a Fuji X Weekly Patron</a>
   </div>
 </section>
 
@@ -286,7 +299,7 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
     <a class="btn" href="/kata-linux.tar.gz" download>Kata for Linux</a>
     <span class="qr"><img src="qr-install.svg" alt="QR code linking to the Kata APK download" width="54" height="54">SCAN TO INSTALL</span>
   </div>
-  <p class="small">Direct APK for now (a Play Store listing comes later) — Android will ask you to allow installs from your browser. The Linux build is a tarball: unpack it, run <code>./kata</code>, and follow the one-time udev step in its README. Not on Android or Linux? The recipe library is open data: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe spec</a>.</p>
+  <p class="small">You download Kata straight from here for now (a Play Store listing comes later), so Android will ask you to allow the install. The Linux download is a zipped folder: unpack it, run <code>./kata</code>, and follow the one-time setup step in the README inside — a minute's work, once. Not on Android or Linux? Every recipe is stored in an open format anyone can read: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe</a>.</p>
 </section>
 
 </main>

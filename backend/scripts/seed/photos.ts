@@ -1,7 +1,9 @@
 /**
  * Attach crawled sample photos to library recipes.
  *
- *   seed photos <library.json> --root <downloads dir> [--per 3] [--only <recipeId>] [--dry]
+ *   seed photos <library.json|crawler manifest.json> --root <downloads dir> [--per 3] [--only <recipeId>] [--dry]
+ *     --per N tops up: a recipe already holding fewer than N photos gets the missing ones
+ *     appended, so raising the cap backfills instead of starting over.
  *     → resizes (1600 main + 400 thumb, same as the API) and uploads to Bunny; writes seed/photos-report.json {recipeId: [urls]} (resumable)
  *   seed photos-apply <api base> <admin access token> [--report seed/photos-report.json]
  *     → PATCH /admin/recipes/:id {imageUrls} for every recipe in the report
@@ -15,6 +17,16 @@ import { HttpBunnyClient } from '../../src/images/http-bunny.client';
 
 interface LibraryPhoto { index: number; file?: string; width?: number; height?: number; bytes?: number }
 interface LibraryRecipe { id: string; name: string; image_urls?: string[]; photos?: LibraryPhoto[] }
+
+/** The crawler writes {posts: [{recipe_id, title, photos}]}; the library file uses {recipes: [...]}. */
+function readRecipes(file: string): LibraryRecipe[] {
+  const doc = JSON.parse(readFileSync(file, 'utf8')) as {
+    recipes?: LibraryRecipe[];
+    posts?: { recipe_id: string; title: string; photos?: LibraryPhoto[] }[];
+  };
+  if (doc.recipes) return doc.recipes;
+  return (doc.posts ?? []).map((p) => ({ id: p.recipe_id, name: p.title, photos: p.photos }));
+}
 type PhotoReport = Record<string, string[]>;
 
 const REPORT = join('seed', 'photos-report.json');
@@ -27,20 +39,23 @@ export async function cmdPhotos(libraryFile: string, flags: string[]): Promise<v
   const per = Number(flagVal(flags, '--per') ?? 3);
   const only = flagVal(flags, '--only');
   const dry = flags.includes('--dry');
-  const lib = JSON.parse(readFileSync(libraryFile, 'utf8')) as { recipes: LibraryRecipe[] };
+  const recipes = readRecipes(libraryFile);
   mkdirSync('seed', { recursive: true });
   const report = loadReport(REPORT);
   const bunny = new HttpBunnyClient();
   let done = 0, skipped = 0, failed = 0, uploaded = 0;
-  for (const r of lib.recipes) {
+  for (const r of recipes) {
     if (only && r.id !== only) continue;
-    if (report[r.id]?.length) { skipped++; continue; }
-    const photos = (r.photos ?? [])
+    const already = report[r.id]?.length ?? 0;
+    if (already >= per) { skipped++; continue; }
+    const usable = (r.photos ?? [])
       .filter((p) => p.file && (p.width ?? 0) >= 600)
       .sort((a, b) => a.index - b.index)
       .slice(0, per);
+    // top-up: the first `already` are on Bunny from an earlier run, upload only what's new
+    const photos = usable.slice(already);
     if (!photos.length) { skipped++; continue; }
-    const urls: string[] = [];
+    const urls: string[] = [...(report[r.id] ?? [])];
     for (const p of photos) {
       const path = join(root, p.file!);
       if (!existsSync(path)) { console.error(`  missing ${path}`); continue; }
@@ -62,11 +77,11 @@ export async function cmdPhotos(libraryFile: string, flags: string[]): Promise<v
         failed++;
       }
     }
-    if (urls.length) {
+    if (urls.length > already) {
       report[r.id] = urls;
       if (!dry) writeFileSync(REPORT, JSON.stringify(report, null, 1));
       done++;
-      console.log(`✓ ${r.name} +${urls.length}${dry ? ' (dry)' : ''}`);
+      console.log(`✓ ${r.name} ${already ? `${already}→${urls.length}` : `+${urls.length}`}${dry ? ' (dry)' : ''}`);
     }
   }
   console.log(`\nrecipes ${done} · skipped ${skipped} · photos ${uploaded} · failed ${failed}${dry ? ' · DRY RUN (report not written)' : ` → ${REPORT}`}`);

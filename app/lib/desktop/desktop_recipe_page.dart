@@ -8,6 +8,7 @@ import '../data/recipe_repository.dart';
 import '../data/recipe_specs.dart';
 import '../features/library/image_viewer.dart';
 import '../features/library/credit_line.dart';
+import '../features/library/support_card.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/history/version_history_sheet.dart';
 import '../features/ofr_io/export_sheet.dart';
@@ -235,6 +236,10 @@ class _RecipePage extends ConsumerWidget {
                 const SizedBox(height: 12),
                 SpecGrid(RecipeSpecs.items(r.ofr), columns: 2, valueSize: 13.5, rowGap: 16),
                 const SizedBox(height: 20),
+                if (SupportCard.isFxw(r)) ...[
+                  SupportCard(recipe: r),
+                  const SizedBox(height: 12),
+                ],
                 KataCard(
                   dashed: true,
                   child: Text('Drag this kata onto a camera slot from the library, or open it in the editor to change anything before writing.',
