@@ -82,4 +82,16 @@ void main() {
     expect(OfrMapper.sensorsForModel('X-T4'), ['X-Trans IV']);
     expect(OfrMapper.sensorsForModel('Unknown'), isEmpty);
   });
+
+  test('settings-only hash is a fixpoint across mapper roundtrips (slot identification)', () {
+    String h(OfrRecipe r) => OfrHasher.compute(r, scheme: HashScheme.v1SettingsOnly);
+    OfrRecipe rt(OfrRecipe r) => OfrMapper.fromPreset(OfrMapper.toPreset(r).value, sensors: const ['X-Trans V']);
+    final k1 = rt(kodachrome), k2 = rt(k1);
+    expect(h(k2), h(k1));
+    final mono = kodachrome.copyWith(filmSimulation: 'Acros Red', clearColor: true, clearColorChrome: true,
+        monochromaticColorWarmCool: 2, monochromaticColorMagentaGreen: -1, grainRoughness: 'Strong', grainSize: 'Large');
+    final m1 = rt(mono), m2 = rt(m1);
+    expect(h(m2), h(m1));
+    expect(h(m1) == h(k1), isFalse);
+  });
 }

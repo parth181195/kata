@@ -7,7 +7,9 @@ import 'package:ofr/ofr.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe.dart';
 import '../features/camera/camera_art.dart';
+import '../features/library/recipe_card.dart' show recipeImage;
 import 'slot_backups.dart';
+import 'slot_identity.dart';
 
 /// A queued write: recipe → slot. Cleared after the review dialog commits.
 final writeQueueProvider = StateProvider<Map<int, Recipe>>((_) => {});
@@ -125,7 +127,7 @@ class _Board extends ConsumerWidget {
           child: GridView.builder(
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 300, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55),
             itemCount: st.caps.slotCount,
-            itemBuilder: (_, i) => _SlotTile(slot: i + 1, preset: i < st.slots.length ? st.slots[i] : null, queued: queue[i + 1]),
+            itemBuilder: (_, i) => _SlotTile(slot: i + 1, model: st.caps.model, preset: i < st.slots.length ? st.slots[i] : null, queued: queue[i + 1]),
           ),
         ),
         if (queue.isNotEmpty)
@@ -157,8 +159,9 @@ class _Board extends ConsumerWidget {
 }
 
 class _SlotTile extends ConsumerWidget {
-  const _SlotTile({required this.slot, required this.preset, required this.queued});
+  const _SlotTile({required this.slot, required this.model, required this.preset, required this.queued});
   final int slot;
+  final String model;
   final CameraPreset? preset;
   final Recipe? queued;
 
@@ -168,48 +171,73 @@ class _SlotTile extends ConsumerWidget {
     final cur = preset;
     final filmName = cur == null ? null : (OfrEnums.codeToFilmSim[cur.filmSim] ?? 'Film ${cur.filmSim}');
     final empty = cur == null;
+    // Match the slot back to a library recipe so the tile renders like its card.
+    final ident = cur == null ? null : identifySlot(ref, model, slot, cur);
+    final img = ident == null || ident.imageUrls.isEmpty ? null : recipeImage(ident.imageUrls.first);
+    final fgOn = img != null ? Colors.white : p.fg;
+    final mutedOn = img != null ? Colors.white70 : p.muted;
+    final dimOn = img != null ? const Color(0xB3FFFFFF) : p.dim;
     return DragTarget<Recipe>(
       onAcceptWithDetails: (d) => ref.read(writeQueueProvider.notifier).update((q) => {...q, slot: d.data}),
       builder: (context, cand, _) {
         final hover = cand.isNotEmpty;
         return Container(
-          padding: const EdgeInsets.all(14),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: hover ? p.fg : (queued != null ? p.fg : p.hairline), width: hover || queued != null ? 1.5 : 1),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(
-                width: 34,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(border: Border.all(color: p.fg), borderRadius: BorderRadius.circular(6)),
-                child: Text('C$slot', style: KataType.displayStyle(size: 11, color: p.fg, letterSpacing: 0)),
+          child: Stack(fit: StackFit.expand, children: [
+            if (img != null) FrameSlot(radius: 0, image: img),
+            if (img != null)
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x30000000), Color(0xB3000000)]),
+                ),
               ),
-              const Spacer(),
-              if (queued != null)
-                Text('QUEUED', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.fg, letterSpacing: 0.14))
-              else if (hover)
-                Text(empty ? 'DROP TO FILL' : 'DROP TO REPLACE', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.fg, letterSpacing: 0.14)),
-            ]),
-            const Spacer(),
-            if (queued != null) ...[
-              Text(queued!.name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: p.fg, letterSpacing: 0)),
-              const SizedBox(height: 4),
-              Row(children: [
-                Expanded(child: Text('WAS ${empty ? 'EMPTY' : (cur.name.isEmpty ? filmName : cur.name)}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: p.muted))),
-                InkWell(onTap: () => ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(slot)), child: Text('REVERT ↺', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: p.dim))),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    width: 34,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(border: Border.all(color: fgOn), borderRadius: BorderRadius.circular(6)),
+                    child: Text('C$slot', style: KataType.displayStyle(size: 11, color: fgOn, letterSpacing: 0)),
+                  ),
+                  const Spacer(),
+                  if (queued != null)
+                    Text('QUEUED', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: fgOn, letterSpacing: 0.14))
+                  else if (hover)
+                    Text(empty ? 'DROP TO FILL' : 'DROP TO REPLACE', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: fgOn, letterSpacing: 0.14))
+                  else if (ident?.verified == true)
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                      child: const Center(child: Text('\u2713', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.black, height: 1))),
+                    ),
+                ]),
+                const Spacer(),
+                if (queued != null) ...[
+                  Text(queued!.name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: fgOn, letterSpacing: 0)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Expanded(child: Text('WAS ${empty ? 'EMPTY' : (ident?.name ?? (cur.name.isEmpty ? filmName : cur.name))}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: mutedOn))),
+                    InkWell(onTap: () => ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(slot)), child: Text('REVERT ↺', style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: dimOn))),
+                  ]),
+                ] else if (empty) ...[
+                  Text('EMPTY', style: KataType.displayStyle(size: 15, color: p.muted, letterSpacing: 0)),
+                  const SizedBox(height: 4),
+                  Text('FACTORY DEFAULT · DROP TO FILL', style: KataType.monoStyle(size: 8.5, color: p.muted)),
+                ] else ...[
+                  Text((ident?.name ?? (cur.name.isEmpty ? filmName! : cur.name)).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: fgOn, letterSpacing: 0)),
+                  const SizedBox(height: 4),
+                  Text('$filmName${cur.dynamicRange != null ? ' · ${cur.dynamicRange == kDrAuto ? 'DR AUTO' : 'DR${cur.dynamicRange}'}' : ''}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: dimOn)),
+                ],
               ]),
-            ] else if (empty) ...[
-              Text('EMPTY', style: KataType.displayStyle(size: 15, color: p.muted, letterSpacing: 0)),
-              const SizedBox(height: 4),
-              Text('FACTORY DEFAULT · DROP TO FILL', style: KataType.monoStyle(size: 8.5, color: p.muted)),
-            ] else ...[
-              Text((cur.name.isEmpty ? filmName! : cur.name).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 15, color: p.fg, letterSpacing: 0)),
-              const SizedBox(height: 4),
-              Text('$filmName${cur.dynamicRange != null ? ' · ${cur.dynamicRange == kDrAuto ? 'DR AUTO' : 'DR${cur.dynamicRange}'}' : ''}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: p.dim)),
-            ],
+            ),
           ]),
         );
       },
@@ -248,6 +276,13 @@ Future<void> showWriteReview(BuildContext context, WidgetRef ref) async {
       notes.addAll(r.warnings);
       wrote++;
       ref.read(writeQueueProvider.notifier).update((q) => {...q}..remove(e.key));
+      // remember what landed where, so the slot renders as this recipe's card from now on
+      final after = ref.read(cameraServiceProvider);
+      if (after is CameraReady && !e.value.id.startsWith('backup:') && e.key <= after.slots.length) {
+        await ref
+            .read(slotLinksProvider.notifier)
+            .record(after.caps.model, e.key, e.value.id, slotSettingsHash(after.caps.model, after.slots[e.key - 1]));
+      }
     }
     if (context.mounted) {
       final nameNote = notes.any((w) => w.contains('PresetName')) ? ' · names not stored on this body' : '';
