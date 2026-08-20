@@ -9,7 +9,7 @@ import '../data/recipe.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import 'desktop_camera.dart';
 import 'slot_backups.dart';
-import 'slot_identity.dart';
+import '../core/fuji/slot_identity.dart';
 
 /// Bottom dock shown on library screens while a camera is connected: every slot is a drop
 /// target, queued writes show inline, and "Write n" opens the same review diff as the board.

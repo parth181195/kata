@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/fuji/camera_service.dart';
+import '../../core/fuji/slot_identity.dart';
 import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 
@@ -39,6 +42,16 @@ class _WriteSheetState extends ConsumerState<WriteSheet> with SingleTickerProvid
     _progress.forward(from: 0);
     try {
       final r = await ref.read(cameraServiceProvider.notifier).writeRecipe(slot, m.value);
+      // remember what landed where, so this slot reads back as this kata (and shows up as
+      // "edited on camera" if it's tweaked on the body later)
+      final after = ref.read(cameraServiceProvider);
+      if (after is CameraReady && slot <= after.slots.length) {
+        // fire and forget: the link is in memory immediately; persisting it must never
+        // delay (or fail) a write that already reached the camera
+        unawaited(ref
+            .read(slotLinksProvider.notifier)
+            .record(after.caps.model, slot, widget.recipe.id, slotSettingsHash(after.caps.model, after.slots[slot - 1])));
+      }
       _progress.value = 1;
       if (mounted) setState(() { _result = r; _phase = _Phase.done; });
     } catch (e) {

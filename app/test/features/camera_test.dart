@@ -31,8 +31,17 @@ void main() {
     await t.tap(find.text('C2'));
     await t.pumpAndSettle();
     expect(find.text("C2 — WHAT'S IN THE CAMERA"), findsOneWidget);
+    // Save opens the publish sheet: name it, then keep it locally
     await t.tap(find.text('Save as kata'));
     await t.pumpAndSettle();
+    expect(find.textContaining('SAVE C2 FROM THE CAMERA'), findsOneWidget);
+    await t.tap(find.text('Save to Mine'));
+    // the save writes to the local db: testWidgets' fake async can't complete that on its
+    // own, so interleave real event-loop turns before settling
+    for (var i = 0; i < 6; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await t.pumpAndSettle();
+    }
     final mine = c.read(recipeRepositoryProvider).mine;
     expect(mine.length, 1);
     expect(mine.first.source, RecipeSource.camera);

@@ -4,12 +4,12 @@ import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
-import '../core/auth/auth_repository.dart';
-import '../core/fuji/camera_service.dart';
-import '../data/recipe.dart';
-import '../data/recipe_repository.dart';
-import '../data/recipe_specs.dart';
-import 'slot_identity.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/fuji/camera_service.dart';
+import '../../data/recipe.dart';
+import '../../data/recipe_repository.dart';
+import '../../data/recipe_specs.dart';
+import '../../core/fuji/slot_identity.dart';
 
 /// Take what is *actually* in a camera slot right now and turn it into a kata: save it
 /// locally, publish it as a new recipe, or — when the slot drifted from something you
@@ -17,21 +17,28 @@ import 'slot_identity.dart';
 ///
 /// This is the "I refined it while shooting" path: write → shoot → tweak on the body →
 /// come back and keep the better version.
-Future<void> showPublishFromCamera(BuildContext context, WidgetRef ref, {required int slot}) async {
+Future<void> showPublishFromCamera(BuildContext context, WidgetRef ref, {required int slot, bool sheet = false}) async {
   final st = ref.read(cameraServiceProvider);
   if (st is! CameraReady || slot > st.slots.length) return;
   final ident = identifySlot(ref, st.caps.model, slot, st.slots[slot - 1]);
-  await showDialog<void>(
-    context: context,
-    builder: (c) => Dialog(
-      backgroundColor: c.kata.bg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: c.kata.hairline)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 660),
-        child: _PublishDialog(slot: slot, model: st.caps.model, preset: st.slots[slot - 1], identity: ident),
+  final body = _PublishDialog(slot: slot, model: st.caps.model, preset: st.slots[slot - 1], identity: ident);
+  // The sheet pops with the message to show: a toast raised from a route that is being
+  // dismissed never reaches the screen, so the caller (still mounted) shows it.
+  final String? done;
+  if (sheet) {
+    done = await showKataSheet<String>(context, builder: (_) => body); // phone
+  } else {
+    done = await showDialog<String>(
+      context: context,
+      builder: (c) => Dialog(
+        backgroundColor: c.kata.bg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: c.kata.hairline)),
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600, maxHeight: 660), child: body),
       ),
-    ),
-  );
+    );
+  }
+  if (!context.mounted || done == null) return;
+  KataToast.show(context, done);
 }
 
 class _PublishDialog extends ConsumerStatefulWidget {
@@ -121,8 +128,9 @@ class _PublishDialogState extends ConsumerState<_PublishDialog> {
       final saved = await action();
       await _relink(saved);
       if (!mounted) return;
-      Navigator.of(context).pop();
-      KataToast.show(context, toast);
+      // Pop with the message: the caller shows it, because a toast raised from a route that
+      // is being dismissed never reaches the screen.
+      Navigator.of(context).pop(toast);
     } on RecipeConflict catch (e) {
       final existing = ref.read(recipeRepositoryProvider).byId(e.existingId);
       setState(() {

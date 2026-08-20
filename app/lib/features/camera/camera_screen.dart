@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/fuji/camera_service.dart';
-import '../../data/recipe_repository.dart';
+import '../../core/fuji/slot_identity.dart';
+import 'publish_from_camera.dart';
 import 'camera_art.dart';
-import '../../data/recipe.dart';
 import 'slot_panel.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
@@ -147,7 +147,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   Widget _connected(BuildContext context, CameraReady st) {
     final p = context.kata;
     final svc = ref.read(cameraServiceProvider.notifier);
-    final lib = ref.read(recipeRepositoryProvider);
     final sensors = OfrMapper.sensorsForModel(st.caps.model);
     final sel = _selected != null && _selected! <= st.slots.length ? _selected : null;
     String drOf(CameraPreset s) => s.dynamicRange == kDrAuto ? 'DR AUTO' : 'DR${s.dynamicRange ?? 100}';
@@ -179,13 +178,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
             itemCount: st.slots.length,
             itemBuilder: (_, i) {
               final s = st.slots[i];
-              final title = s.name.isEmpty ? (FilmSim.labels[s.filmSim] ?? 'Slot ${i + 1}') : s.name;
+              // Match the slot back to a kata so the card shows its real name (cameras keep
+              // at most 25 characters, and the X-S20 keeps none) and flags in-camera edits.
+              final ident = identifySlot(ref, st.caps.model, i + 1, s);
+              final title = ident.recipe?.name ?? (s.name.isEmpty ? (FilmSim.labels[s.filmSim] ?? 'Slot ${i + 1}') : s.name);
               return SlotCard(
                 slot: i + 1,
                 state: SlotCardState.filled,
                 selected: sel == i + 1,
                 title: title,
-                line1: FilmSim.labels[s.filmSim] ?? '',
+                line1: ident.edited ? 'EDITED · FROM ${ident.origin!.name}' : (FilmSim.labels[s.filmSim] ?? ''),
                 line2: '${drOf(s)} · ${wbOf(s)}',
                 onTap: () => setState(() => _selected = i + 1),
                 onRefresh: st.busy ? null : svc.refreshSlots,
@@ -201,12 +203,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               preset: st.slots[sel - 1],
               model: st.caps.model,
               busy: st.busy,
-              onSave: () async {
-                final ofr = OfrMapper.fromPreset(st.slots[sel - 1], sensors: sensors, sourceAttribution: 'Read from ${st.caps.model}');
-                final named = ofr.name == null ? ofr.copyWith(name: '${FilmSim.labels[st.slots[sel - 1].filmSim]} C$sel') : ofr;
-                await lib.addImported(named, source: RecipeSource.camera);
-                if (context.mounted) KataToast.show(context, 'Saved to Mine');
-              },
+              identity: identifySlot(ref, st.caps.model, sel, st.slots[sel - 1]),
+              // Save / publish what is actually in the slot — including anything dialled in
+              // on the body since Kata wrote it.
+              onSave: () => showPublishFromCamera(context, ref, slot: sel, sheet: true),
               onOverwrite: () {
                 KataToast.show(context, 'Pick a kata, then Write to camera');
                 context.go('/library');

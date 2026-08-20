@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuji_ptp/fuji_ptp.dart';
@@ -8,9 +10,9 @@ import '../core/fuji/camera_service.dart';
 import '../data/recipe.dart';
 import '../features/camera/camera_art.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
-import 'publish_from_camera.dart';
+import '../features/camera/publish_from_camera.dart';
 import 'slot_backups.dart';
-import 'slot_identity.dart';
+import '../core/fuji/slot_identity.dart';
 
 /// A queued write: recipe → slot. Cleared after the review dialog commits.
 final writeQueueProvider = StateProvider<Map<int, Recipe>>((_) => {});

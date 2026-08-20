@@ -6,8 +6,8 @@ import 'package:fuji_ptp/fuji_ptp.dart';
 import 'package:ofr/ofr.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../data/recipe.dart';
-import '../data/recipe_repository.dart';
+import '../../data/recipe.dart';
+import '../../data/recipe_repository.dart';
 
 /// Settings-only hash of what a slot holds, computed through the same mapper both directions.
 String slotSettingsHash(String model, CameraPreset preset) =>
@@ -63,8 +63,13 @@ class SlotLinkStore extends StateNotifier<Map<String, SlotLink>> {
 
   Future<void> record(String model, int slot, String recipeId, String hash) async {
     state = {...state, '$model|$slot': SlotLink(recipeId: recipeId, hash: hash, at: DateTime.now())};
-    final f = await _file();
-    await f.writeAsString(jsonEncode(state.map((k, v) => MapEntry(k, v.toJson()))));
+    try {
+      final f = await _file();
+      await f.writeAsString(jsonEncode(state.map((k, v) => MapEntry(k, v.toJson()))));
+    } catch (_) {
+      // best effort: the in-memory link still works this session, and identification falls
+      // back to the settings hash. Never fail a write that already reached the camera.
+    }
   }
 }
 

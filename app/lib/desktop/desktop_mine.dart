@@ -15,7 +15,7 @@ import '../features/history/version_history_sheet.dart';
 import 'desktop_camera.dart';
 import 'desktop_import.dart';
 import 'desktop_shell.dart';
-import 'slot_identity.dart';
+import '../core/fuji/slot_identity.dart';
 
 enum _Tab { all, published, drafts, inSlots }
 

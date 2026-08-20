@@ -10,7 +10,7 @@ import 'package:kata/core/fuji/camera_service.dart';
 import 'package:kata/data/recipe.dart';
 import 'package:kata/data/local_db.dart';
 import 'package:kata/data/recipe_repository.dart';
-import 'package:kata/desktop/slot_identity.dart';
+import 'package:kata/core/fuji/slot_identity.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
@@ -156,5 +156,42 @@ void main() {
     });
     await t.pumpAndSettle();
     expect(seen!.match, SlotMatch.exact, reason: 'settings match the library recipe again');
+  });
+
+  testWidgets('mobile: writing records the link, so the slot reads back as that kata', (t) async {
+    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    final body = FakeFujiBody();
+    final api = FakeRecipeApi([Recipe(id: 'lib-1', ofr: _ofr.copyWith(hash: OfrHasher.compute(_ofr)))]);
+    final db = KataDb.memory();
+    addTearDown(db.close);
+    final repo = RecipeRepository(db: db, api: api);
+    await repo.load();
+    await repo.sync();
+    final c = ProviderContainer(overrides: [
+      usbHostProvider.overrideWithValue(FakeUsbHost(body)),
+      recipeRepositoryProvider.overrideWith((_) => repo),
+      fujiCameraFactoryProvider.overrideWithValue(
+          (link, reopen) => FujiCamera(PtpTransport(link), reopenUsb: reopen, slotSettle: Duration.zero)),
+    ]);
+    addTearDown(c.dispose);
+    await t.runAsync(() => c.read(cameraServiceProvider.notifier).connect());
+
+    SlotIdentity? seen;
+    await t.pumpWidget(UncontrolledProviderScope(
+      container: c,
+      child: MaterialApp(theme: KataTheme.dark(), home: _Probe(model: 'X-S20', onIdentity: (i) => seen = i)),
+    ));
+
+    // the phone's write path (write_sheet) records the same link the desktop does
+    await t.runAsync(() async {
+      final r = repo.byId('lib-1')!;
+      await c.read(cameraServiceProvider.notifier).writeRecipe(2, OfrMapper.toPreset(r.ofr).value);
+      final st = c.read(cameraServiceProvider) as CameraReady;
+      await c.read(slotLinksProvider.notifier).record('X-S20', 2, r.id, slotSettingsHash('X-S20', st.slots[1]));
+    });
+    await t.pumpAndSettle();
+    expect(seen!.match, SlotMatch.exact);
+    expect(seen!.recipe!.name, 'Beach Chrome');
   });
 }
