@@ -257,7 +257,7 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
     </details>
     <details>
       <summary>iPhone? Desktop?</summary>
-      <p>Android first, because it has proper USB host APIs. A desktop version (Linux/macOS) is planned on the same engine. iOS doesn't expose the low-level USB access Kata's writer needs, so an iPhone build would be browse-and-share only — and Apple charges US$99 every year just to ship a free app. If enough people want it we'll do it; for now, no.</p>
+      <p>Android first, because it has proper USB host APIs — and there is a Linux desktop build now, on the same engine, with a slot board you can drag recipes onto. Windows and macOS aren't done: macOS needs code signing and a way past its own photo daemon, and Windows binds cameras to a driver libusb can't talk to, so it needs a different USB backend. iOS doesn't expose the low-level USB access Kata's writer needs, so an iPhone build would be browse-and-share only — and Apple charges US$99 every year just to ship a free app. If enough people want it we'll do it; for now, no.</p>
     </details>
     <details>
       <summary>Is it really free? What's the catch?</summary>
@@ -272,9 +272,10 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
   <p class="lede">Android 8+, USB-C, free. Bring your camera and a data cable.</p>
   <div class="ctas" style="justify-content:center">
     <a class="btn primary" href="/kata.apk" download>Get it on Android</a>
+    <a class="btn" href="/kata-linux.tar.gz" download>Kata for Linux</a>
     <span class="qr"><img src="qr-install.svg" alt="QR code linking to the Kata APK download" width="54" height="54">SCAN TO INSTALL</span>
   </div>
-  <p class="small">Direct APK for now (a Play Store listing comes later) — Android will ask you to allow installs from your browser. Not on Android? The recipe library is open data: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe spec</a>.</p>
+  <p class="small">Direct APK for now (a Play Store listing comes later) — Android will ask you to allow installs from your browser. The Linux build is a tarball: unpack it, run <code>./kata</code>, and follow the one-time udev step in its README. Not on Android or Linux? The recipe library is open data: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe spec</a>.</p>
 </section>
 
 </main>
