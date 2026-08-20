@@ -9,14 +9,53 @@ import '../net/token_store.dart';
 import 'desktop_google_auth.dart';
 import 'google_id_token.dart';
 
+/// What the first-run questions produced: the body they shoot, its sensor generation, and
+/// the looks they asked for. Empty until onboarding runs; safe to ignore everywhere.
+class UserPreferences {
+  const UserPreferences({this.sensor, this.body, this.filmSimFamilies = const [], this.onboardedAt});
+  final String? sensor;
+  final String? body;
+  final List<String> filmSimFamilies;
+  final DateTime? onboardedAt;
+
+  bool get onboarded => onboardedAt != null;
+
+  Map<String, dynamic> toJson() => {
+        if (sensor != null) 'sensor': sensor,
+        if (body != null) 'body': body,
+        if (filmSimFamilies.isNotEmpty) 'filmSimFamilies': filmSimFamilies,
+        if (onboardedAt != null) 'onboardedAt': onboardedAt!.toUtc().toIso8601String(),
+      };
+
+  static const empty = UserPreferences();
+
+  factory UserPreferences.fromJson(Map<String, dynamic>? j) => j == null
+      ? empty
+      : UserPreferences(
+          sensor: j['sensor'] as String?,
+          body: j['body'] as String?,
+          filmSimFamilies: ((j['filmSimFamilies'] as List?) ?? const []).cast<String>(),
+          onboardedAt: DateTime.tryParse((j['onboardedAt'] ?? '') as String),
+        );
+}
+
 class AppUser {
-  const AppUser({required this.id, required this.email, required this.displayName, this.photoUrl, required this.role});
+  const AppUser({required this.id, required this.email, required this.displayName, this.photoUrl, required this.role, this.preferences = UserPreferences.empty});
   final String id, email, displayName, role;
   final String? photoUrl;
+  final UserPreferences preferences;
   bool get isAdmin => role == 'admin';
-  Map<String, dynamic> toJson() => {'id': id, 'email': email, 'displayName': displayName, 'photoUrl': photoUrl, 'role': role};
+  Map<String, dynamic> toJson() => {'id': id, 'email': email, 'displayName': displayName, 'photoUrl': photoUrl, 'role': role, 'preferences': preferences.toJson()};
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
-      id: j['id'] as String, email: j['email'] as String, displayName: (j['displayName'] ?? '') as String, photoUrl: j['photoUrl'] as String?, role: (j['role'] ?? 'user') as String);
+      id: j['id'] as String,
+      email: j['email'] as String,
+      displayName: (j['displayName'] ?? '') as String,
+      photoUrl: j['photoUrl'] as String?,
+      role: (j['role'] ?? 'user') as String,
+      preferences: UserPreferences.fromJson(j['preferences'] as Map<String, dynamic>?));
+
+  AppUser copyWith({UserPreferences? preferences}) =>
+      AppUser(id: id, email: email, displayName: displayName, photoUrl: photoUrl, role: role, preferences: preferences ?? this.preferences);
 }
 
 class Session {
@@ -59,6 +98,14 @@ class AuthRepository {
     await tokens.write(TokenKeys.refresh, r['refreshToken'] as String);
     await tokens.write(TokenKeys.user, jsonEncode(user.toJson()));
     return Session(user: user);
+  }
+
+  /// Save the first-run answers (or any later edit). Merged server-side, so partial is fine.
+  Future<AppUser> savePreferences(UserPreferences prefs) async {
+    final r = await api.patchJson('/me', {'preferences': prefs.toJson()});
+    final user = AppUser.fromJson(r);
+    await tokens.write(TokenKeys.user, jsonEncode(user.toJson()));
+    return user;
   }
 
   Future<void> signOut() async {
@@ -109,6 +156,19 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   Future<void> signIn() async {
     final s = await ref.read(authRepositoryProvider).signInWithGoogle();
     state = AsyncData(s);
+  }
+
+  /// Persist the first-run answers and reflect them in the session immediately.
+  Future<void> savePreferences(UserPreferences prefs) async {
+    final current = state.valueOrNull;
+    // optimistic: onboarding must finish even on a bad connection, and the server merges
+    if (current != null) state = AsyncData(Session(user: current.user.copyWith(preferences: prefs)));
+    try {
+      final user = await ref.read(authRepositoryProvider).savePreferences(prefs);
+      state = AsyncData(Session(user: user));
+    } catch (_) {
+      // keep the optimistic value; the next /me refresh reconciles it
+    }
   }
 
   Future<void> signOut() async {

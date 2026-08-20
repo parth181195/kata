@@ -6,11 +6,15 @@ enum RecipeSource { seed, imported, camera, published }
 enum LibrarySort { newest, popular, az }
 
 class LibraryFilter {
-  const LibraryFilter({this.query = '', this.sensor, this.filmSim, this.mono, this.verifiedOnly = false, this.sort = LibrarySort.newest});
+  const LibraryFilter({this.query = '', this.sensor, this.filmSim, this.mono, this.families = const {}, this.verifiedOnly = false, this.sort = LibrarySort.newest});
   final String query;
   final String? sensor;
   final String? filmSim;
   final bool? mono;
+
+  /// Film-simulation families (see [FilmFamily]) the user picked during setup — a shortcut,
+  /// not a narrowing: empty means everything.
+  final Set<String> families;
   final bool verifiedOnly;
   final LibrarySort sort;
   LibraryFilter copyWith({
@@ -21,6 +25,7 @@ class LibraryFilter {
     bool clearFilmSim = false,
     bool? mono,
     bool clearMono = false,
+    Set<String>? families,
     bool? verifiedOnly,
     LibrarySort? sort,
   }) =>
@@ -29,6 +34,7 @@ class LibraryFilter {
         sensor: clearSensor ? null : (sensor ?? this.sensor),
         filmSim: clearFilmSim ? null : (filmSim ?? this.filmSim),
         mono: clearMono ? null : (mono ?? this.mono),
+        families: families ?? this.families,
         verifiedOnly: verifiedOnly ?? this.verifiedOnly,
         sort: sort ?? this.sort,
       );

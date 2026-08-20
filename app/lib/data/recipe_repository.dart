@@ -9,6 +9,7 @@ import 'package:ofr/ofr.dart';
 import '../core/net/api_client.dart';
 import 'local_db.dart';
 import 'recipe.dart';
+import '../core/auth/auth_repository.dart';
 import 'recipe_api.dart';
 
 export 'recipe_api.dart' show RecipeConflict, RecipeInvalid;
@@ -260,6 +261,7 @@ class RecipeRepository extends ChangeNotifier {
       if (f.mono != null && r.isMono != f.mono) return false;
       if (f.filmSim != null && r.ofr.filmSimulation != f.filmSim) return false;
       if (f.sensor != null && !r.ofr.sensors.contains(f.sensor)) return false;
+      if (f.families.isNotEmpty && !FilmFamily.simsFor(f.families).contains(r.ofr.filmSimulation)) return false;
       if (q.isNotEmpty) {
         final hay = '${r.name} ${r.ofr.filmSimulation} ${r.ofr.sourceAttribution ?? ''}'.toLowerCase();
         if (!hay.contains(q)) return false;
@@ -329,7 +331,12 @@ final recipeRepositoryProvider = ChangeNotifierProvider<RecipeRepository>((ref) 
   return repo;
 });
 
-final libraryFilterProvider = StateProvider<LibraryFilter>((_) => const LibraryFilter());
+/// Seeded from the signed-in user's setup answers: a new user lands on katas for their own
+/// sensor rather than all 340. The chip stays visible and clearable — never a silent filter.
+final libraryFilterProvider = StateProvider<LibraryFilter>((ref) {
+  final sensor = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensor;
+  return sensor == null ? const LibraryFilter() : LibraryFilter(sensor: sensor);
+});
 
 final filteredRecipesProvider = Provider<List<Recipe>>((ref) {
   final repo = ref.watch(recipeRepositoryProvider);

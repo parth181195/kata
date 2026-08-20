@@ -8,6 +8,7 @@ import 'package:kata_ui/kata_ui.dart';
 
 import 'core/auth/auth_repository.dart';
 import 'features/auth/sign_in_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'desktop/desktop_shell.dart';
 import 'features/camera/camera_screen.dart';
 import 'features/camera/supported_cameras_screen.dart';
@@ -63,6 +64,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (s.isLoading) return loc == '/boot' ? null : '/boot?from=${Uri.encodeComponent(state.uri.toString())}';
       final signedIn = s.valueOrNull != null;
       if (!signedIn) return (loc == '/signin' || _debugRoutes.contains(loc)) ? null : '/signin';
+      // first sign-in: ask the two setup questions before the library (skippable, once)
+      final onboarded = s.valueOrNull!.user.preferences.onboarded;
+      if (!onboarded && loc != '/onboarding' && !_debugRoutes.contains(loc)) return '/onboarding';
+      if (onboarded && loc == '/onboarding') return '/library';
       if (loc == '/signin') return '/library';
       if (loc == '/boot') {
         final from = state.uri.queryParameters['from'];
@@ -73,6 +78,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/boot', pageBuilder: (_, s) => _page(s, const BootScreen())),
       GoRoute(path: '/signin', pageBuilder: (_, s) => _page(s, const SignInScreen())),
+      GoRoute(path: '/onboarding', pageBuilder: (_, s) => _page(s, const OnboardingScreen())),
       GoRoute(path: '/recipe/:id', pageBuilder: (_, s) => _page(s, RecipeDetailScreen(id: s.pathParameters['id']!))),
       GoRoute(path: '/new', pageBuilder: (_, s) => _page(s, RecipeEditorScreen(from: s.uri.queryParameters['from']))),
       GoRoute(path: '/edit/:id', pageBuilder: (_, s) => _page(s, RecipeEditorScreen(id: s.pathParameters['id']!))),

@@ -174,17 +174,38 @@ class FakeGoogle implements GoogleIdTokenProvider {
 
 const testUser = {'id': 'u1', 'email': 'parth@example.com', 'displayName': 'Parth Jansari', 'photoUrl': null, 'role': 'user'};
 
+/// Most tests are about a settled account, so the default fixture has already answered the
+/// first-run questions. Pass `preferences: const {}` to get a brand-new user.
+const onboardedPrefs = {'onboardedAt': '2026-08-01T00:00:00.000Z'};
+
+Map<String, dynamic> userWith(Map<String, dynamic>? preferences) =>
+    {...testUser, 'preferences': preferences ?? onboardedPrefs};
+
 /// Fake HTTP that answers the auth endpoints; add more scripts per test via [http.on].
-FakeAdapter authAdapter() {
+FakeAdapter authAdapter([Map<String, dynamic>? preferences]) {
   final http = FakeAdapter();
-  http.on((o) => o.path == '/auth/google', (_) => FakeAdapter.json(200, {'accessToken': 'A1', 'refreshToken': 'R1', 'expiresIn': 900, 'user': testUser}));
+  // The real server persists a PATCH, so later GETs must see it — a stateless fake lets the
+  // background /me refresh race in and wipe whatever was just saved.
+  var current = userWith(preferences);
+  http.on((o) => o.path == '/auth/google', (_) => FakeAdapter.json(200, {'accessToken': 'A1', 'refreshToken': 'R1', 'expiresIn': 900, 'user': current}));
+  // PATCH /me echoes the merged user, like the server does
+  http.on((o) => o.path == '/me' && o.method == 'PATCH', (o) {
+    final body = (o.data as Map?)?.cast<String, dynamic>() ?? const {};
+    final incoming = (body['preferences'] as Map?)?.cast<String, dynamic>();
+    current = {
+      ...current,
+      ...body,
+      if (incoming != null) 'preferences': {...(current['preferences'] as Map).cast<String, dynamic>(), ...incoming},
+    };
+    return FakeAdapter.json(200, current);
+  });
   http.on((o) => o.path == '/auth/logout', (_) => FakeAdapter.json(204, {}));
-  http.on((o) => o.path == '/me', (_) => FakeAdapter.json(200, testUser));
+  http.on((o) => o.path == '/me', (_) => FakeAdapter.json(200, current));
   return http;
 }
 
 /// Pumps the full app with an in-memory db + fake API seeded from [seedJson]. Returns the container for reading providers.
-Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google, FakeRecipeApi? api, bool reduceMotion = true, bool awaitSync = true}) async {
+Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/library', bool signedIn = true, Map<String, dynamic>? preferences, List<Override> overrides = const [], FakeAdapter? http, FakeGoogle? google, FakeRecipeApi? api, bool reduceMotion = true, bool awaitSync = true}) async {
   // looping loaders (dots, skeleton pulse) never settle; run under reduce-motion unless a test wants motion
   if (reduceMotion) {
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
@@ -200,9 +221,9 @@ Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/l
   if (signedIn) {
     await tokens.write(TokenKeys.access, 'A1');
     await tokens.write(TokenKeys.refresh, 'R1');
-    await tokens.write(TokenKeys.user, jsonEncode(testUser));
+    await tokens.write(TokenKeys.user, jsonEncode(userWith(preferences)));
   }
-  final adapter = http ?? authAdapter();
+  final adapter = http ?? authAdapter(preferences);
   final g = google ?? FakeGoogle();
   final container = ProviderContainer(overrides: [
     kataDbProvider.overrideWithValue(db),

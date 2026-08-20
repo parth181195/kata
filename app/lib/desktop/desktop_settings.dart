@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe_repository.dart';
+import '../features/onboarding/onboarding_state.dart';
 import 'desktop_import.dart';
 import 'slot_backups.dart';
 
@@ -33,6 +34,13 @@ class DesktopSettings extends ConsumerWidget {
           KataSectionHeader('Account'),
           const SizedBox(height: 8),
           KataListRow(title: user?.displayName ?? 'Not signed in', sub: user?.email, value: user?.isAdmin == true ? 'Admin' : null),
+          if (user != null)
+            KataListRow(
+              title: 'My camera & looks',
+              sub: 'What the library opens on',
+              value: user.preferences.body ?? user.preferences.sensor ?? 'SET UP',
+              onTap: () => ref.read(redoOnboardingProvider.notifier).state = true,
+            ),
           if (user != null) KataListRow(title: 'Sign out', onTap: () => ref.read(sessionProvider.notifier).signOut()),
 
           const SizedBox(height: 20),

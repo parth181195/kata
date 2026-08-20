@@ -5,6 +5,7 @@ import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
 import '../../core/prefs/settings.dart';
+import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_repository.dart';
 import 'recipe_card.dart';
@@ -95,7 +96,40 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 child: Row(children: [
                   KataChip(label: 'Verified', dot: true, selected: filter.verifiedOnly, onTap: () => _setFilter((f) => f.copyWith(verifiedOnly: !f.verifiedOnly))),
                   const SizedBox(width: 7),
-                  KataChip(label: 'X-Trans V', selected: filter.sensor == 'X-Trans V', onTap: () => _setFilter((f) => f.sensor == 'X-Trans V' ? f.copyWith(clearSensor: true) : f.copyWith(sensor: 'X-Trans V'))),
+                  // the user's own sensor when they told us, so a seeded filter is visible
+                  // and clearable rather than a library that mysteriously looks small
+                  ...(() {
+                    final mine = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensor;
+                    final sensor = filter.sensor ?? mine ?? 'X-Trans V';
+                    return [
+                      KataChip(
+                        label: sensor,
+                        selected: filter.sensor == sensor,
+                        onTap: () => _setFilter((f) => f.sensor == sensor ? f.copyWith(clearSensor: true) : f.copyWith(sensor: sensor)),
+                        onRemove: filter.sensor == null ? null : () => _setFilter((f) => f.copyWith(clearSensor: true)),
+                      ),
+                      const SizedBox(width: 7),
+                    ];
+                  })(),
+                  // one-tap shortcuts for the looks they asked for during setup
+                  ...(() {
+                    final picked = ref.watch(sessionProvider).valueOrNull?.user.preferences.filmSimFamilies ?? const <String>[];
+                    return [
+                      for (final id in picked)
+                        if (FilmFamily.byId(id) case final fam?) ...[
+                          KataChip(
+                            label: fam.label,
+                            selected: filter.families.contains(id),
+                            onTap: () => _setFilter((f) {
+                              final next = {...f.families};
+                              next.contains(id) ? next.remove(id) : next.add(id);
+                              return f.copyWith(families: next);
+                            }),
+                          ),
+                          const SizedBox(width: 7),
+                        ],
+                    ];
+                  })(),
                   const SizedBox(width: 7),
                   KataChip(label: 'B&W', selected: filter.mono == true, onTap: () => _setFilter((f) => f.mono == true ? f.copyWith(clearMono: true) : f.copyWith(mono: true))),
                   const SizedBox(width: 7),
