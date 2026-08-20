@@ -46,8 +46,14 @@ export const useMine = () => {
 };
 
 export interface OfrIssue { field: string; message: string; severity: string }
-export class PublishConflict extends Error { constructor(readonly existingId: string) { super('exists'); } }
-export class PublishInvalid extends Error { constructor(readonly issues: OfrIssue[]) { super('invalid'); } }
+export class PublishConflict extends Error {
+  readonly existingId: string;
+  constructor(existingId: string) { super('exists'); this.existingId = existingId; }
+}
+export class PublishInvalid extends Error {
+  readonly issues: OfrIssue[];
+  constructor(issues: OfrIssue[]) { super('invalid'); this.issues = issues; }
+}
 
 export function usePublish() {
   const { client: api } = useAuth();

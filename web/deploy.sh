@@ -1,21 +1,29 @@
 #!/usr/bin/env bash
 # Ship the landing page (and optionally an APK and/or the admin SPA) to the VM.
-# Usage: web/deploy.sh [--apk app/build/app/outputs/flutter-apk/app-release.apk] [--admin] [--no-landing]
+# Usage: web/deploy.sh [--apk app/build/app/outputs/flutter-apk/app-release.apk] [--admin] [--lib] [--no-landing]
 set -euo pipefail
 HOST=${KATA_HOST:-root@YOUR.VM.IP}
 DIR=/opt/kata/web
 ADMIN_DIR=/opt/kata/admin
 cd "$(dirname "$0")"
-APK=""; ADMIN=0; LANDING=1
+APK=""; ADMIN=0; LIB=0; LANDING=1
 while [ $# -gt 0 ]; do case "$1" in
   --apk) APK="$2"; shift 2;;
   --admin) ADMIN=1; shift;;
+  --lib) LIB=1; shift;;
   --no-landing) LANDING=0; shift;;
   *) echo "unknown arg $1" >&2; exit 2;;
 esac; done
 
 if [ "$LANDING" = 1 ]; then
-  rsync -az --delete --exclude downloads --exclude kata.apk landing/ "$HOST:$DIR/"
+  rsync -az --delete --exclude downloads --exclude kata.apk --exclude /library landing/ "$HOST:$DIR/"
+fi
+
+if [ "$LIB" = 1 ]; then
+  (cd lib && npm ci --no-audit --no-fund >/dev/null && npm run build >/dev/null)
+  ssh "$HOST" "mkdir -p $DIR/library"
+  rsync -az --delete lib/dist/ "$HOST:$DIR/library/"
+  curl -fsS -o /dev/null -w 'weblib %{http_code}\n' https://kata.parthjansari.dev/library/
 fi
 
 if [ "$ADMIN" = 1 ]; then
