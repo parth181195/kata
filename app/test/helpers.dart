@@ -187,6 +187,7 @@ Future<ProviderContainer> pumpKata(WidgetTester t, {String initialLocation = '/l
     kataDbProvider.overrideWithValue(db),
     recipeRepositoryProvider.overrideWith((_) => repo),
     initialLocationProvider.overrideWithValue(initialLocation),
+    desktopModeProvider.overrideWithValue(false), // tests exercise the phone shell unless stated
     tokenStoreProvider.overrideWithValue(tokens),
     apiClientProvider.overrideWith((ref) => ApiClient(tokens: tokens, base: 'https://t', adapter: adapter, onSessionLost: () => ref.read(sessionLostProvider.notifier).state++)),
     googleIdTokenProvider.overrideWithValue(g),

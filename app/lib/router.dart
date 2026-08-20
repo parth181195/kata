@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +8,7 @@ import 'package:kata_ui/kata_ui.dart';
 
 import 'core/auth/auth_repository.dart';
 import 'features/auth/sign_in_screen.dart';
+import 'desktop/desktop_shell.dart';
 import 'features/camera/camera_screen.dart';
 import 'features/camera/supported_cameras_screen.dart';
 import 'features/debug/kit_screen.dart';
@@ -43,7 +47,11 @@ class BootScreen extends StatelessWidget {
   }
 }
 
+/// Overridable so widget tests (which run on a Linux host) can force the phone shell.
+final desktopModeProvider = Provider<bool>((_) => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows));
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final isDesktop = ref.read(desktopModeProvider);
   final session = ValueNotifier<AsyncValue<Session?>>(ref.read(sessionProvider));
   ref.listen(sessionProvider, (_, v) => session.value = v);
   return GoRouter(
@@ -72,6 +80,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/kit', pageBuilder: (_, s) => _page(s, const KitScreen())),
       GoRoute(path: '/cameras', pageBuilder: (_, s) => _page(s, const SupportedCamerasScreen())),
       GoRoute(path: '/scan', pageBuilder: (_, s) => _page(s, const ScanScreen())),
+      if (isDesktop)
+        GoRoute(path: '/library', pageBuilder: (_, s) => _page(s, const DesktopShell()))
+      else
       StatefulShellRoute.indexedStack(
         pageBuilder: (_, s, shell) => _page(s, ShellScaffold(shell: shell)),
         branches: [
