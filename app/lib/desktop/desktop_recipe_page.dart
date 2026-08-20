@@ -18,13 +18,19 @@ import 'desktop_shell.dart';
 /// The whole kata on one screen: big photography, every one of the 22 fields at once, and
 /// the actions. The side pane is for skimming; this is for reading — and for looking at
 /// somebody's photos at a size that does them justice.
-Future<void> showRecipeFullScreen(BuildContext context, Recipe recipe) => Navigator.of(context, rootNavigator: true).push(
-      PageRouteBuilder<void>(
-        transitionDuration: KataMotion.page,
-        reverseTransitionDuration: KataMotion.page,
-        pageBuilder: (_, a, _) => FadeTransition(opacity: a, child: _RecipePage(recipe: recipe)),
-      ),
-    );
+Future<void> showRecipeFullScreen(BuildContext context, Recipe recipe) {
+  // The page is pushed on the root navigator, so it sits outside the shell's subtree and
+  // DesktopShell.of() would find nothing there — capture the controller while we still can,
+  // or "Duplicate & edit" just pops back to the library.
+  final shell = DesktopShell.of(context);
+  return Navigator.of(context, rootNavigator: true).push(
+    PageRouteBuilder<void>(
+      transitionDuration: KataMotion.page,
+      reverseTransitionDuration: KataMotion.page,
+      pageBuilder: (_, a, _) => FadeTransition(opacity: a, child: _RecipePage(recipe: recipe, shell: shell)),
+    ),
+  );
+}
 
 /// One frame at a time, filling the pane — a wall of scrolling thumbnails is a contact
 /// sheet, not a look at somebody's photograph. Arrows, dots, keyboard, and click to zoom.
@@ -158,8 +164,9 @@ class _Arrow extends StatelessWidget {
 }
 
 class _RecipePage extends ConsumerWidget {
-  const _RecipePage({required this.recipe});
+  const _RecipePage({required this.recipe, this.shell});
   final Recipe recipe;
+  final DesktopShellController? shell;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -204,7 +211,6 @@ class _RecipePage extends ConsumerWidget {
               height: 34,
               expand: false,
               onPressed: () {
-                final shell = DesktopShell.of(context);
                 Navigator.of(context).pop();
                 shell?.openEditor(id: mine ? r.id : null, from: mine ? null : r.id);
               },

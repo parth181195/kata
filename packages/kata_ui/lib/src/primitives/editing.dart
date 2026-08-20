@@ -118,11 +118,12 @@ class _BigRuler extends StatelessWidget {
           onHorizontalDragUpdate: (d) => scrub(d.localPosition),
           child: SizedBox(
             // width must be explicit: inside a start-aligned Column the constraints are loose,
-            // so a bare CustomPaint collapsed to zero and pinned the marker at the left edge
+            // so a bare CustomPaint collapsed to zero and pinned the marker at the left edge.
+            // The height is generous on purpose — this is a grab target, not a read-out.
             width: double.infinity,
-            height: 22,
+            height: 34,
             child: CustomPaint(
-              size: Size(box.maxWidth, 22),
+              size: Size(box.maxWidth, 34),
               painter: _BigRulerPainter(p.hairline, p.fg, p.muted, t, zeroT),
             ),
           ),
@@ -140,17 +141,28 @@ class _BigRulerPainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
     final tp = Paint()..color = tick..strokeWidth = 1;
+    final base = s.height - 16; // the band above the handle
     for (var x = 0.0; x <= s.width; x += 7) {
-      c.drawLine(Offset(x, s.height - 10), Offset(x, s.height), tp);
+      c.drawLine(Offset(x, base - 8), Offset(x, base), tp);
     }
     if (zeroT != null) {
       final zx = zeroT! * s.width;
-      c.drawLine(Offset(zx, s.height - 14), Offset(zx, s.height), Paint()..color = zero..strokeWidth = 1);
+      c.drawLine(Offset(zx, base - 13), Offset(zx, base), Paint()..color = zero..strokeWidth = 1);
     }
-    // a grabbable marker, not a hairline: this is a control now, not a read-out
-    final x = (t * s.width).clamp(1.5, s.width - 1.5);
-    c.drawLine(Offset(x, 0), Offset(x, s.height), Paint()..color = marker..strokeWidth = 3);
-    c.drawRect(Rect.fromCenter(center: Offset(x, 4), width: 9, height: 8), Paint()..color = marker);
+    // A handle you can actually put a finger or cursor on: a wide block riding the bottom of
+    // the scale, with a stem up through the ticks so the exact position stays readable.
+    const handleW = 16.0;
+    const handleH = 14.0;
+    final x = (t * s.width).clamp(handleW / 2, s.width - handleW / 2);
+    final mp = Paint()..color = marker;
+    c.drawLine(Offset(x, 0), Offset(x, s.height - handleH), Paint()..color = marker..strokeWidth = 2);
+    c.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(x - handleW / 2, s.height - handleH, handleW, handleH),
+        const Radius.circular(3),
+      ),
+      mp,
+    );
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme.dart';
 import '../tokens.dart';
 
@@ -98,6 +99,50 @@ class KataSearchField extends StatelessWidget {
             ),
           ),
         ),
+      ]),
+    );
+  }
+}
+
+/// Two or three named choices in one pill — reads its state as words rather than a switch
+/// position, so nobody has to learn which side means what. (KataSegmented in fields.dart is
+/// the wider tab strip; this is the inline control that replaces a toggle.)
+class KataChoice<T> extends StatelessWidget {
+  const KataChoice({super.key, required this.values, required this.selected, required this.label, required this.onChanged, this.height = 30});
+  final List<T> values;
+  final T selected;
+  final String Function(T) label;
+  final ValueChanged<T> onChanged;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    return Container(
+      height: height,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(height / 2),
+        border: Border.all(color: p.hairline, width: KataStroke.hairline),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        for (final v in values)
+          GestureDetector(
+            onTap: v == selected ? null : () => onChanged(v),
+            child: AnimatedContainer(
+              duration: KataMotion.tap,
+              padding: EdgeInsets.symmetric(horizontal: height * 0.42),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(height / 2),
+                color: v == selected ? p.fg : Colors.transparent,
+              ),
+              child: Text(
+                label(v).toUpperCase(),
+                style: KataType.monoStyle(size: height * 0.32, weight: FontWeight.w500, color: v == selected ? p.bg : p.muted, letterSpacing: 0.1),
+              ),
+            ),
+          ),
       ]),
     );
   }

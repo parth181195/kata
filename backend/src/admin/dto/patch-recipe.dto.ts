@@ -24,7 +24,8 @@ export class PatchRecipeDto {
   sensors?: string[];
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(6)
+  // seeded katas carry a post's full set of sample frames, not a token few
+  @ArrayMaxSize(24)
   @IsUrl({ require_protocol: true }, { each: true })
   imageUrls?: string[];
 }

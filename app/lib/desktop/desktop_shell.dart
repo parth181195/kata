@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:desktop_drop/desktop_drop.dart';
@@ -8,6 +9,7 @@ import 'package:ofr/ofr.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
+import '../data/recipe_repository.dart';
 import 'desktop_camera.dart';
 import 'desktop_editor.dart';
 import 'desktop_import.dart';
@@ -41,6 +43,10 @@ abstract class DesktopShellController {
 }
 
 class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopShellController {
+  /// A phone gets pull-to-refresh; a desktop window has no such gesture. Arriving at a list
+  /// is when you expect it to be current, so that is the trigger — window focus fires far too
+  /// often to hang a network call on.
+  static const _resyncAfter = Duration(minutes: 2);
   DesktopSection _section = DesktopSection.library;
   DesktopSection _cameFrom = DesktopSection.library;
   late final AppLifecycleListener _lifecycle;
@@ -94,6 +100,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
       _editorDirty = false;
       _section = s;
     });
+    if (s == DesktopSection.library || s == DesktopSection.saved || s == DesktopSection.mine) _resync();
   }
 
   @override
@@ -105,11 +112,25 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(cameraServiceProvider.notifier).enableAutoConnect();
     });
-    _lifecycle = AppLifecycleListener(onExitRequested: () async {
-      if (!await _mayLeaveEditor()) return AppExitResponse.cancel;
-      await ref.read(cameraServiceProvider.notifier).disconnect();
-      return AppExitResponse.exit;
+    // freshen once at launch; after that, coming back to a list does it
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _resync();
     });
+    _lifecycle = AppLifecycleListener(
+      onExitRequested: () async {
+      if (!await _mayLeaveEditor()) return AppExitResponse.cancel;
+        await ref.read(cameraServiceProvider.notifier).disconnect();
+        return AppExitResponse.exit;
+      },
+    );
+  }
+
+  /// Silent: no spinner, no interruption — the list just becomes current.
+  void _resync() {
+    final repo = ref.read(recipeRepositoryProvider);
+    final last = repo.lastSyncedAt;
+    if (repo.syncing) return;
+    if (last == null || DateTime.now().difference(last) > _resyncAfter) unawaited(repo.sync());
   }
 
   @override

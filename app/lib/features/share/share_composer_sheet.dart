@@ -128,8 +128,25 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
         const SizedBox(height: 14),
         KataSectionHeader('Card options'),
         const SizedBox(height: 4),
-        KataListRow(title: 'Invert card', value: _inverted ? 'Black' : 'White', onTap: () => setState(() => _inverted = !_inverted), trailing: _Toggle(on: _inverted, onChanged: (v) => setState(() => _inverted = v))),
-        KataListRow(title: 'Embed Kata Code', value: _embed ? 'On' : 'Off', onTap: () => setState(() => _embed = !_embed), trailing: _Toggle(on: _embed, onChanged: (v) => setState(() => _embed = v))),
+        // named choices rather than a switch: "WHITE | BLACK" needs no interpreting
+        KataListRow(
+          title: 'Card',
+          trailing: KataChoice<bool>(
+            values: const [false, true],
+            selected: _inverted,
+            label: (v) => v ? 'Black' : 'White',
+            onChanged: (v) => setState(() => _inverted = v),
+          ),
+        ),
+        KataListRow(
+          title: 'Kata Code',
+          trailing: KataChoice<bool>(
+            values: const [true, false],
+            selected: _embed,
+            label: (v) => v ? 'Shown' : 'Hidden',
+            onChanged: (v) => setState(() => _embed = v),
+          ),
+        ),
         KataListRow(title: 'Credit', value: _credit),
         const SizedBox(height: 10),
         Row(children: [
@@ -161,24 +178,3 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   }
 }
 
-class _Toggle extends StatelessWidget {
-  const _Toggle({required this.on, required this.onChanged});
-  final bool on;
-  final ValueChanged<bool> onChanged;
-  @override
-  Widget build(BuildContext context) {
-    final p = context.kata;
-    return GestureDetector(
-      onTap: () => onChanged(!on),
-      child: AnimatedContainer(
-        duration: KataMotion.tap,
-        width: 38,
-        height: 22,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(11), color: on ? p.fg : Colors.transparent, border: Border.all(color: on ? p.fg : p.hairline, width: KataStroke.hairline)),
-        alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: on ? p.bg : p.muted)),
-      ),
-    );
-  }
-}

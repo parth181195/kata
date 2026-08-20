@@ -34,11 +34,12 @@ void main() {
     final payload = t.widget<Text>(find.byKey(const ValueKey('payload'))).data!;
     expect(payload, startsWith('kata1:CC,DR400'));
     expect(KataCode.decode(payload).recipe.name, 'Kodachrome 64');
-    // invert toggles palette without breaking layout
-    await t.ensureVisible(find.text('Invert card'));
+    // the card's palette is a named choice now, not a switch: pick BLACK by name
+    await t.ensureVisible(find.text('BLACK'));
     await t.pumpAndSettle();
-    await t.tap(find.text('Invert card'));
+    await t.tap(find.text('BLACK'));
     await t.pumpAndSettle();
+    expect(find.text('BLACK'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 

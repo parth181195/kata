@@ -24,6 +24,10 @@ export function Library({ mode = 'library' }: { mode?: 'library' | 'saved' }) {
   const recipes = useRecipes(filter);
   const favs = useFavourites();
   const saved = useSavedRecipes();
+  // arriving at the library is when you expect it to be current — the web has no
+  // pull-to-refresh, and refetching on every window focus is far too eager
+  const refetch = recipes.refetch;
+  useEffect(() => { void refetch(); }, [refetch]);
   const feed = recipes.data?.pages.flatMap((p) => p.items) ?? [];
   const rows = mode === 'saved' ? (saved.data ?? []) : feed;
   const active = rows.find((r) => r.id === sel) ?? rows[0];
