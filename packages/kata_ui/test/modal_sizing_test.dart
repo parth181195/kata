@@ -52,6 +52,8 @@ void main() {
   });
 
   _rowTests();
+  _stepperTests();
+  _rulerScaleTests();
 
   testWidgets('a sheet still returns its value from either presentation', (t) async {
     String? got;
@@ -92,5 +94,76 @@ void _rowTests() {
     expect(title.style?.color, p.bg, reason: 'text is knocked out of the white ground');
     final grounds = t.widgetList<DecoratedBox>(find.descendant(of: find.widgetWithText(KataListRow, 'X-S20'), matching: find.byType(DecoratedBox)));
     expect(grounds.any((d) => (d.decoration as BoxDecoration).color == p.fg), isTrue, reason: 'and the ground is white');
+  });
+}
+
+/// The stepper's ruler: it has to *show* the value and let you drag it.
+void _stepperTests() {
+  testWidgets('the ruler marker tracks the value and can be dragged', (t) async {
+    num value = 0;
+    t.view.physicalSize = const Size(800, 400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(MaterialApp(
+      theme: KataTheme.dark(),
+      home: Scaffold(
+        body: StatefulBuilder(
+          builder: (_, setState) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start, // the layout that used to collapse it
+            children: [
+              KataStepper(label: 'Shadow', value: value, min: -9, max: 9, onChanged: (v) => setState(() => value = v)),
+            ],
+          ),
+        ),
+      ),
+    ));
+    await t.pumpAndSettle();
+
+    // the bar fills its row rather than collapsing to nothing
+    final bar = find.byWidgetPredicate((w) => w is CustomPaint && w.size.width > 200);
+    expect(bar, findsWidgets, reason: 'a zero-width ruler pins the marker at the left forever');
+
+    // dragging to the far right sets the maximum
+    final rect = t.getRect(bar.first);
+    await t.tapAt(Offset(rect.right - 2, rect.center.dy));
+    await t.pumpAndSettle();
+    expect(value, 9);
+
+    await t.tapAt(Offset(rect.left + 2, rect.center.dy));
+    await t.pumpAndSettle();
+    expect(value, -9);
+
+    await t.dragFrom(Offset(rect.left + 2, rect.center.dy), Offset(rect.width / 2, 0));
+    await t.pumpAndSettle();
+    expect(value, 0, reason: 'dragging to the middle of a ±9 range lands on zero');
+  });
+}
+
+/// A scale is only useful if its zero sits where zero actually is.
+void _rulerScaleTests() {
+  testWidgets('the 0 label lands on its tick, not in the middle of the row', (t) async {
+    t.view.physicalSize = const Size(600, 300);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(MaterialApp(
+      theme: KataTheme.dark(),
+      home: const Scaffold(
+        body: Padding(
+          padding: EdgeInsets.all(20),
+          // -2…+4: zero is a third along, not half
+          child: SpecCell(SpecItem('Highlight', '+0.5', rulerT: 0.416, rulerMin: '-2', rulerMax: '+4')),
+        ),
+      ),
+    ));
+    await t.pumpAndSettle();
+
+    final row = t.getRect(find.text('-2'));
+    final end = t.getRect(find.text('+4'));
+    final zero = t.getRect(find.text('0'));
+    final span = end.right - row.left;
+    final at = (zero.center.dx - row.left) / span;
+    expect(at, closeTo(1 / 3, 0.06), reason: 'zero sits a third along a -2…+4 scale');
   });
 }

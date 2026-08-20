@@ -178,7 +178,7 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => ref.read(desktopSelectedRecipeProvider.notifier).state = r.id,
-          onDoubleTap: () => showRecipeFullScreen(context, r), // open it properly
+          onDoubleTap: () => showRecipeFullScreen(context, r), // open the recipe's own page
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
               child: Stack(fit: StackFit.expand, children: [
@@ -245,7 +245,7 @@ class _DetailPane extends ConsumerWidget {
       ]),
       const SizedBox(height: 8),
       KataPillButton(
-        label: 'Open full screen',
+        label: 'Open recipe page',
         kind: KataButtonKind.secondary,
         display: false,
         height: 40,

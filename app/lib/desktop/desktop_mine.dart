@@ -156,14 +156,17 @@ class _DesktopMineState extends ConsumerState<DesktopMine> {
         child: Row(children: [
           SizedBox(
             width: 34,
-            child: _Check(
-              on: rows.isNotEmpty && rows.every((r) => _selected.contains(r.id)),
-              onTap: () => setState(() {
-                final allOn = rows.every((r) => _selected.contains(r.id));
-                for (final r in rows) {
-                  allOn ? _selected.remove(r.id) : _selected.add(r.id);
-                }
-              }),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _Check(
+                on: rows.isNotEmpty && rows.every((r) => _selected.contains(r.id)),
+                onTap: () => setState(() {
+                  final allOn = rows.every((r) => _selected.contains(r.id));
+                  for (final r in rows) {
+                    allOn ? _selected.remove(r.id) : _selected.add(r.id);
+                  }
+                }),
+              ),
             ),
           ),
           _head(p, 'KATA', flex: 4),
@@ -240,7 +243,13 @@ class _DesktopMineState extends ConsumerState<DesktopMine> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
           child: Row(children: [
-            SizedBox(width: 34, child: _Check(on: on, onTap: () => setState(() => on ? _selected.remove(r.id) : _selected.add(r.id)))),
+            SizedBox(
+              width: 34,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _Check(on: on, onTap: () => setState(() => on ? _selected.remove(r.id) : _selected.add(r.id))),
+              ),
+            ),
             Expanded(
               flex: 4,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -324,9 +333,11 @@ class _Check extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
+      // the ink must not spill into the name column beside it
+      customBorder: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
       child: Container(
-        width: 16,
-        height: 16,
+        width: 17,
+        height: 17,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: on ? p.fg : p.hairline, width: on ? 1.5 : 1),

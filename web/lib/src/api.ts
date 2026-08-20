@@ -31,6 +31,24 @@ export const useFavourites = () => {
   return useQuery({ queryKey: ['favs'], queryFn: () => api.get<{ ids: string[] }>('/me/favourites'), enabled: status === 'signedIn', select: (d) => new Set(d.ids) });
 };
 
+/// Saved katas, fetched by id. Filtering the feed's current page only ever showed the
+/// favourites that happened to be on it — everything deeper stayed invisible.
+export const useSavedRecipes = () => {
+  const { client: api, status } = useAuth();
+  const favs = useFavourites();
+  const ids = [...(favs.data ?? [])].sort();
+  return useQuery({
+    queryKey: ['saved', ids],
+    enabled: status === 'signedIn' && favs.isSuccess,
+    queryFn: async () => {
+      const rows = await Promise.all(
+        ids.map((id) => api.get<RecipeDto>(`/recipes/${id}`).catch(() => null)),
+      );
+      return rows.filter((r): r is RecipeDto => r !== null);
+    },
+  });
+};
+
 export function useToggleFavourite() {
   const { client: api } = useAuth();
   const qc = useQueryClient();

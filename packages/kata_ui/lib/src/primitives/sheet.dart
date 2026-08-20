@@ -5,11 +5,14 @@ import '../theme.dart';
 import '../tokens.dart';
 
 class KataSheet extends StatelessWidget {
-  const KataSheet({super.key, this.eyebrow, this.title, required this.children, this.padding = const EdgeInsets.fromLTRB(20, 12, 20, 22)});
+  const KataSheet({super.key, this.eyebrow, this.title, required this.children, this.padding = const EdgeInsets.fromLTRB(20, 12, 20, 22), this.leading});
   final String? eyebrow;
   final String? title;
   final List<Widget> children;
   final EdgeInsets padding;
+
+  /// Shown beside the content when there's room (a card preview, say) instead of above it.
+  final Widget? leading;
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
@@ -28,7 +31,14 @@ class KataSheet extends StatelessWidget {
           if (title != null) ...[const SizedBox(height: 6), Text(title!.toUpperCase(), style: KataType.displayStyle(size: 22, color: p.fg))],
         ],
         const SizedBox(height: 16),
-        ...children,
+        if (leading == null)
+          ...children
+        else
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Flexible(child: leading!),
+            const SizedBox(width: 22),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children)),
+          ]),
       ]),
     );
   }
@@ -37,7 +47,7 @@ class KataSheet extends StatelessWidget {
 /// A sheet on a phone, a centred panel on anything desktop-sized. Bottom sheets rely on a
 /// thumb and a short screen; on a wide window they slide up from a corner of the user's
 /// vision and cover a fraction of it, so the same content is shown as a modal panel instead.
-Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dismissible = true}) {
+Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dismissible = true, double? maxWidth}) {
   final wide = MediaQuery.sizeOf(context).width >= KataLayout.sheetBreakpoint;
   if (!wide) {
     return showModalBottomSheet<T>(
@@ -65,7 +75,7 @@ Future<T?> showKataSheet<T>(BuildContext context, {required WidgetBuilder builde
         insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: p.hairline, width: KataStroke.hairline)),
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: KataLayout.sheetWidth, maxHeight: MediaQuery.sizeOf(c).height * 0.86),
+          constraints: BoxConstraints(maxWidth: maxWidth ?? KataLayout.sheetWidth, maxHeight: MediaQuery.sizeOf(c).height * 0.86),
           child: SingleChildScrollView(child: builder(c)),
         ),
       );

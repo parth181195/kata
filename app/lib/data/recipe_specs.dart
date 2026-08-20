@@ -18,7 +18,7 @@ class RecipeSpecs {
   static List<SpecItem> items(OfrRecipe r, {bool rulers = true}) {
     final mono = r.isMono;
     return [
-      SpecItem('Film Sim', r.filmSimulation, display: true),
+      SpecItem('Film Sim', r.filmSimulation.toUpperCase()),
       SpecItem('Dynamic Range', dr(r)),
       SpecItem('Grain', grain(r)),
       if (!mono) SpecItem('Color Chrome', (r.colorChromeEffect ?? 'Off').toUpperCase()),
@@ -27,8 +27,8 @@ class RecipeSpecs {
       SpecItem('WB Shift R/B', '${_signed(r.whiteBalanceRed)} / ${_signed(r.whiteBalanceBlue)}'),
       if (mono) SpecItem('Warm / Cool', _signed(r.monochromaticColorWarmCool ?? 0)),
       if (mono) SpecItem('Magenta / Green', _signed(r.monochromaticColorMagentaGreen ?? 0)),
-      SpecItem('Highlight', _signed(r.highlight), rulerT: rulers && r.highlight != null ? _t(r.highlight, -2, 4) : null),
-      SpecItem('Shadow', _signed(r.shadow), rulerT: rulers && r.shadow != null ? _t(r.shadow, -2, 4) : null),
+      SpecItem('Highlight', _signed(r.highlight), rulerT: rulers && r.highlight != null ? _t(r.highlight, -2, 4) : null, rulerMin: '-2', rulerMax: '+4'),
+      SpecItem('Shadow', _signed(r.shadow), rulerT: rulers && r.shadow != null ? _t(r.shadow, -2, 4) : null, rulerMin: '-2', rulerMax: '+4'),
       if (!mono) SpecItem('Color', _signed(r.color)),
       SpecItem('Sharpness', _signed(r.sharpness)),
       SpecItem('High ISO NR', _signed(r.highIsoNr)),

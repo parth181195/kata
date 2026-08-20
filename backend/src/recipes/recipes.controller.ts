@@ -45,12 +45,18 @@ export class RecipesController {
 
   @Get('by-hash/:hash')
   byHash(@Param('hash') hash: string, @CurrentUser() u: AuthUser) {
-    return this.recipes.byHash(hash, { includeHidden: u.role === 'admin' });
+    return this.recipes.byHash(hash, {
+      includeHidden: u.role === 'admin',
+      viewerId: u.id,
+    });
   }
 
   @Get(':id')
   get(@Param('id') id: string, @CurrentUser() u: AuthUser) {
-    return this.recipes.get(id, { includeHidden: u.role === 'admin' });
+    return this.recipes.get(id, {
+      includeHidden: u.role === 'admin',
+      viewerId: u.id,
+    });
   }
 
   // ---------------------------------------------------------- Stage 2: own recipes

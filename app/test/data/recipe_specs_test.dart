@@ -16,8 +16,8 @@ void main() {
       'Film Sim', 'Dynamic Range', 'Grain', 'Color Chrome', 'CC Blue', 'White Balance', 'WB Shift R/B',
       'Highlight', 'Shadow', 'Color', 'Sharpness', 'High ISO NR', 'Clarity',
     ]);
-    expect(items[0].value, 'Classic Chrome');
-    expect(items[0].display, isTrue);
+    expect(items[0].value, 'CLASSIC CHROME', reason: 'values are uppercase; the face is the body font now');
+    expect(items[0].display, isFalse, reason: 'Doto is for titles, not values people read');
     expect(items[2].value, 'WEAK/SM');
     expect(items[6].value, '+2 / −5');
     expect(items[7].value, '−1');

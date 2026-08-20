@@ -19,8 +19,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ListRecipesDto } from './dto/list-recipes.dto';
 import { RecipeDto, toRecipeDto } from './recipe.mapper';
 
-export interface ListOpts {
+interface ListOpts {
   includeHidden: boolean;
+}
+
+export interface ReadOpts extends ListOpts {
+  /** Who is asking, so an author can reach their own hidden kata. */
+  viewerId?: string;
 }
 
 export interface CreateRecipeInput {
@@ -98,22 +103,35 @@ export class RecipesService {
     return { items: page.map(toRecipeDto), nextCursor };
   }
 
-  async get(id: string, opts: ListOpts): Promise<RecipeDto> {
+  async get(id: string, opts: ReadOpts): Promise<RecipeDto> {
     const r = await this.prisma.recipe.findUnique({
       where: { id },
       include: { author: true },
     });
-    if (!r || (r.hidden && !opts.includeHidden)) throw new NotFoundException();
+    if (!r || !this.mayRead(r, opts)) throw new NotFoundException();
     return toRecipeDto(r);
   }
 
-  async byHash(hash: string, opts: ListOpts): Promise<RecipeDto> {
+  async byHash(hash: string, opts: ReadOpts): Promise<RecipeDto> {
     const r = await this.prisma.recipe.findUnique({
       where: { hash },
       include: { author: true },
     });
-    if (!r || (r.hidden && !opts.includeHidden)) throw new NotFoundException();
+    if (!r || !this.mayRead(r, opts)) throw new NotFoundException();
     return toRecipeDto(r);
+  }
+
+  /// Hiding removes a kata from the library, not from its author: you can always open your
+  /// own work — Mine lists it, so 404-ing the page it links to would be nonsense.
+  private mayRead(
+    r: { hidden: boolean; authorId: string | null },
+    opts: ReadOpts,
+  ): boolean {
+    if (!r.hidden) return true;
+    return (
+      opts.includeHidden === true ||
+      (!!opts.viewerId && r.authorId === opts.viewerId)
+    );
   }
 
   async createCurated(input: CreateRecipeInput): Promise<RecipeDto> {

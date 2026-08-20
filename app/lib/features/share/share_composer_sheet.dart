@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +13,8 @@ import 'card_renderer.dart';
 import 'card_templates.dart';
 
 /// Design 3a: preview · template row S1–S4 · options (invert, embed code, ratio) · `{ }` payload peek · Share card.
-Future<void> showShareComposer(BuildContext context, Recipe recipe) => showKataSheet<void>(context, builder: (_) => ShareComposerSheet(recipe: recipe));
+Future<void> showShareComposer(BuildContext context, Recipe recipe) =>
+    showKataSheet<void>(context, maxWidth: 980, builder: (_) => ShareComposerSheet(recipe: recipe));
 
 class ShareComposerSheet extends ConsumerStatefulWidget {
   const ShareComposerSheet({super.key, required this.recipe});
@@ -45,16 +49,36 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
 
   Future<void> _share() async {
     setState(() => _busy = true);
+    final name = '${widget.recipe.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').toLowerCase()}-${_template.code.toLowerCase()}.png';
+    Uint8List png;
     try {
-      final png = await CardRenderer(_boundary).toPng(pixelRatio: kCardPixelRatio);
-      final name = '${widget.recipe.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').toLowerCase()}-${_template.code.toLowerCase()}.png';
-      await Share.shareXFiles([XFile.fromData(png, name: name, mimeType: 'image/png')], subject: '${widget.recipe.name} — Kata recipe card', text: _spec.payload);
+      png = await CardRenderer(_boundary).toPng(pixelRatio: kCardPixelRatio);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        KataToast.show(context, 'Could not render the card');
+      }
+      return;
+    }
+    try {
+      if (_isDesktop) {
+        // no OS share sheet on Linux/Windows: hand over a file instead
+        final path = await FilePicker.platform.saveFile(dialogTitle: 'Save card', fileName: name, bytes: png);
+        if (path == null) return; // cancelled
+        final f = File(path);
+        if (!await f.exists() || (await f.length()) == 0) await f.writeAsBytes(png);
+        if (mounted) KataToast.show(context, 'Saved $name');
+      } else {
+        await Share.shareXFiles([XFile.fromData(png, name: name, mimeType: 'image/png')], subject: '${widget.recipe.name} — Kata recipe card', text: _spec.payload);
+      }
     } catch (e) {
-      if (mounted) KataToast.show(context, 'Could not render the card');
+      if (mounted) KataToast.show(context, 'Card made, but sharing failed — try Save instead');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
 
   Future<void> _copyCode() async {
     await Clipboard.setData(ClipboardData(text: _spec.payload));
@@ -79,18 +103,22 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
       ],
     ]);
 
+    final wide = MediaQuery.sizeOf(context).width >= 820;
+    final preview = Center(
+      child: Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: p.hairline)),
+        clipBehavior: Clip.antiAlias,
+        child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: wide ? scale.clamp(0.3, 1.0) : previewScale),
+      ),
+    );
+
     return KataSheet(
       eyebrow: 'Share card',
       title: widget.recipe.name,
+      // on a desktop window the card sits beside its options instead of above them
+      leading: wide ? preview : null,
       children: [
-        Center(
-          child: Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: p.hairline)),
-            clipBehavior: Clip.antiAlias,
-            child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: previewScale),
-          ),
-        ),
-        const SizedBox(height: 16),
+        if (!wide) ...[preview, const SizedBox(height: 16)],
         KataSectionHeader('Template'),
         const SizedBox(height: 8),
         SingleChildScrollView(

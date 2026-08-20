@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { specSummary, useDelete, useFavourites, useMine, usePublish, useRecipe, useRecipes, useReport, useToggleFavourite, PublishConflict, PublishInvalid, type Filter, type OfrIssue } from './api';
+import { specSummary, useDelete, useFavourites, useSavedRecipes, useMine, usePublish, useRecipe, useRecipes, useReport, useToggleFavourite, PublishConflict, PublishInvalid, type Filter, type OfrIssue } from './api';
 import { useAuth } from './AuthProvider';
 import { encodeKataCode } from './kataCode';
 import type { Ofr, RecipeDto } from './types';
@@ -13,6 +13,7 @@ const SENSORS = ['X-Trans V', 'X-Trans IV', 'X-Trans III', 'GFX', 'Bayer'];
 
 // ---------------------------------------------------------------- library (1g: cards left, detail pane right)
 export function Library({ mode = 'library' }: { mode?: 'library' | 'saved' }) {
+  const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const sel = params.get('r');
   const [q, setQ] = useState('');
@@ -22,8 +23,9 @@ export function Library({ mode = 'library' }: { mode?: 'library' | 'saved' }) {
   const filter = useMemo(() => ({ ...f, q: dq || undefined }), [f, dq]);
   const recipes = useRecipes(filter);
   const favs = useFavourites();
-  let rows = recipes.data?.pages.flatMap((p) => p.items) ?? [];
-  if (mode === 'saved') rows = rows.filter((r) => favs.data?.has(r.id));
+  const saved = useSavedRecipes();
+  const feed = recipes.data?.pages.flatMap((p) => p.items) ?? [];
+  const rows = mode === 'saved' ? (saved.data ?? []) : feed;
   const active = rows.find((r) => r.id === sel) ?? rows[0];
   return (
     <div className="content">
@@ -35,19 +37,45 @@ export function Library({ mode = 'library' }: { mode?: 'library' | 'saved' }) {
           {SENSORS.slice(0, 2).map((s) => <Chip key={s} on={f.sensor === s} onClick={() => setF((x) => ({ ...x, sensor: x.sensor === s ? undefined : s }))}>{s}</Chip>)}
           <Chip on={f.mono === true} onClick={() => setF((x) => ({ ...x, mono: x.mono ? undefined : true }))}>B&amp;W</Chip>
         </div>
-        {recipes.isLoading || (mode === 'saved' && favs.isLoading) ? <div className="empty"><Dots /></div> : rows.length === 0 ? <div className="empty">{mode === 'saved' ? 'Nothing saved yet — hit ♡ on any kata.' : 'No katas match.'}</div> : (
+        {(mode === 'saved' ? saved.isLoading || favs.isLoading : recipes.isLoading) ? <div className="empty"><Dots /></div> : rows.length === 0 ? <div className="empty">{mode === 'saved' ? 'Nothing saved yet — hit ♡ on any kata.' : 'No katas match.'}</div> : (
           <div className="cards">
             {rows.map((r) => (
-              <button key={r.id} type="button" className={active?.id === r.id ? 'card on' : 'card'} onClick={() => setParams((p) => { p.set('r', r.id); return p; }, { replace: true })}>
+              <button key={r.id} type="button" className={active?.id === r.id ? 'card on' : 'card'} onClick={() => setParams((p) => { p.set('r', r.id); return p; }, { replace: true })}
+                onDoubleClick={() => nav(`/r/${r.id}`)}
+                title="Double-click to open the full page">
                 <span className="ph">{r.imageUrls[0] && <img src={r.imageUrls[0]} alt="" loading="lazy" />}{r.reviewed && <span className="ver">✓</span>}</span>
                 <span className="meta"><span className="name">{r.name}</span><span className="sub">{r.filmSim} · {(r.ofr.dynamic_range as string) ?? '—'}</span></span>
               </button>
             ))}
           </div>
         )}
-        {recipes.hasNextPage && <div style={{ marginTop: 14 }}><button type="button" className="btn secondary" onClick={() => void recipes.fetchNextPage()}>{recipes.isFetchingNextPage ? <Dots /> : 'Load more'}</button></div>}
+        {mode !== 'saved' && recipes.hasNextPage && (
+          // keeps loading as you reach the end; the button stays for keyboard users
+          <InfiniteSentinel
+            busy={recipes.isFetchingNextPage}
+            onHit={() => { if (!recipes.isFetchingNextPage) void recipes.fetchNextPage(); }}
+          />
+        )}
       </div>
       <aside className="pane">{active ? <DetailPane r={active} /> : null}</aside>
+    </div>
+  );
+}
+
+/// Loads the next page when it scrolls into view — an explicit button is still rendered so
+/// keyboard and screen-reader users are not stuck at the fold.
+function InfiniteSentinel({ busy, onHit }: { busy: boolean; onHit: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && onHit()), { rootMargin: '600px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [onHit]);
+  return (
+    <div ref={ref} style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+      <button type="button" className="btn secondary" onClick={onHit} disabled={busy}>{busy ? <Dots /> : 'Load more'}</button>
     </div>
   );
 }
@@ -64,7 +92,7 @@ const SPEC: [string, string][] = [
 ];
 const fmt = (v: unknown) => (v == null ? '—' : typeof v === 'number' && v > 0 ? `+${v}` : String(v));
 
-export function DetailPane({ r }: { r: RecipeDto }) {
+export function DetailPane({ r, full = false }: { r: RecipeDto; full?: boolean }) {
   const nav = useNavigate();
   const { user } = useAuth();
   const favs = useFavourites();
@@ -98,6 +126,7 @@ export function DetailPane({ r }: { r: RecipeDto }) {
       {r.imageUrls.length > 1 && <div className="thumbs">{r.imageUrls.slice(1, 3).map((u) => <img key={u} src={u} alt="" loading="lazy" />)}</div>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
         <button type="button" className="btn secondary" onClick={() => toggle.mutate({ id: r.id, on: !fav })}>{fav ? '♥ Saved' : '♡ Save'}</button>
+        {!full && <button type="button" className="btn secondary" onClick={() => nav(`/r/${r.id}`)}>Open full page</button>}
         <button type="button" className="btn secondary" onClick={() => nav(`/library/new?from=${r.id}`)}>Duplicate to edit</button>
         {own && <button type="button" className="btn secondary" onClick={() => nav(`/library/edit/${r.id}`)}>Edit</button>}
         {own && <button type="button" className="btn danger" onClick={() => { if (confirm(`Unpublish “${r.name}”?`)) del.mutate(r.id, { onSuccess: () => toast('Unpublished') }); }}>Unpublish</button>}
@@ -128,10 +157,52 @@ export function DetailPane({ r }: { r: RecipeDto }) {
 /** /r/:id — standalone share-link page (same pane, full width). */
 export function RecipePage() {
   const { id } = useParams();
+  const nav = useNavigate();
   const q = useRecipe(id);
+  const [i, setI] = useState(0);
   if (q.isLoading) return <div className="list"><div className="empty"><Dots /></div></div>;
   if (!q.data) return <div className="list"><div className="empty">This kata doesn't exist (or was unpublished).</div></div>;
-  return <div className="list" style={{ maxWidth: 560, margin: '0 auto' }}><DetailPane r={q.data} /></div>;
+  const r = q.data;
+  const photos = r.imageUrls ?? [];
+  const at = Math.min(i, Math.max(photos.length - 1, 0));
+  return (
+    <div className="page">
+      <div className="pagehead">
+        <button type="button" className="btn secondary" onClick={() => nav(-1)}>← Back</button>
+        <h1>{r.name}</h1>
+        {r.reviewed && <span className="chip on">Verified</span>}
+      </div>
+      <div className="pagebody">
+        <div className="shots">
+          {photos.length === 0 ? (
+            <div className="empty">No sample frames yet.</div>
+          ) : (
+            <>
+              <div className="big">
+                <img src={photos[at]} alt="" />
+                {photos.length > 1 && (
+                  <>
+                    <button type="button" className="nav prev" aria-label="Previous photo" disabled={at === 0} onClick={() => setI(at - 1)}>←</button>
+                    <button type="button" className="nav next" aria-label="Next photo" disabled={at === photos.length - 1} onClick={() => setI(at + 1)}>→</button>
+                  </>
+                )}
+              </div>
+              {photos.length > 1 && (
+                <div className="strip">
+                  {photos.map((u, n) => (
+                    <button key={u} type="button" className={n === at ? 'on' : ''} onClick={() => setI(n)} aria-label={`Photo ${n + 1}`}>
+                      <img src={u} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        <div className="pagespec"><DetailPane r={r} full /></div>
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------- Mine (1h table)
@@ -266,6 +337,7 @@ export function Editor() {
           <button type="button" className="btn secondary" onClick={pasteCode}>Paste code</button>
           <button type="button" className="btn primary" disabled={publish.isPending || !o.name || !o.sensors?.length} onClick={save}>{publish.isPending ? <Dots /> : id ? 'Save changes' : 'Publish'}</button>
         </div>
+        <div className="edsect">Identity</div>
         <div className="frow"><span className="lbl">Name</span><span className="val"><input type="text" value={o.name ?? ''} maxLength={60} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Kodachrome 64" /></span></div>
         <div className="frow"><span className="lbl">Credit</span><span className="val"><input type="text" value={o.source_attribution ?? ''} maxLength={120} onChange={(e) => set('source_attribution', e.target.value)} /></span></div>
         <div className="frow"><span className="lbl">Source URL</span><span className="val"><input type="url" value={o.source_url ?? ''} onChange={(e) => set('source_url', e.target.value)} placeholder="https://" /></span></div>
@@ -274,15 +346,18 @@ export function Editor() {
             <Chip key={s} on={o.sensors?.includes(s)} onClick={() => set('sensors', o.sensors?.includes(s) ? o.sensors.filter((x) => x !== s) : [...(o.sensors ?? []), s])}>{s}</Chip>
           ))}
         </span></div>
+        <div className="edsect">Look</div>
         <div className="frow"><span className="lbl">Film sim</span><span className="val">{sel('film_simulation', FILMS)}</span></div>
         <div className="frow"><span className="lbl">Dynamic range</span><span className="val">{sel('dynamic_range', ['DR100', 'DR200', 'DR400', 'DR-Auto'], true)}</span></div>
         <div className="frow"><span className="lbl">DR priority</span><span className="val">{sel('d_range_priority', ['Off', 'Auto', 'Weak', 'Strong'])}</span></div>
-        <div className="frow"><span className="lbl">White balance</span><span className="val">
+        <div className="edsect">White balance</div>
+        <div className="frow"><span className="lbl">Mode</span><span className="val">
           {sel('white_balance', ['Auto', 'Auto (white priority)', 'Auto (ambience priority)', 'Daylight', 'Shade', 'Incandescent', 'Fluorescent 1', 'Fluorescent 2', 'Fluorescent 3', 'Kelvin', 'Underwater'])}
           {o.white_balance === 'Kelvin' && <input type="number" min={2500} max={10000} step={100} style={{ width: 90 }} value={o.wb_kelvin ?? 5500} onChange={(e) => set('wb_kelvin', Number(e.target.value))} />}
         </span></div>
         {stepRow('WB shift R', 'white_balance_red', -9, 9)}
         {stepRow('WB shift B', 'white_balance_blue', -9, 9)}
+        <div className="edsect">Tone</div>
         {stepRow('Highlight', 'highlight', -2, 4, 0.5)}
         {stepRow('Shadow', 'shadow', -2, 4, 0.5)}
         {mono ? stepRow('Warm / cool', 'monochromatic_color_warm_cool', -9, 9) : stepRow('Color', 'color', -4, 4)}
@@ -290,6 +365,7 @@ export function Editor() {
         {stepRow('Sharpness', 'sharpness', -4, 4)}
         {stepRow('High ISO NR', 'high_iso_nr', -4, 4)}
         {stepRow('Clarity', 'clarity', -5, 5)}
+        <div className="edsect">Grain &amp; colour chrome</div>
         <div className="frow"><span className="lbl">Grain</span><span className="val">{sel('grain_roughness', ['Off', 'Weak', 'Strong'])}{o.grain_roughness !== 'Off' && sel('grain_size', ['Small', 'Large'], true)}</span></div>
         {!mono && <div className="frow"><span className="lbl">Colour chrome</span><span className="val">{sel('color_chrome_effect', ['Off', 'Weak', 'Strong'], true)}{sel('color_chrome_fx_blue', ['Off', 'Weak', 'Strong'], true)}</span></div>}
         <div className="livecode">

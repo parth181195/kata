@@ -153,8 +153,11 @@ class RecipeDetailScreen extends ConsumerWidget {
         Expanded(
           child: CustomScrollView(slivers: [
             SliverToBoxAdapter(
-              child: SizedBox(
+              child: Container(
                 height: 300,
+                // where the photograph stops: a dark frame otherwise bleeds into the page and
+                // you can't tell the picture from the background
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.hairline))),
                 child: Stack(fit: StackFit.expand, children: [
                   FrameSlot(radius: 0, placeholder: 'hero sample frame · shot with this kata', image: recipeImage(recipe.imageUrls.firstOrNull)),
                   const DecoratedBox(
@@ -288,7 +291,12 @@ class RecipeDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 13),
-              KataIconCircle(onPressed: overflow, child: Icon(Icons.more_vert, size: 18, color: p.dim)),
+              // share, not a second ⋮: the one in the top bar already opens the menu, and its
+              // sheet anchored up there anyway
+              KataIconCircle(
+                onPressed: () => showShareComposer(context, recipe),
+                child: Icon(Icons.ios_share_outlined, size: 19, color: p.dim),
+              ),
             ]),
           ),
         ),

@@ -60,13 +60,28 @@ class KataStepper extends StatelessWidget {
           KataIconCircle(size: 38, onPressed: canInc ? () => onChanged(_snap(value + step)) : null, child: Text('+', style: KataType.bodyStyle(size: 18, color: canInc ? p.fg : p.muted, height: 1))),
         ]),
         const SizedBox(height: 10),
-        _BigRuler(t: t, zeroT: (min < 0 && max > 0) ? (-min / (max - min)) : null),
+        _BigRuler(
+          t: t,
+          zeroT: (min < 0 && max > 0) ? (-min / (max - min)) : null,
+          // drag the bar itself: on a large screen nudging a ±9 value with a button is a chore
+          onScrub: enabled ? (frac) => onChanged(_snap(min + (max - min) * frac)) : null,
+        ),
         const SizedBox(height: 4),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(_fmt(min), style: KataType.monoStyle(size: 8.5, color: p.muted, height: 1)),
-          if (min < 0 && max > 0) Text('0', style: KataType.monoStyle(size: 8.5, color: p.muted, height: 1)),
-          Text(_fmt(max), style: KataType.monoStyle(size: 8.5, color: p.muted, height: 1)),
-        ]),
+        // 0 goes over its tick, not in the middle of the row
+        LayoutBuilder(
+          builder: (context, box) {
+            final style = KataType.monoStyle(size: 8.5, color: p.muted, height: 1);
+            final zeroT = (min < 0 && max > 0) ? (-min / (max - min)) : null;
+            return SizedBox(
+              height: 11,
+              child: Stack(children: [
+                Positioned(left: 0, top: 0, child: Text(_fmt(min), style: style)),
+                Positioned(right: 0, top: 0, child: Text(_fmt(max), style: style)),
+                if (zeroT != null) Positioned(left: (box.maxWidth * zeroT) - 3.5, top: 0, child: Text('0', style: style)),
+              ]),
+            );
+          },
+        ),
       ]),
     );
   }
@@ -79,15 +94,40 @@ class KataStepper extends StatelessWidget {
 }
 
 class _BigRuler extends StatelessWidget {
-  const _BigRuler({required this.t, this.zeroT});
+  const _BigRuler({required this.t, this.zeroT, this.onScrub});
   final double t;
   final double? zeroT;
+
+  /// Called with 0..1 as the user drags or taps along the bar.
+  final ValueChanged<double>? onScrub;
+
   @override
   Widget build(BuildContext context) {
     final p = context.kata;
-    return SizedBox(
-      height: 18,
-      child: CustomPaint(painter: _BigRulerPainter(p.hairline, p.fg, p.muted, t, zeroT)),
+    return LayoutBuilder(
+      builder: (context, box) {
+        void scrub(Offset local) {
+          if (onScrub == null || box.maxWidth <= 0) return;
+          onScrub!((local.dx / box.maxWidth).clamp(0.0, 1.0));
+        }
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (d) => scrub(d.localPosition),
+          onHorizontalDragStart: (d) => scrub(d.localPosition),
+          onHorizontalDragUpdate: (d) => scrub(d.localPosition),
+          child: SizedBox(
+            // width must be explicit: inside a start-aligned Column the constraints are loose,
+            // so a bare CustomPaint collapsed to zero and pinned the marker at the left edge
+            width: double.infinity,
+            height: 22,
+            child: CustomPaint(
+              size: Size(box.maxWidth, 22),
+              painter: _BigRulerPainter(p.hairline, p.fg, p.muted, t, zeroT),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -107,8 +147,10 @@ class _BigRulerPainter extends CustomPainter {
       final zx = zeroT! * s.width;
       c.drawLine(Offset(zx, s.height - 14), Offset(zx, s.height), Paint()..color = zero..strokeWidth = 1);
     }
-    final x = t * s.width;
-    c.drawLine(Offset(x, 0), Offset(x, s.height), Paint()..color = marker..strokeWidth = 2);
+    // a grabbable marker, not a hairline: this is a control now, not a read-out
+    final x = (t * s.width).clamp(1.5, s.width - 1.5);
+    c.drawLine(Offset(x, 0), Offset(x, s.height), Paint()..color = marker..strokeWidth = 3);
+    c.drawRect(Rect.fromCenter(center: Offset(x, 4), width: 9, height: 8), Paint()..color = marker);
   }
 
   @override

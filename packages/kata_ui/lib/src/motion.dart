@@ -152,7 +152,8 @@ class _KataDotsLoaderState extends State<KataDotsLoader> with SingleTickerProvid
     final reduced = KataMotion.reduced(context);
     Widget dot(double opacity) => Opacity(
       opacity: opacity,
-      child: Container(width: widget.dot, height: widget.dot, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+      // square, like the slot marks and the page dots — round pips read as another product
+      child: Container(width: widget.dot, height: widget.dot, color: color),
     );
     return Semantics(
       label: 'Loading',

@@ -270,6 +270,24 @@ describe('stage 2: user recipes + favourites', () => {
       connections: 3,
     });
 
+    // a hidden kata is still its author's: Mine lists it, so its page must open
+    const mineHidden = (
+      await A.post('/recipes')
+        .send({ ofr: { ...base, name: 'Shelved', clarity: 5 } })
+        .expect(201)
+    ).body as R;
+    await ADM.patch(`/admin/recipes/${mineHidden.id}`)
+      .send({ hidden: true })
+      .expect(200);
+    await A.get(`/recipes/${mineHidden.id}`).expect(200); // the author still gets it
+    await B.get(`/recipes/${mineHidden.id}`).expect(404); // nobody else does
+    expect(
+      ((await A.get('/recipes').expect(200)).body as Page<R>).items.map(
+        (x) => x.id,
+      ),
+    ).not.toContain(mineHidden.id);
+    await A.del(`/recipes/${mineHidden.id}`).expect(204);
+
     // delete own → gone everywhere
     await A.del(`/recipes/${r.id}`).expect(204);
     await B.get(`/recipes/${r.id}`).expect(404);
