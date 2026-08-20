@@ -97,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: KataListRow(
                 title: b.model,
                 sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
-                value: on ? '✓' : null,
+                selected: on,
                 onTap: () => ref.read(onboardingAnswersProvider.notifier).state = answers.toggleBody(b.model),
               ),
             );
@@ -156,7 +156,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: KataListRow(
                   title: f.label,
                   sub: '${f.blurb} · ${counts[f.id] ?? 0} katas',
-                  value: answers.families.contains(f.id) ? '✓' : null,
+                  selected: answers.families.contains(f.id),
                   onTap: () {
                     final next = {...answers.families};
                     next.contains(f.id) ? next.remove(f.id) : next.add(f.id);

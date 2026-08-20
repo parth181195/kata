@@ -51,6 +51,8 @@ void main() {
     expect(box.center.dy, closeTo(500, 60), reason: 'centred vertically, not stuck to the bottom edge');
   });
 
+  _rowTests();
+
   testWidgets('a sheet still returns its value from either presentation', (t) async {
     String? got;
     await _pump(t, const Size(1600, 1000), (c) async {
@@ -59,5 +61,29 @@ void main() {
     await t.tap(find.text('finish'));
     await t.pumpAndSettle();
     expect(got, 'done');
+  });
+}
+
+/// Rows you choose from: the tick belongs at the end of the line, not floating in the middle.
+void _rowTests() {
+  testWidgets('a selected row shows its tick at the end of the line', (t) async {
+    t.view.physicalSize = const Size(1200, 400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(MaterialApp(
+      theme: KataTheme.dark(),
+      home: const Scaffold(
+        body: Column(children: [
+          KataListRow(title: 'X-S20', sub: 'X-Trans V · C1–C4', selected: true, contentInset: 18),
+          KataListRow(title: 'X-T4', sub: 'X-Trans IV · C1–C7'),
+        ]),
+      ),
+    ));
+    await t.pumpAndSettle();
+    final tick = t.getRect(find.text('✓'));
+    final row = t.getRect(find.widgetWithText(KataListRow, 'X-S20'));
+    expect(tick.right, closeTo(row.right - 18, 4), reason: 'at the end of the line, inside the inset');
+    expect(find.text('✓'), findsOneWidget, reason: 'only the selected row gets one');
   });
 }

@@ -93,7 +93,7 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
               contentInset: 18, // the label sits inside the highlight, not on its edge
               title: b.model,
               sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
-              value: a.bodies.contains(b.model) ? '✓' : null,
+              selected: a.bodies.contains(b.model),
               onTap: () => ref.read(onboardingAnswersProvider.notifier).state = a.toggleBody(b.model),
             );
           },
