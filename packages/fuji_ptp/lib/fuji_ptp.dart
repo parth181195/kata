@@ -8,6 +8,7 @@ export 'src/ptp/container.dart';
 export 'src/ptp/device_info.dart';
 export 'src/ptp/transport.dart';
 export 'src/ptp/usb_bridge.dart';
+export 'src/ptp/libusb_host.dart';
 export 'src/fuji/fuji_props.dart';
 export 'src/fuji/camera_preset.dart';
 export 'src/fuji/preset_codec.dart';
