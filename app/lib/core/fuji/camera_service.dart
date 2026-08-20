@@ -101,6 +101,7 @@ class CameraService extends Notifier<CameraState> {
       await cam.openSession();
       final caps = await cam.discoverCapabilities();
       if (!caps.presetProtocol) {
+        await _release();
         state = const CameraFailed(CameraFailure.notPresetCapable);
         return;
       }
@@ -109,21 +110,33 @@ class CameraService extends Notifier<CameraState> {
       state = CameraReady(caps: caps, slots: slots);
       _startHeartbeat();
     } on FujiCameraException catch (e) {
+      await _release();
       state = CameraFailed(CameraFailure.sessionFailed, e.message);
     } catch (e) {
+      await _release(politely: false);
       state = CameraFailed(CameraFailure.io, '$e');
     }
   }
 
-  Future<void> disconnect() async {
+  /// Drop the claim (and, politely, the PTP session) so the camera returns to its own
+  /// menu — and, with a cable in, to charging. Impolite mode skips CloseSession when the
+  /// transport is already dead so we don't block on timeouts.
+  Future<void> _release({bool politely = true}) async {
     _heartbeat?.cancel();
-    try {
-      await _cam?.closeSession();
-    } catch (_) {}
+    final cam = _cam;
+    _cam = null;
+    if (politely && cam != null) {
+      try {
+        await cam.closeSession();
+      } catch (_) {}
+    }
     try {
       await _usb.close();
     } catch (_) {}
-    _cam = null;
+  }
+
+  Future<void> disconnect() async {
+    await _release();
     state = const CameraDisconnected();
   }
 
@@ -136,6 +149,7 @@ class CameraService extends Notifier<CameraState> {
       final slots = await cam.readAllSlots();
       state = CameraReady(caps: s.caps, slots: slots);
     } catch (e) {
+      await _release(politely: false);
       state = CameraFailed(CameraFailure.io, '$e');
     }
   }
@@ -157,6 +171,7 @@ class CameraService extends Notifier<CameraState> {
       state = CameraReady(caps: s.caps, slots: s.slots);
       rethrow;
     } catch (e) {
+      await _release(politely: false);
       state = CameraFailed(CameraFailure.io, '$e');
       rethrow;
     }
@@ -178,11 +193,7 @@ class CameraService extends Notifier<CameraState> {
       final s = state;
       if (cam == null || s is! CameraReady || s.busy) return;
       if (!await cam.heartbeat()) {
-        _heartbeat?.cancel();
-        _cam = null;
-        try {
-          await _usb.close();
-        } catch (_) {}
+        await _release(politely: false);
         state = const CameraDisconnected(reason: CameraFailure.io);
       }
     });

@@ -1,3 +1,5 @@
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
@@ -20,6 +22,24 @@ enum DesktopSection { library, saved, mine, camera, settings }
 
 class _DesktopShellState extends ConsumerState<DesktopShell> {
   DesktopSection _section = DesktopSection.library;
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // Send CloseSession before we die: otherwise the camera stays latched in USB RAW CONV
+    // mode from its side and never falls back to charging until replugged.
+    _lifecycle = AppLifecycleListener(onExitRequested: () async {
+      await ref.read(cameraServiceProvider.notifier).disconnect();
+      return AppExitResponse.exit;
+    });
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -41,6 +41,12 @@ class SlotDock extends ConsumerWidget {
         ),
         const SizedBox(width: 12),
         IconButton(
+          tooltip: 'Eject — close the USB session so the camera can charge',
+          onPressed: () => ref.read(cameraServiceProvider.notifier).disconnect(),
+          icon: Icon(Icons.eject_outlined, size: 16, color: p.muted),
+          visualDensity: VisualDensity.compact,
+        ),
+        IconButton(
           tooltip: 'Slot backups',
           onPressed: () => showSlotBackupsDialog(context, ref),
           icon: Icon(Icons.archive_outlined, size: 16, color: p.muted),

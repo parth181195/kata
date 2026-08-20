@@ -89,6 +89,11 @@ class _Board extends ConsumerWidget {
           const SizedBox(width: 14),
           Text('${st.caps.slotCount} SLOTS · ${st.caps.model.toUpperCase()} · FW ${st.caps.firmware}', style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.14)),
           const Spacer(),
+          Tooltip(
+            message: 'Close the USB session — the camera goes back to its menu and can charge',
+            child: KataPillButton(label: 'Eject', kind: KataButtonKind.secondary, display: false, height: 34, expand: false, onPressed: st.busy ? null : svc.disconnect),
+          ),
+          const SizedBox(width: 8),
           KataPillButton(label: 'Backups', kind: KataButtonKind.secondary, display: false, height: 34, expand: false, onPressed: () => showSlotBackupsDialog(context, ref)),
           const SizedBox(width: 8),
           KataPillButton(
