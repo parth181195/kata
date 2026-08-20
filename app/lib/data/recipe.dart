@@ -6,7 +6,19 @@ enum RecipeSource { seed, imported, camera, published }
 enum LibrarySort { newest, popular, az }
 
 class LibraryFilter {
-  const LibraryFilter({this.query = '', this.sensors = const {}, this.filmSim, this.mono, this.families = const {}, this.verifiedOnly = false, this.sort = LibrarySort.newest});
+  const LibraryFilter({
+    this.query = '',
+    this.sensors = const {},
+    this.filmSim,
+    this.mono,
+    this.families = const {},
+    this.dynamicRange,
+    this.grain,
+    this.whiteBalance,
+    this.withPhotos = false,
+    this.verifiedOnly = false,
+    this.sort = LibrarySort.newest,
+  });
   final String query;
   /// Sensor generations to show. Empty means every sensor — people own more than one body.
   final Set<String> sensors;
@@ -16,6 +28,13 @@ class LibraryFilter {
   /// Film-simulation families (see [FilmFamily]) the user picked during setup — a shortcut,
   /// not a narrowing: empty means everything.
   final Set<String> families;
+  /// Advanced axes — all optional, all "any" when null.
+  final String? dynamicRange;
+  final String? grain;
+  final String? whiteBalance;
+
+  /// Only katas that come with sample frames.
+  final bool withPhotos;
   final bool verifiedOnly;
   final LibrarySort sort;
   LibraryFilter copyWith({
@@ -27,6 +46,13 @@ class LibraryFilter {
     bool? mono,
     bool clearMono = false,
     Set<String>? families,
+    String? dynamicRange,
+    bool clearDynamicRange = false,
+    String? grain,
+    bool clearGrain = false,
+    String? whiteBalance,
+    bool clearWhiteBalance = false,
+    bool? withPhotos,
     bool? verifiedOnly,
     LibrarySort? sort,
   }) =>
@@ -36,10 +62,30 @@ class LibraryFilter {
         filmSim: clearFilmSim ? null : (filmSim ?? this.filmSim),
         mono: clearMono ? null : (mono ?? this.mono),
         families: families ?? this.families,
+        dynamicRange: clearDynamicRange ? null : (dynamicRange ?? this.dynamicRange),
+        grain: clearGrain ? null : (grain ?? this.grain),
+        whiteBalance: clearWhiteBalance ? null : (whiteBalance ?? this.whiteBalance),
+        withPhotos: withPhotos ?? this.withPhotos,
         verifiedOnly: verifiedOnly ?? this.verifiedOnly,
         sort: sort ?? this.sort,
       );
-  bool get isEmpty => query.isEmpty && sensors.isEmpty && families.isEmpty && filmSim == null && mono == null && !verifiedOnly;
+  bool get isEmpty =>
+      query.isEmpty &&
+      sensors.isEmpty &&
+      families.isEmpty &&
+      filmSim == null &&
+      mono == null &&
+      dynamicRange == null &&
+      grain == null &&
+      whiteBalance == null &&
+      !withPhotos &&
+      !verifiedOnly;
+
+  /// How many axes beyond the chip row are set — drives the "Filters · 2" badge.
+  int get advancedCount => [dynamicRange, grain, whiteBalance].where((v) => v != null).length + (withPhotos ? 1 : 0);
+
+  /// Everything cleared but the sort and the text you typed.
+  LibraryFilter cleared() => LibraryFilter(query: query, sort: sort);
 }
 
 class Recipe {

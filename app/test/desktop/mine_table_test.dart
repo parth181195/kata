@@ -10,6 +10,7 @@ import 'package:kata/core/fuji/camera_service.dart';
 import 'package:kata/data/local_db.dart';
 import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/desktop/desktop_camera.dart';
+import 'package:kata/desktop/desktop_library.dart';
 import 'package:kata/desktop/desktop_mine.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
@@ -70,6 +71,8 @@ void main() {
     tmp.deleteSync(recursive: true);
   });
 
+  _libraryToolbar();
+
   testWidgets('lists my katas with state, and the tabs filter drafts vs published', (t) async {
     await _pump(t);
     expect(find.text('MINE · 2 KATAS'), findsOneWidget);
@@ -119,5 +122,36 @@ void main() {
     final btn = t.widget<KataPillButton>(find.widgetWithText(KataPillButton, 'WRITE SELECTION'));
     expect(btn.onPressed, isNull);
     expect(find.text('Read from camera'), findsNothing);
+  });
+}
+
+/// The desktop library's toolbar: search must survive however many chips get added.
+void _libraryToolbar() {
+  testWidgets('desktop library keeps a usable search box beside its filters', (t) async {
+    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    t.view.physicalSize = const Size(1500, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+
+    final db = KataDb.memory();
+    addTearDown(db.close);
+    final repo = RecipeRepository(db: db, api: FakeRecipeApi([]));
+    await repo.load();
+    final c = ProviderContainer(overrides: [recipeRepositoryProvider.overrideWith((_) => repo)]);
+    addTearDown(c.dispose);
+    await t.pumpWidget(UncontrolledProviderScope(
+      container: c,
+      child: MaterialApp(theme: KataTheme.dark(), home: const Scaffold(body: DesktopLibrary())),
+    ));
+    await t.pumpAndSettle();
+
+    final search = find.byType(KataSearchField);
+    expect(search, findsOneWidget);
+    expect(t.getRect(search).width, greaterThan(400), reason: 'chips must not squeeze search out of the row');
+    expect(find.text('FILTERS'), findsOneWidget);
+    expect(find.text('VERIFIED'), findsOneWidget);
+    expect(find.text('NEWEST'), findsOneWidget, reason: 'sort is reachable on desktop too');
   });
 }

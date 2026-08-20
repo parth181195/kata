@@ -7,6 +7,7 @@ import 'package:ofr/ofr.dart';
 import '../../core/prefs/settings.dart';
 import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
+import 'filter_sheet.dart';
 import '../../data/recipe_repository.dart';
 import 'recipe_card.dart';
 
@@ -142,6 +143,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   KataChip(label: 'B&W', selected: filter.mono == true, onTap: () => _setFilter((f) => f.mono == true ? f.copyWith(clearMono: true) : f.copyWith(mono: true))),
                   const SizedBox(width: 7),
                   KataChip(label: filter.filmSim ?? 'Film sim', selected: filter.filmSim != null, onTap: _pickFilmSim, onRemove: filter.filmSim == null ? null : () => _setFilter((f) => f.copyWith(clearFilmSim: true))),
+                  const SizedBox(width: 7),
+                  KataChip(
+                    label: filter.advancedCount == 0 ? 'Filters' : 'Filters · ${filter.advancedCount}',
+                    selected: filter.advancedCount > 0,
+                    onTap: () => showFilterSheet(context),
+                  ),
                 ]),
               ),
             ]),

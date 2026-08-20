@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
+import 'package:ofr/ofr.dart';
 
 import '../data/recipe.dart';
 import '../data/recipe_repository.dart';
 import '../data/recipe_specs.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/ofr_io/export_sheet.dart';
+import '../core/auth/auth_repository.dart';
+import '../features/library/filter_sheet.dart';
 import '../features/share/share_composer_sheet.dart';
 import 'desktop_recipe_page.dart';
 import 'desktop_shell.dart';
@@ -48,16 +51,84 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Expanded(
         child: Column(children: [
+          // search keeps its own line: it lost the fight with a row of ten chips
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
             child: Row(children: [
               Expanded(child: KataSearchField(hint: 'Search recipes, film sims, authors', controller: _search, onChanged: (q) => ref.read(libraryFilterProvider.notifier).update((f) => f.copyWith(query: q)))),
               const SizedBox(width: 10),
-              KataChip(label: 'Verified', dot: true, selected: filter.verifiedOnly, onTap: () => ref.read(libraryFilterProvider.notifier).update((f) => f.copyWith(verifiedOnly: !f.verifiedOnly))),
+              KataChip(
+                label: filter.advancedCount == 0 ? 'Filters' : 'Filters · ${filter.advancedCount}',
+                selected: filter.advancedCount > 0,
+                onTap: () => showFilterSheet(context),
+              ),
               const SizedBox(width: 7),
-              KataChip(label: 'B&W', selected: filter.mono == true, onTap: () => ref.read(libraryFilterProvider.notifier).update((f) => f.mono == true ? f.copyWith(clearMono: true) : f.copyWith(mono: true))),
+              KataChip(
+                label: switch (filter.sort) { LibrarySort.newest => 'Newest', LibrarySort.popular => 'Most saved', LibrarySort.az => 'A → Z' },
+                selected: filter.sort != LibrarySort.newest,
+                onTap: () async {
+                  final pick = await showKataMenu<LibrarySort>(context, title: 'Sort', items: [
+                    for (final (srt, label) in [(LibrarySort.newest, 'Newest'), (LibrarySort.popular, 'Most saved'), (LibrarySort.az, 'A → Z')])
+                      KataMenuItem(srt, label, selected: filter.sort == srt),
+                  ]);
+                  if (pick != null) ref.read(libraryFilterProvider.notifier).update((f) => f.copyWith(sort: pick));
+                },
+              ),
             ]),
           ),
+          // the quick chips get their own scrolling line, so adding one never squeezes search
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              children: [
+                KataChip(label: 'Verified', dot: true, selected: filter.verifiedOnly, onTap: () => ref.read(libraryFilterProvider.notifier).update((f) => f.copyWith(verifiedOnly: !f.verifiedOnly))),
+                const SizedBox(width: 7),
+                KataChip(label: 'B&W', selected: filter.mono == true, onTap: () => ref.read(libraryFilterProvider.notifier).update((f) => f.mono == true ? f.copyWith(clearMono: true) : f.copyWith(mono: true))),
+                const SizedBox(width: 7),
+                // your own sensors, so a seeded filter is visible and clearable
+                ...(() {
+                  final mine = ref.watch(sessionProvider).valueOrNull?.user.preferences.sensors ?? const <String>[];
+                  final shown = {...mine, ...filter.sensors};
+                  return [
+                    for (final sensor in (shown.toList()..sort())) ...[
+                      KataChip(
+                        label: sensor,
+                        selected: filter.sensors.contains(sensor),
+                        onTap: () => ref.read(libraryFilterProvider.notifier).update((f) {
+                          final next = {...f.sensors};
+                          next.contains(sensor) ? next.remove(sensor) : next.add(sensor);
+                          return f.copyWith(sensors: next);
+                        }),
+                      ),
+                      const SizedBox(width: 7),
+                    ],
+                  ];
+                })(),
+                // the looks picked during setup
+                ...(() {
+                  final picked = ref.watch(sessionProvider).valueOrNull?.user.preferences.filmSimFamilies ?? const <String>[];
+                  return [
+                    for (final id in picked)
+                      if (FilmFamily.byId(id) case final fam?) ...[
+                        KataChip(
+                          label: fam.label,
+                          selected: filter.families.contains(id),
+                          onTap: () => ref.read(libraryFilterProvider.notifier).update((f) {
+                            final next = {...f.families};
+                            next.contains(id) ? next.remove(id) : next.add(id);
+                            return f.copyWith(families: next);
+                          }),
+                        ),
+                        const SizedBox(width: 7),
+                      ],
+                  ];
+                })(),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
           Expanded(
             child: !repo.loaded
                 ? const Center(child: KataDotsLoader())

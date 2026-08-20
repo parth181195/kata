@@ -262,6 +262,10 @@ class RecipeRepository extends ChangeNotifier {
       if (f.filmSim != null && r.ofr.filmSimulation != f.filmSim) return false;
       if (f.sensors.isNotEmpty && !r.ofr.sensors.any(f.sensors.contains)) return false;
       if (f.families.isNotEmpty && !FilmFamily.simsFor(f.families).contains(r.ofr.filmSimulation)) return false;
+      if (f.dynamicRange != null && r.ofr.dynamicRange != f.dynamicRange) return false;
+      if (f.grain != null && r.ofr.grainRoughness != f.grain) return false;
+      if (f.whiteBalance != null && r.ofr.whiteBalance != f.whiteBalance) return false;
+      if (f.withPhotos && r.imageUrls.isEmpty) return false;
       if (q.isNotEmpty) {
         final hay = '${r.name} ${r.ofr.filmSimulation} ${r.ofr.sourceAttribution ?? ''}'.toLowerCase();
         if (!hay.contains(q)) return false;
