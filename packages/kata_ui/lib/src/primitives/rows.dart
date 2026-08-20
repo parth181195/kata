@@ -23,13 +23,18 @@ class KataSectionHeader extends StatelessWidget {
 
 /// List row: title (+ optional sub), trailing value in mono, hairline below.
 class KataListRow extends StatelessWidget {
-  const KataListRow({super.key, required this.title, this.sub, this.value, this.onTap, this.onLongPress, this.trailing, this.enabled = true});
+  const KataListRow({super.key, required this.title, this.sub, this.value, this.onTap, this.onLongPress, this.trailing, this.enabled = true, this.contentInset = 0});
   final String title;
   final String? sub;
   final String? value;
   final VoidCallback? onTap, onLongPress;
   final Widget? trailing;
   final bool enabled;
+
+  /// Pads the text *inside* the highlight. Zero on a phone, where the page's own margin does
+  /// that job; on a wide row the label would otherwise sit on the highlight's edge.
+  final double contentInset;
+
   /// The ink highlight bleeds [inkBleed] px past the text on both sides (text stays aligned with the
   /// surrounding content; the pressed state doesn't start on the same pixel as the label).
   static const inkBleed = 12.0;
@@ -66,7 +71,11 @@ class KataListRow extends StatelessWidget {
         ),
         IgnorePointer(
           ignoring: trailing == null, // a custom trailing widget (switch, button) keeps its own taps
-          child: Container(constraints: const BoxConstraints(minHeight: 52), padding: const EdgeInsets.symmetric(vertical: 12), child: content),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: contentInset),
+            child: content,
+          ),
         ),
       ]),
     );

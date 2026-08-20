@@ -40,11 +40,13 @@ void main() {
     addTearDown(c.dispose);
     await t.pumpWidget(UncontrolledProviderScope(
       container: c,
-      child: MaterialApp(theme: KataTheme.dark(), home: Scaffold(body: DesktopOnboarding(onDone: () => done = true))),
+      child: MaterialApp(theme: KataTheme.dark(), home: DesktopOnboarding(onDone: () => done = true)),
     ));
     await t.pumpAndSettle();
 
     expect(find.text('SET KATA UP'), findsOneWidget);
+    // it must stand on its own as a route: no Material ancestor means yellow-underlined text
+    expect(find.descendant(of: find.byType(DesktopOnboarding), matching: find.byType(Scaffold)), findsOneWidget);
     expect(find.textContaining('WHICH BODY'), findsOneWidget);
     expect(find.textContaining('WHAT ARE YOU AFTER'), findsOneWidget, reason: 'one card, not paged steps');
 

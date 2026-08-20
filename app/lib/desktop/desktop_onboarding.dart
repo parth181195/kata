@@ -44,20 +44,17 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
     final a = ref.watch(onboardingAnswersProvider);
     final counts = familyCounts(ref.watch(recipeRepositoryProvider));
     final bodies = onboardingBodies(_search.text).take(40).toList();
-    return SingleChildScrollView(
-      // breathing room on every side: this sits on an otherwise empty window
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Container(
-            padding: const EdgeInsets.all(34),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: p.hairline),
-            ),
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('SET KATA UP', style: KataType.displayStyle(size: 28, color: p.fg)),
+    // Full screen, not a card: this is the whole window's job right now. The panel's
+    // rhythm is kept — heading, search, list, chips, actions — just at window scale.
+    // Its own Scaffold: this is a route in its own right, and Text outside Material renders
+    // with Flutter's yellow-underlined error style.
+    return Scaffold(
+      backgroundColor: p.bg,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 44),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('SET KATA UP', style: KataType.displayStyle(size: 32, color: p.fg)),
           const SizedBox(height: 8),
           Text('Two questions, so the library opens on katas that suit your camera. Change or clear any of it later — nothing is hidden from you.',
               style: KataType.bodyStyle(size: 13, color: p.muted, height: 1.5)),
@@ -67,13 +64,14 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
           KataSearchField(hint: 'Search bodies', controller: _search, onChanged: (_) => setState(() {})),
           const SizedBox(height: 10),
           SizedBox(
-            height: 200,
+            height: 320,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               itemCount: bodies.length,
               itemBuilder: (_, i) {
                 final b = bodies[i];
                 return KataListRow(
+                  contentInset: 18, // the label sits inside the highlight, not on its edge
                   title: b.model,
                   sub: '${b.generation} · C1–C${b.slots}${b.usbWrite == UsbWrite.full ? '' : ' · writing unverified'}',
                   value: a.body == b.model ? '✓' : null,
@@ -107,9 +105,8 @@ class _DesktopOnboardingState extends ConsumerState<DesktopOnboarding> {
             ),
             const SizedBox(width: 12),
             KataPillButton(label: 'Start', height: 46, expand: false, loading: _busy, onPressed: _busy ? null : () => _save(skipped: false)),
-              ]),
-            ]),
-          ),
+          ]),
+          ]),
         ),
       ),
     );
