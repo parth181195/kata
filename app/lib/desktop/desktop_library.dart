@@ -8,6 +8,7 @@ import '../data/recipe_specs.dart';
 import '../features/library/recipe_card.dart' show recipeImage;
 import '../features/ofr_io/export_sheet.dart';
 import '../features/share/share_composer_sheet.dart';
+import 'desktop_recipe_page.dart';
 import 'desktop_shell.dart';
 import 'slot_dock.dart';
 
@@ -105,6 +106,7 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => ref.read(desktopSelectedRecipeProvider.notifier).state = r.id,
+          onDoubleTap: () => showRecipeFullScreen(context, r), // open it properly
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
               child: Stack(fit: StackFit.expand, children: [
@@ -169,6 +171,14 @@ class _DetailPane extends ConsumerWidget {
         const SizedBox(width: 8),
         KataIconCircle(size: 40, onPressed: () => showExportSheet(context, r), child: Icon(Icons.file_download_outlined, size: 16, color: p.dim)),
       ]),
+      const SizedBox(height: 8),
+      KataPillButton(
+        label: 'Open full screen',
+        kind: KataButtonKind.secondary,
+        display: false,
+        height: 40,
+        onPressed: () => showRecipeFullScreen(context, r),
+      ),
       const SizedBox(height: 14),
       const DottedDivider(),
       const SizedBox(height: 12),

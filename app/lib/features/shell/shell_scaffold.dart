@@ -48,11 +48,21 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> with WidgetsBindi
       _reportedCamera = key;
       ref.read(recipeRepositoryProvider).reportCamera(model: st.caps.model, firmware: st.caps.firmware, pid: st.caps.pid, slots: st.caps.slotCount, props: st.caps.supportedProps.length);
     });
-    return Scaffold(
-      body: widget.shell,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: KataBottomNav(index: widget.shell.currentIndex, onTap: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex)),
+    final onHome = widget.shell.currentIndex == 0;
+    return PopScope(
+      // Back from any other tab lands on the library first — only a back press *there*
+      // leaves the app. Matches how every other tabbed Android app behaves.
+      canPop: onHome,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || onHome) return;
+        widget.shell.goBranch(0);
+      },
+      child: Scaffold(
+        body: widget.shell,
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: KataBottomNav(index: widget.shell.currentIndex, onTap: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex)),
+        ),
       ),
     );
   }
