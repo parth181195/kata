@@ -10,6 +10,11 @@ export const env = {
   databaseUrl: req('DATABASE_URL'),
   jwtSecret: req('JWT_SECRET'),
   googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? '',
+  /** Additional accepted ID-token audiences (comma-separated) — e.g. the Desktop OAuth client. */
+  googleExtraClientIds: (process.env.GOOGLE_EXTRA_CLIENT_IDS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
   bunny: {
     zone: process.env.BUNNY_STORAGE_ZONE ?? '',
     key: process.env.BUNNY_STORAGE_KEY ?? '',

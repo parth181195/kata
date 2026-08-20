@@ -8,9 +8,14 @@ export class GoogleAuthLibraryVerifier extends GoogleVerifier {
   private readonly client = new OAuth2Client();
 
   async verify(idToken: string): Promise<GoogleIdentity> {
+    const audiences = [
+      env.googleWebClientId,
+      ...env.googleExtraClientIds,
+    ].filter(Boolean);
     const ticket = await this.client.verifyIdToken({
       idToken,
-      audience: env.googleWebClientId || undefined,
+      // web + desktop (loopback OAuth) clients are both accepted
+      audience: audiences.length ? audiences : undefined,
     });
     const p = ticket.getPayload();
     if (!p?.sub || !p.email)
