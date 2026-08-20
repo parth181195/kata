@@ -211,6 +211,9 @@ class FakeUsbHost implements UsbHost {
   final ctrl = StreamController<UsbEvent>.broadcast();
 
   @override
+  Future<void> resetDevice() async {}
+
+  @override
   Future<List<UsbDeviceInfo>> listDevices() async => present
       ? [
           UsbDeviceInfo(

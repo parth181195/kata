@@ -144,7 +144,9 @@ class _Libusb {
         claimInterface = lib.lookupFunction<Int32 Function(Pointer<Void>, Int32), int Function(Pointer<Void>, int)>('libusb_claim_interface'),
         releaseInterface = lib.lookupFunction<Int32 Function(Pointer<Void>, Int32), int Function(Pointer<Void>, int)>('libusb_release_interface'),
         bulkTransfer = lib.lookupFunction<Int32 Function(Pointer<Void>, Uint8, Pointer<Uint8>, Int32, Pointer<Int32>, Uint32), int Function(Pointer<Void>, int, Pointer<Uint8>, int, Pointer<Int32>, int)>('libusb_bulk_transfer'),
-        getStringAscii = lib.lookupFunction<Int32 Function(Pointer<Void>, Uint8, Pointer<Uint8>, Int32), int Function(Pointer<Void>, int, Pointer<Uint8>, int)>('libusb_get_string_descriptor_ascii');
+        getStringAscii = lib.lookupFunction<Int32 Function(Pointer<Void>, Uint8, Pointer<Uint8>, Int32), int Function(Pointer<Void>, int, Pointer<Uint8>, int)>('libusb_get_string_descriptor_ascii'),
+        clearHalt = lib.lookupFunction<Int32 Function(Pointer<Void>, Uint8), int Function(Pointer<Void>, int)>('libusb_clear_halt'),
+        resetDev = lib.lookupFunction<Int32 Function(Pointer<Void>), int Function(Pointer<Void>)>('libusb_reset_device');
 
   final int Function(Pointer<Pointer<Void>>) init;
   final void Function(Pointer<Void>) exit_;
@@ -162,6 +164,8 @@ class _Libusb {
   final int Function(Pointer<Void>, int) releaseInterface;
   final int Function(Pointer<Void>, int, Pointer<Uint8>, int, Pointer<Int32>, int) bulkTransfer;
   final int Function(Pointer<Void>, int, Pointer<Uint8>, int) getStringAscii;
+  final int Function(Pointer<Void>, int) clearHalt;
+  final int Function(Pointer<Void>) resetDev;
 
   static DynamicLibrary load() {
     if (Platform.isMacOS) return DynamicLibrary.open('libusb-1.0.0.dylib');
@@ -374,6 +378,14 @@ void _worker(SendPort ready) {
           calloc.free(got);
           calloc.free(buf);
           cmd.reply.send(out ?? {'error': 'bulkIn $rc'});
+        case 'reset':
+          if (handle == nullptr) {
+            cmd.reply.send(null);
+          } else {
+            final rc = usb.resetDev(handle);
+            closeDevice();
+            cmd.reply.send(rc == 0 || rc == -5 ? null : {'error': 'reset $rc'});
+          }
         case 'quit':
           closeDevice();
           usb.exit_(ctx);
@@ -473,6 +485,9 @@ class LibusbHost implements UsbHost, UsbLink {
 
   @override
   Future<void> close() async => _call('close');
+
+  @override
+  Future<void> resetDevice() async => _call('reset');
 
   @override
   Future<int> bulkOut(Uint8List data, {int timeoutMs = 5000}) async => (await _call('bulkOut', {'data': data, 'timeoutMs': timeoutMs})) as int;

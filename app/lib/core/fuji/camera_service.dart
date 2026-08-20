@@ -70,7 +70,9 @@ class CameraService extends Notifier<CameraState> {
 
   UsbHost get _usb => ref.read(usbHostProvider);
 
-  Future<void> connect() async {
+  Future<void> connect() => _connect(canReset: true);
+
+  Future<void> _connect({required bool canReset}) async {
     final devices = await _usb.listDevices();
     final fuji = devices.where((d) => d.vid == fujiVendorId).toList();
     if (fuji.isEmpty) {
@@ -113,6 +115,17 @@ class CameraService extends Notifier<CameraState> {
       await _release();
       state = CameraFailed(CameraFailure.sessionFailed, e.message);
     } catch (e) {
+      if (canReset && '$e'.contains('bulk')) {
+        // Endpoint wedged (e.g. host died mid-transfer and the body never saw CloseSession):
+        // port-reset the device, let it re-enumerate, and try once more from scratch.
+        state = const CameraConnecting('reset');
+        try {
+          await _usb.resetDevice();
+        } catch (_) {}
+        await _release(politely: false);
+        await Future<void>.delayed(const Duration(milliseconds: 800));
+        return _connect(canReset: false);
+      }
       await _release(politely: false);
       state = CameraFailed(CameraFailure.io, '$e');
     }

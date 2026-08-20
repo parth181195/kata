@@ -58,6 +58,9 @@ abstract class UsbHost {
   Future<bool> requestPermission(String name);
   Future<Map> open(String name, {int? interfaceId});
   Future<void> close();
+
+  /// Port-level reset of the open device (recovers a wedged peer). No-op where unsupported.
+  Future<void> resetDevice() async {}
   Stream<UsbEvent> get events;
   UsbLink get link;
 }
@@ -75,6 +78,9 @@ class UsbBridge implements UsbHost, UsbLink {
         final m = e as Map;
         return UsbEvent(attached: m['attached'] as bool, deviceName: m['name'] as String?, vid: m['vid'] as int?);
       });
+
+  @override
+  Future<void> resetDevice() async {} // Android bridge: not needed (no unclean-exit wedge observed)
 
   @override
   Future<List<UsbDeviceInfo>> listDevices() async {
