@@ -38,10 +38,10 @@ class _NotConnected extends ConsumerWidget {
     final connecting = state is CameraConnecting;
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        constraints: const BoxConstraints(maxWidth: 880),
+        child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               const CameraArt(height: 170),
               const SizedBox(height: 20),
               Text('PLUG IN A CAMERA', style: KataType.displayStyle(size: 24, color: p.fg)),
@@ -51,10 +51,10 @@ class _NotConnected extends ConsumerWidget {
               KataPillButton(label: connecting ? 'Scanning…' : 'Scan for camera', height: 48, expand: false, loading: connecting, onPressed: connecting ? null : svc.connect),
             ]),
           ),
-          const SizedBox(width: 36),
+          const SizedBox(width: 48),
           SizedBox(
-            width: 280,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            width: 300,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               KataSectionHeader('Setup · once per body'),
               const SizedBox(height: 10),
               ChecklistStep(n: 1, title: 'Use a data cable', sub: Text("Charge-only cables won't appear. Camera off while you plug in.", style: KataType.bodyStyle(size: 11.5, color: p.muted, height: 1.4))),
