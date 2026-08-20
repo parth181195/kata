@@ -16,41 +16,41 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { ImagesService } from '../images/images.service';
 import { ListRecipesDto } from './dto/list-recipes.dto';
-import { PublishRecipeDto, UpdateRecipeDto } from './dto/user-recipe.dto';
+import {
+  PublishRecipeDto,
+  RevertDto,
+  UpdateRecipeDto,
+} from './dto/user-recipe.dto';
 import { RecipesService } from './recipes.service';
 
 @Controller('recipes')
+@UseGuards(JwtAuthGuard)
 export class RecipesController {
   constructor(
     private readonly recipes: RecipesService,
     private readonly images: ImagesService,
   ) {}
 
-  // Reads are public (the web library browses without an account); hidden stays admin-only.
+  // Sign-in is required to browse (user decision 2026-08-20) — the class guard covers reads too.
   @Get()
-  @UseGuards(OptionalJwtAuthGuard)
-  list(@Query() dto: ListRecipesDto, @CurrentUser() u: AuthUser | undefined) {
-    return this.recipes.list(dto, { includeHidden: u?.role === 'admin' });
+  list(@Query() dto: ListRecipesDto, @CurrentUser() u: AuthUser) {
+    return this.recipes.list(dto, { includeHidden: u.role === 'admin' });
   }
 
   @Get('by-hash/:hash')
-  @UseGuards(OptionalJwtAuthGuard)
-  byHash(@Param('hash') hash: string, @CurrentUser() u: AuthUser | undefined) {
-    return this.recipes.byHash(hash, { includeHidden: u?.role === 'admin' });
+  byHash(@Param('hash') hash: string, @CurrentUser() u: AuthUser) {
+    return this.recipes.byHash(hash, { includeHidden: u.role === 'admin' });
   }
 
   @Get(':id')
-  @UseGuards(OptionalJwtAuthGuard)
-  get(@Param('id') id: string, @CurrentUser() u: AuthUser | undefined) {
-    return this.recipes.get(id, { includeHidden: u?.role === 'admin' });
+  get(@Param('id') id: string, @CurrentUser() u: AuthUser) {
+    return this.recipes.get(id, { includeHidden: u.role === 'admin' });
   }
 
   // ---------------------------------------------------------- Stage 2: own recipes
   @Post()
-  @UseGuards(JwtAuthGuard)
   publish(@Body() dto: PublishRecipeDto, @CurrentUser() u: AuthUser) {
     return this.recipes.createByUser(u.id, {
       ofr: dto.ofr,
@@ -59,7 +59,6 @@ export class RecipesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateRecipeDto,
@@ -70,13 +69,26 @@ export class RecipesController {
 
   @Delete(':id')
   @HttpCode(204)
-  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string, @CurrentUser() u: AuthUser) {
     return this.recipes.deleteOwn(id, u.id);
   }
 
+  // ---------------------------------------------------------- versions (design 5a: keeps the last 10)
+  @Get(':id/versions')
+  versions(@Param('id') id: string, @CurrentUser() u: AuthUser) {
+    return this.recipes.versions(id, u.id, u.role === 'admin');
+  }
+
+  @Post(':id/revert')
+  revert(
+    @Param('id') id: string,
+    @Body() dto: RevertDto,
+    @CurrentUser() u: AuthUser,
+  ) {
+    return this.recipes.revert(id, u.id, dto.version);
+  }
+
   @Post(':id/images')
-  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
   )

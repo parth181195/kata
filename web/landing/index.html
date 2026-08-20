@@ -229,15 +229,15 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
   <div class="faq">
     <details>
       <summary>Does this really write into the camera, or is it a cheat sheet?</summary>
-      <p>It really writes. Kata speaks the same USB protocol Fujifilm's X&nbsp;RAW&nbsp;Studio uses and sets all the custom-slot settings (film sim, DR, tones, WB shift, grain, colour chrome…) in one pass. Set the camera to <span class="mono" style="letter-spacing:.06em">USB RAW CONV./BACKUP RESTORE</span>, plug in USB-C, tap write, flick the dial once — the recipe is in the slot.</p>
+      <p>It really writes. Kata speaks the same USB protocol Fujifilm's X&nbsp;RAW&nbsp;Studio uses and sets all the custom-slot settings (film sim, DR, tones, WB shift, grain, colour chrome…) in one pass. Set the camera to <span class="mono" style="letter-spacing:.06em">USB RAW CONV./BACKUP RESTORE</span>, plug in USB-C and tap write. Flick the mode dial once afterwards so the body re-reads its slots — then it's there in the menus too.</p>
     </details>
     <details>
       <summary>Which cameras work?</summary>
-      <p>Verified end-to-end on the X-S20. All X-Processor 5 bodies (X-T5, X-H2/H2S, X-T50, X-M5, X-E5, X100VI, recent GFX) expose the same protocol and are expected to work. Older bodies are probed when you plug in — if the camera doesn't offer the slot properties, Kata tells you instead of pretending. Full list under <a href="#cameras" style="text-decoration:underline">Bodies &amp; slots</a>.</p>
+      <p>Verified end-to-end on the X-S20. Bodies with the X-Processor 5 (X-T5, X-H2, X-H2S, X-T50, X-M5, X-E5, X100VI, GFX100&nbsp;II and newer) expose the same protocol and are expected to work — reports welcome. Older bodies are probed when you plug in: if the camera doesn't offer the slot properties, Kata says so instead of pretending. Full list under <a href="#cameras" style="text-decoration:underline">Bodies &amp; slots</a>.</p>
     </details>
     <details>
       <summary>Do I need an account?</summary>
-      <p>Browsing needs nothing. Google sign-in exists for one reason: your saved katas and your published recipes follow you across devices. No password, no email list, and the <a href="privacy.html" style="text-decoration:underline">privacy page</a> lists everything stored.</p>
+      <p>Yes — the recipe library (in the app and on the web) is behind a free Google sign-in. It keeps your saved katas and published recipes with you across devices and keeps scrapers out of the community's work. No password, no email list, and the <a href="privacy.html" style="text-decoration:underline">privacy page</a> lists everything stored.</p>
     </details>
     <details>
       <summary>What's a Kata Code?</summary>
@@ -253,11 +253,11 @@ C+2,SH+1,NR-4,CL0,GR-WS;n=Kodachrome+64</div>
     </details>
     <details>
       <summary>Can it damage my camera?</summary>
-      <p>Kata only uses Fujifilm's own backup/restore surface — the same one X&nbsp;RAW&nbsp;Studio and the FUJIFILM&nbsp;X&nbsp;App use, writing the same settings you'd change by hand in the menus. It never touches firmware. Worst case observed: the camera ignores a value it doesn't support — which Kata reports and skips.</p>
+      <p>Kata only uses Fujifilm's own backup/restore surface — the same one X&nbsp;RAW&nbsp;Studio uses from a computer — writing the same settings you'd change by hand in the menus. It never touches firmware. Worst case observed: the camera ignores a value it doesn't support — which Kata reports and skips.</p>
     </details>
     <details>
       <summary>iPhone? Desktop?</summary>
-      <p>Android first, because it has proper USB host APIs. A desktop version (Linux/macOS) is planned on the same engine. iOS can't talk PTP to the camera the way we need without MFi hoops — an iPhone build would be browse-and-share only, so it waits.</p>
+      <p>Android first, because it has proper USB host APIs. A desktop version (Linux/macOS) is planned on the same engine. iOS doesn't expose the low-level USB access Kata's writer needs, so an iPhone build would be browse-and-share only — and Apple charges US$99 every year just to ship a free app. If enough people want it we'll do it; for now, no.</p>
     </details>
     <details>
       <summary>Is it really free? What's the catch?</summary>

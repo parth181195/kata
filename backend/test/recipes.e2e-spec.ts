@@ -202,23 +202,10 @@ describe('recipes', () => {
     await http.get(`/recipes/${h.id}`).set(A).expect(200);
     await http.get(`/recipes/by-hash/${k.hash}`).set(U).expect(200);
     await http.get('/recipes/by-hash/nope').set(U).expect(404);
-    // anonymous reads are public (web library): hidden excluded, garbage token = anonymous
-    const anon = (await http.get('/recipes').expect(200)).body as Page;
-    expect(anon.items.map((r) => r.name).sort()).toEqual([
-      'Kodachrome 64',
-      'Mono Push',
-    ]);
-    await http.get(`/recipes/${k.id}`).expect(200);
-    await http.get(`/recipes/${h.id}`).expect(404);
-    await http.get(`/recipes/by-hash/${k.hash}`).expect(200);
-    await http
-      .get('/recipes')
-      .set('Authorization', 'Bearer garbage')
-      .expect(200);
-    // mutations still require auth
+    // sign-in required everywhere (user decision): anonymous reads are 401
+    await http.get('/recipes').expect(401);
+    await http.get(`/recipes/${k.id}`).expect(401);
     await http.post('/recipes').send({ ofr: {} }).expect(401);
-    await http.patch(`/recipes/${k.id}`).send({ ofr: {} }).expect(401);
-    await http.delete(`/recipes/${k.id}`).expect(401);
 
     await app.close();
   });

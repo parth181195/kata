@@ -143,6 +143,50 @@ describe('stage 2: user recipes + favourites', () => {
         .length,
     ).toBe(3);
 
+    // versions: publish = v1, edit = v2, list, revert → v3 with v1's settings
+    const r2 = (
+      await A.post('/recipes')
+        .send({ ofr: { ...base, name: 'Versioned', clarity: 2 } })
+        .expect(201)
+    ).body as R & { version: number };
+    expect(r2.version).toBe(1);
+    const r2e = (
+      await A.patch(`/recipes/${r2.id}`)
+        .send({ ofr: { ...base, name: 'Versioned', clarity: 3 } })
+        .expect(200)
+    ).body as R & { version: number };
+    expect(r2e.version).toBe(2);
+    const vers = (await A.get(`/recipes/${r2.id}/versions`).expect(200))
+      .body as { current: number; items: { version: number; name: string }[] };
+    expect(vers.current).toBe(2);
+    expect(vers.items.map((v) => v.version)).toEqual([2, 1]);
+    await B.get(`/recipes/${r2.id}/versions`).expect(403);
+    const reverted = (
+      await A.post(`/recipes/${r2.id}/revert`).send({ version: 1 }).expect(201)
+    ).body as R & { version: number; ofr: { clarity: number } };
+    expect(reverted.version).toBe(3);
+    expect(reverted.ofr.clarity).toBe(2);
+    await A.del(`/recipes/${r2.id}`).expect(204);
+
+    // handles: claim, normalise, conflict, appears on recipe DTOs
+    const me = (
+      await A.patch('/me').send({ handle: '@Parth.Test' }).expect(200)
+    ).body as { handle: string };
+    expect(me.handle).toBe('parth.test');
+    await B.patch('/me').send({ handle: 'parth.test' }).expect(409);
+    await B.patch('/me').send({ handle: 'x' }).expect(400);
+    const r3 = (
+      await A.post('/recipes')
+        .send({ ofr: { ...base, name: 'Handled', clarity: 4 } })
+        .expect(201)
+    ).body as R;
+    const got = (await B.get(`/recipes/${r3.id}`).expect(200)).body as R & {
+      authorHandle: string;
+      version: number;
+    };
+    expect(got.authorHandle).toBe('parth.test');
+    await A.del(`/recipes/${r3.id}`).expect(204);
+
     // cameras: upsert per (model, firmware), seenCount increments; admin summary
     await A.put('/me/cameras')
       .send({

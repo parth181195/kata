@@ -445,3 +445,50 @@ export class AdminService {
     };
   }
 }
+
+// ---------------------------------------------------------------- similarity
+
+const NUMS: [keyof OfrDoc, number][] = [
+  ['highlight', 6],
+  ['shadow', 6],
+  ['color', 8],
+  ['sharpness', 8],
+  ['high_iso_nr', 8],
+  ['clarity', 10],
+  ['white_balance_red', 18],
+  ['white_balance_blue', 18],
+];
+const CATS = [
+  'film_simulation',
+  'dynamic_range',
+  'grain_roughness',
+  'grain_size',
+  'color_chrome_effect',
+  'color_chrome_fx_blue',
+  'white_balance',
+] as const;
+
+/** 0..1 — categorical fields count double; numeric fields contribute normalised closeness. */
+export function settingsSimilarity(a: OfrDoc, b: OfrDoc): number {
+  let score = 0;
+  let weight = 0;
+  for (const c of CATS) {
+    weight += 2;
+    if ((a[c] ?? null) === (b[c] ?? null)) score += 2;
+  }
+  for (const [k, range] of NUMS) {
+    weight += 1;
+    const av = Number(a[k] ?? 0);
+    const bv = Number(b[k] ?? 0);
+    score += Math.max(0, 1 - Math.abs(av - bv) / range);
+  }
+  // kelvin only when both use it
+  if (a.wb_kelvin != null && b.wb_kelvin != null) {
+    weight += 1;
+    score += Math.max(
+      0,
+      1 - Math.abs(Number(a.wb_kelvin) - Number(b.wb_kelvin)) / 3000,
+    );
+  }
+  return weight === 0 ? 0 : score / weight;
+}
