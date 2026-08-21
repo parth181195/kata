@@ -49,7 +49,7 @@ expected to work; older bodies are probed at connect and told apart honestly.
 ## Building it
 
 ```bash
-# the app (Flutter 3.35 / Dart 3.9, fvm optional)
+# the app (Flutter 3.41 / Dart 3.11, fvm optional)
 cd app && flutter pub get
 flutter run -d linux            # or -d <android device>
 flutter test
