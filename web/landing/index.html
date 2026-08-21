@@ -37,6 +37,7 @@
       <a class="mono" href="#cameras">Cameras</a>
       <a class="mono" href="#faq">FAQ</a>
       <a class="mono" href="/library">Library</a>
+      <a class="mono" href="https://github.com/parth181195/kata" rel="noopener">Source ↗</a>
       <a class="btn sm" href="#get">Get Kata</a>
     </nav>
   </div>
@@ -194,7 +195,7 @@ CO+2,SH+1,NR-4,GR-WS;n=Kodachrome+64</div>
     <div class="center" style="display:flex;flex-direction:column;gap:14px">
       <span class="pill solid"><span class="dot"></span>FREE · OPEN SOURCE · NO TIERS</span>
       <h2 id="free-h" class="h2">Everything, free</h2>
-      <p class="lede">Every feature ships to everyone. Nothing about your camera, your recipes or your sharing sits behind a paywall — and the code is MIT-licensed.</p>
+      <p class="lede">Every feature ships to everyone. Nothing about your camera, your recipes or your sharing sits behind a paywall — and the code is MIT-licensed: <a href="https://github.com/parth181195/kata" rel="noopener" style="color:var(--fg);text-decoration:underline;text-underline-offset:3px">app, API and the USB protocol work, all of it on GitHub</a>.</p>
     </div>
     <div class="grid4">
       <article class="card">
@@ -284,7 +285,7 @@ CO+2,SH+1,NR-4,GR-WS;n=Kodachrome+64</div>
     </details>
     <details>
       <summary>How finished is this?</summary>
-      <p>Early, and honest about it. The library, the editor, sharing, publishing and the USB writer all work today — the writer has been used on an X-S20 end to end, and the Linux desktop build drives the same engine, with a slot dock you can drag several katas onto. What that means for you: recipes you publish are safe (they live on the server with version history), and writes are guarded — you approve a diff first, and every slot is snapshotted before anything changes, so you can roll the camera back. What may still bite: bodies other than the X-S20 are less tested, a camera in HDR or D-Range Priority refuses some settings (Kata names them and tells you what to switch off), and you install the app from this site rather than the Play Store. If something misbehaves, <a href="mailto:parthrock181195@gmail.com?subject=Kata%20—%20bug" style="text-decoration:underline">that's worth telling me</a> — it's how the supported-camera list grows.</p>
+      <p>Early, and honest about it. The library, the editor, sharing, publishing and the USB writer all work today — the writer has been used on an X-S20 end to end, and the Linux desktop build drives the same engine, with a slot dock you can drag several katas onto. What that means for you: recipes you publish are safe (they live on the server with version history), and writes are guarded — you approve a diff first, and every slot is snapshotted before anything changes, so you can roll the camera back. What may still bite: bodies other than the X-S20 are less tested, a camera in HDR or D-Range Priority refuses some settings (Kata names them and tells you what to switch off), and you install the app from this site rather than the Play Store. If something misbehaves, <a href="https://github.com/parth181195/kata/issues" rel="noopener" style="text-decoration:underline">that's worth telling me</a> — it's how the supported-camera list grows.</p>
     </details>
     <details>
       <summary>iPhone? Desktop?</summary>
@@ -334,7 +335,7 @@ CO+2,SH+1,NR-4,GR-WS;n=Kodachrome+64</div>
 SUBSYSTEM=="usb", ATTR{idVendor}=="04cb", MODE="0666", TAG+="uaccess"
 RULE
 sudo udevadm control --reload &amp;&amp; sudo udevadm trigger</code></pre>
-  <p class="small"> Not on Android or Linux? Every recipe is stored in an open format anyone can read: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe</a>.</p>
+  <p class="small"> Not on Android or Linux? Every recipe is stored in an open format anyone can read: <a href="https://github.com/gosku/open-fuji-recipe">Open Fuji Recipe</a> — and Kata itself, including the Fujifilm USB protocol notes, is at <a href="https://github.com/parth181195/kata" rel="noopener">github.com/parth181195/kata</a>.</p>
 </section>
 
 </main>
