@@ -5,7 +5,7 @@
 #                      [--appimage <path.AppImage>] [--admin] [--lib] [--no-landing]
 # Paths must be absolute: this script cd's to its own directory.
 set -euo pipefail
-HOST=${KATA_HOST:-root@YOUR.VM.IP}
+HOST=${KATA_HOST:?set KATA_HOST=user@host (the VM this site deploys to)}
 DIR=/opt/kata/web
 ADMIN_DIR=/opt/kata/admin
 cd "$(dirname "$0")"

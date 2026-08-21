@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Build locally, ship to the VM, migrate, reload pm2. Requires ssh access to root@YOUR.VM.IP.
+# Build locally, ship to the VM, migrate, reload pm2. Requires ssh access to $KATA_HOST.
 set -euo pipefail
-HOST=${KATA_HOST:-root@YOUR.VM.IP}
+HOST=${KATA_HOST:?set KATA_HOST=user@host (the VM the API runs on)}
 DIR=/opt/kata/api
 cd "$(dirname "$0")"
 

@@ -1,9 +1,9 @@
 # Kata API — operations
 
-Host: GCP VM `YOUR.VM.IP` (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public **`https://api.kata.parthjansari.dev`**; landing page `https://kata.parthjansari.dev` (static, `/opt/kata/web`); admin SPA `https://admin.kata.parthjansari.dev` (`/opt/kata/admin`).
+Host: a GCP VM (set `KATA_HOST=user@host` for the deploy scripts) (Ubuntu 25.04, Node 24 via nvm, pm2 6, nginx + certbot, Postgres 17). App dir `/opt/kata/api`, pm2 app `kata-api`, port `127.0.0.1:5090`, public **`https://api.kata.parthjansari.dev`**; landing page `https://kata.parthjansari.dev` (static, `/opt/kata/web`); admin SPA `https://admin.kata.parthjansari.dev` (`/opt/kata/admin`).
 
 ## One-time setup (sudo/root on the VM)
-1. **DNS:** A records `kata`, `api.kata`, `admin.kata` → `YOUR.VM.IP` (in the zone that `ns-cloud-e1..e4.googledomains.com` serve).
+1. **DNS:** A records `kata`, `api.kata`, `admin.kata` → the VM's IP (in the zone that `ns-cloud-e1..e4.googledomains.com` serve).
 2. **Postgres role + db**
    ```bash
    sudo -u postgres psql -c "create role kata with login password 'CHANGE_ME';"
