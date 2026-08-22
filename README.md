@@ -68,9 +68,9 @@ npm test && npm run test:e2e
 cd web/lib && npm ci && npm run dev
 ```
 
-Sign-in is Google; the client id goes in via `--dart-define=KATA_GOOGLE_WEB_CLIENT_ID=…` (and
-`KATA_GOOGLE_DESKTOP_CLIENT_ID` / `…_SECRET` for the desktop build). Deploy scripts want
-`KATA_HOST=user@host`.
+Sign-in is Google; each platform's client ids live in a per-OS secrets file passed with
+`--dart-define-from-file=secrets/<os>.json` — see `app/secrets/README.md` (templates are
+committed, real files are not). Deploy scripts want `KATA_HOST=user@host`.
 
 On Linux the camera needs a udev rule once — the `.deb` installs it; otherwise see
 `docs/ops/kata-desktop.md`.

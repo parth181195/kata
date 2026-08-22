@@ -46,3 +46,6 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+# Per-OS build secrets — templates (*.example.json) are committed, real files are not
+/secrets/*.json
+!/secrets/*.example.json
