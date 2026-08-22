@@ -172,6 +172,7 @@ class _RecipePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.kata;
     final repo = ref.watch(recipeRepositoryProvider);
+    ref.watch(recipeHydrationProvider(recipe.id));
     final r = repo.byId(recipe.id) ?? recipe;
     final fav = repo.favourites.contains(r.id);
     final mine = r.isDraft || repo.mine.any((x) => x.id == r.id);

@@ -91,6 +91,30 @@ class RecipeRepository extends ChangeNotifier {
 
   Future<void> sync() => _inflight ??= _sync().whenComplete(() => _inflight = null);
 
+  final Set<String> _hydrated = {};
+
+  /// List responses carry at most three sample frames per recipe (the server's
+  /// LIST_IMAGE_LIMIT); opening one fetches the full record so every frame is there.
+  /// Offline the capped copy stands — the failure isn't surfaced.
+  Future<void> hydrate(String id) async {
+    if (!_hydrated.add(id)) return;
+    if (byId(id)?.isDraft ?? false) return;
+    try {
+      final full = await _api.get(id);
+      final i = _cached.indexWhere((r) => r.id == id);
+      if (i >= 0) _cached[i] = full;
+      final j = _published.indexWhere((r) => r.id == id);
+      if (j >= 0) _published[j] = full;
+      if (i < 0 && j < 0) return;
+      final now = DateTime.now();
+      await _db.into(_db.cachedRecipes).insertOnConflictUpdate(
+          CachedRecipesCompanion.insert(id: full.id, body: jsonEncode(full.toJson()), createdAt: full.createdAt ?? now, updatedAt: now));
+      notifyListeners();
+    } on ApiException {
+      _hydrated.remove(id);
+    }
+  }
+
   /// What pull-to-refresh waits on: the first page, which is everything on screen. The rest
   /// keeps loading behind it, so the spinner doesn't sit there for the whole library.
   Future<void> refresh() {
@@ -132,6 +156,7 @@ class RecipeRepository extends ChangeNotifier {
         await _db.setMeta(_kLastSync, now.toIso8601String());
       });
       lastSyncedAt = now;
+      _hydrated.clear(); // the fresh list pages are capped again
       offline = false;
       offlineIsNetwork = false;
       notifyListeners();
@@ -351,6 +376,10 @@ final recipeRepositoryProvider = ChangeNotifierProvider<RecipeRepository>((ref) 
   repo.load();
   return repo;
 });
+
+/// Watched by the detail views so an opened recipe gets its full image set.
+final recipeHydrationProvider = FutureProvider.autoDispose.family<void, String>(
+    (ref, id) => ref.read(recipeRepositoryProvider).hydrate(id));
 
 /// Seeded from the signed-in user's setup answers: a new user lands on katas for their own
 /// sensor rather than all 340. The chip stays visible and clearable — never a silent filter.

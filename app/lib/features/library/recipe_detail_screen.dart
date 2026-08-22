@@ -30,6 +30,7 @@ class RecipeDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.kata;
     final lib = ref.watch(recipeRepositoryProvider);
+    ref.watch(recipeHydrationProvider(id));
     final recipe = lib.byId(id);
     if (recipe == null) {
       return Scaffold(body: SafeArea(child: Center(child: KataEmptyState(glyph: '?', title: 'Kata not found', actionLabel: 'Back', onAction: () => context.pop()))));
@@ -227,27 +228,28 @@ class RecipeDetailScreen extends ConsumerWidget {
                   ],
                 ]),
                 // Extra frames beyond the hero — only the ones that exist. Tiles keep the width
-                // they would have in a full row of three, so one or two photos don't stretch.
+                // they would have in a full row of three, so one or two photos don't stretch,
+                // and a recipe with more than three extras wraps onto further rows.
                 if (recipe.imageUrls.length > 1) ...[
                   const SizedBox(height: 16),
                   LayoutBuilder(
                     builder: (context, box) {
-                      final extras = recipe.imageUrls.skip(1).take(3).toList();
+                      final extras = recipe.imageUrls.skip(1).toList();
                       final tile = (box.maxWidth - 12) / 3;
-                      return SizedBox(
-                        height: 72,
-                        child: Row(children: [
-                          for (var i = 0; i < extras.length; i++) ...[
-                            if (i > 0) const SizedBox(width: 6),
+                      return Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (var i = 0; i < extras.length; i++)
                             SizedBox(
                               width: tile,
+                              height: 72,
                               child: GestureDetector(
                                 onTap: () => showImageViewer(context, urls: recipe.imageUrls, initialIndex: 1 + i, credit: attributionLine(recipe)),
                                 child: FrameSlot(radius: 8, image: recipeImage(extras[i])),
                               ),
                             ),
-                          ],
-                        ]),
+                        ],
                       );
                     },
                   ),

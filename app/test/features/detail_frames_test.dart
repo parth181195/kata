@@ -39,7 +39,7 @@ void main() {
     expect(await _framesFor(t, 1), 1);
   });
 
-  testWidgets('more than four photos still cap the strip at three', (t) async {
-    expect(await _framesFor(t, 6), 4);
+  testWidgets('every extra frame is shown — the strip wraps past one row', (t) async {
+    expect(await _framesFor(t, 6), 6);
   });
 }
