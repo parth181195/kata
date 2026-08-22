@@ -168,7 +168,22 @@ class _Libusb {
   final int Function(Pointer<Void>) resetDev;
 
   static DynamicLibrary load() {
-    if (Platform.isMacOS) return DynamicLibrary.open('libusb-1.0.0.dylib');
+    if (Platform.isMacOS) {
+      // Bare name resolves against the app bundle's Contents/Frameworks (where the
+      // build embeds libusb); the Homebrew paths cover `flutter run` from source.
+      for (final name in [
+        'libusb-1.0.0.dylib',
+        '/opt/homebrew/lib/libusb-1.0.0.dylib',
+        '/usr/local/lib/libusb-1.0.0.dylib',
+      ]) {
+        try {
+          return DynamicLibrary.open(name);
+        } on ArgumentError {
+          continue;
+        }
+      }
+      throw StateError('libusb not found: bundle Frameworks/, brew (/opt/homebrew), or /usr/local');
+    }
     if (Platform.isWindows) return DynamicLibrary.open('libusb-1.0.dll');
     return DynamicLibrary.open('libusb-1.0.so.0');
   }
