@@ -14,7 +14,14 @@ class TokenKeys {
 }
 
 class SecureTokenStore implements TokenStore {
-  SecureTokenStore([FlutterSecureStorage? storage]) : _s = storage ?? const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+  SecureTokenStore([FlutterSecureStorage? storage])
+      : _s = storage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+              // The data-protection keychain needs a keychain-access-groups entitlement,
+              // which needs a real signing certificate; the legacy keychain doesn't.
+              mOptions: MacOsOptions(useDataProtectionKeyChain: false),
+            );
   final FlutterSecureStorage _s;
   @override
   Future<String?> read(String key) => _s.read(key: key);
