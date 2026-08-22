@@ -55,6 +55,18 @@ void _offlineTests() {
     expect(find.text('KODACHROME 64'), findsOneWidget);
   });
 
+  testWidgets('a rejected sync with an empty cache says so, not "no katas match"', (t) async {
+    final api = FakeRecipeApi.fromSeed(seedJson)..failStatus = 400;
+    final c = await pumpKata(t, api: api);
+    expect(find.text('COULDN’T LOAD THE LIBRARY'), findsOneWidget);
+    expect(find.text('NO KATAS MATCH'), findsNothing);
+    api.failStatus = null;
+    await t.tap(find.text('Retry'));
+    await t.pumpAndSettle();
+    expect(c.read(recipeRepositoryProvider).all.length, 3);
+    expect(find.text('KODACHROME 64'), findsOneWidget);
+  });
+
   testWidgets('first sync with an empty cache shows the syncing skeletons, then the list', (t) async {
     final api = FakeRecipeApi.fromSeed(seedJson)..delay = const Duration(seconds: 2);
     await pumpKata(t, api: api, awaitSync: false);
