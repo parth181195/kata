@@ -30,6 +30,7 @@ export class ListRecipesDto {
   @Transform(({ value }) => Number(value))
   @IsInt()
   @Min(1)
-  @Max(50)
+  // The app syncs the library at 100 per page (one request per 100 recipes — round-trip bound).
+  @Max(100)
   limit = 30;
 }

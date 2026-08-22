@@ -5,8 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/auth/auth_repository.dart';
+
+/// The build's own version — the hardcoded string drifted from pubspec once already.
+final appVersionProvider = FutureProvider<String>((_) async => (await PackageInfo.fromPlatform()).version);
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -58,7 +62,7 @@ class ProfileScreen extends ConsumerWidget {
           row('Supported cameras', trailing: '${KnownBody.all.length} bodies', onTap: () => context.push('/cameras')),
           row('About Kata · OFR spec · Licences', trailing: 'MIT'),
           row('Component kit', trailing: '/KIT', onTap: () => context.push('/kit')),
-          row('Version', trailing: '0.2.0 · LONG-PRESS FOR PROBE', onLongPress: () => context.push('/probe')),
+          row('Version', trailing: '${ref.watch(appVersionProvider).valueOrNull ?? '…'} · LONG-PRESS FOR PROBE', onLongPress: () => context.push('/probe')),
         ]),
       ),
     );
