@@ -224,9 +224,10 @@ class _RecipePage extends ConsumerWidget {
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             // ---- photography, as big as the window allows
             Expanded(flex: 3, child: _Carousel(photos: photos, credit: r.ofr.sourceAttribution ?? '')),
-            // ---- every setting, no scrolling between halves
+            // ---- every setting, no scrolling between halves; cedes to the photos
+            // on a small window but never below a readable spec grid
             Container(
-              width: 420,
+              width: (MediaQuery.sizeOf(context).width * 0.36).clamp(300.0, 420.0),
               decoration: BoxDecoration(border: Border(left: BorderSide(color: p.hairline))),
               child: ListView(padding: const EdgeInsets.fromLTRB(22, 22, 22, 28), children: [
                 CreditLine(recipe: r, size: 13),

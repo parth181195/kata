@@ -221,7 +221,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
         Expanded(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Container(
-              width: 200,  // rail
+              width: MediaQuery.sizeOf(context).width < 1080 ? 156 : 200,  // rail, compact on small windows
               padding: const EdgeInsets.fromLTRB(10, 14, 10, 14),
               decoration: BoxDecoration(border: Border(right: BorderSide(color: p.hairline))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

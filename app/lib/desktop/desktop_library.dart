@@ -46,6 +46,11 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
     if (widget.mineOnly) recipes = repo.mine.toList();
     final selId = ref.watch(desktopSelectedRecipeProvider);
     final selected = recipes.where((r) => r.id == selId).firstOrNull ?? recipes.firstOrNull;
+    // Small windows drop the side pane (a tap opens the full recipe view instead of
+    // squeezing the grid to a single column) and the wide pane narrows first.
+    final width = MediaQuery.sizeOf(context).width;
+    final showPane = width >= 1000;
+    final paneWidth = width >= 1240 ? 380.0 : 320.0;
 
     return Column(children: [
       Expanded(
@@ -154,30 +159,34 @@ class _DesktopLibraryState extends ConsumerState<DesktopLibrary> {
                                 child: Text(r.name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 13, color: p.fg, letterSpacing: 0)),
                               ),
                             ),
-                            child: _card(p, r, on),
+                            child: _card(p, r, on, openOnTap: !showPane),
                           );
                         },
                       ),
           ),
         ]),
       ),
-      Container(
-        width: 380,
-        decoration: BoxDecoration(border: Border(left: BorderSide(color: p.hairline))),
-        child: selected == null ? Center(child: Text('PICK A KATA', style: KataType.monoStyle(size: 10, color: p.muted, letterSpacing: 0.16))) : _DetailPane(recipe: selected),
-      ),
+      if (showPane)
+        Container(
+          width: paneWidth,
+          decoration: BoxDecoration(border: Border(left: BorderSide(color: p.hairline))),
+          child: selected == null ? Center(child: Text('PICK A KATA', style: KataType.monoStyle(size: 10, color: p.muted, letterSpacing: 0.16))) : _DetailPane(recipe: selected),
+        ),
         ]),
       ),
       const SlotDock(),
     ]);
   }
 
-  Widget _card(KataPalette p, Recipe r, bool on) => Material(
+  Widget _card(KataPalette p, Recipe r, bool on, {bool openOnTap = false}) => Material(
         color: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: on ? p.fg : p.hairline, width: on ? 1.5 : 1)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => ref.read(desktopSelectedRecipeProvider.notifier).state = r.id,
+          onTap: () {
+            ref.read(desktopSelectedRecipeProvider.notifier).state = r.id;
+            if (openOnTap) showRecipeFullScreen(context, r); // no pane to land in
+          },
           onDoubleTap: () => showRecipeFullScreen(context, r), // open the recipe's own page
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
