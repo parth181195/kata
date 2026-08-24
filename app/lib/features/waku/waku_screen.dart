@@ -118,7 +118,8 @@ class _WakuScreenState extends State<WakuScreen> {
     try {
       final png = await rasterizePng(_boundary);
       if (mounted) await deliverPng(context, png, name: name);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('waku export failed: $e\n$st');
       if (mounted) KataToast.show(context, 'Could not render the frame');
     } finally {
       if (mounted) setState(() => _busy = false);

@@ -35,10 +35,10 @@ bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platf
 /// the share sheet. Returns false when the user cancelled the save.
 Future<bool> deliverPng(BuildContext context, Uint8List png, {required String name, String? subject, String? text}) async {
   if (_isDesktop) {
-    final path = await FilePicker.platform.saveFile(dialogTitle: 'Save $name', fileName: name, bytes: png);
+    // no `bytes:` here — the macOS picker throws on it; we write the file ourselves
+    final path = await FilePicker.platform.saveFile(dialogTitle: 'Save $name', fileName: name);
     if (path == null) return false; // cancelled
-    final f = File(path);
-    if (!await f.exists() || (await f.length()) == 0) await f.writeAsBytes(png);
+    await File(path).writeAsBytes(png);
     if (context.mounted) KataToast.show(context, 'Saved $name');
     return true;
   }
