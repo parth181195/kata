@@ -32,6 +32,9 @@ List<ComposeLayer> polaroidLayers(Size size, double unit) {
       region: Rect.fromLTRB(m, size.height - chin, size.width - m, size.height),
       style: chinStyle(size),
       draggable: true,
+      // a real chin holds about two handwritten lines before the pen falls off
+      maxLines: 2,
+      maxChars: 56,
     ),
   ];
 }

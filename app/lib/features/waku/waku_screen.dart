@@ -205,6 +205,7 @@ class _WakuScreenState extends State<WakuScreen> {
   }
 
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
+        canvasSize: size,
         layers: _layers(size),
         photo: _photoWidget(interactive: interactive),
         textOf: (id) => _slotText[id]?.text ?? '',
@@ -224,23 +225,27 @@ class _WakuScreenState extends State<WakuScreen> {
                 }),
         onDragText: !interactive
             ? (_, _) {}
-            : (id, d) => setState(() {
-                  final o = (_slotDrag[id] ?? Offset.zero) + d;
-                  _slotDrag[id] = Offset(o.dx.clamp(-0.5, 0.5), o.dy.clamp(-0.4, 0.4));
-                }),
-        editorBuilder: (id, slot) => IntrinsicWidth(
-          child: TextField(
-            key: const ValueKey('slot-editor'),
-            controller: _ctl(id),
-            focusNode: _slotFocus,
-            autofocus: true,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            textCapitalization: TextCapitalization.characters,
-            style: slot.style,
-            cursorColor: slot.style.color,
-            decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
-            onSubmitted: (_) => setState(() => _editingSlot = null),
+            // absolute, already snapped and frame-clamped by the canvas
+            : (id, o) => setState(() => _slotDrag[id] = o),
+        editorBuilder: (id, slot) => ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: slot.region.width - 24),
+          child: IntrinsicWidth(
+            child: TextField(
+              key: const ValueKey('slot-editor'),
+              controller: _ctl(id),
+              focusNode: _slotFocus,
+              autofocus: true,
+              minLines: 1,
+              maxLines: slot.maxLines,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [LengthLimitingTextInputFormatter(slot.maxChars), _UpperCaseFormatter()],
+              textAlign: TextAlign.center,
+              textCapitalization: TextCapitalization.characters,
+              style: slot.style,
+              cursorColor: slot.style.color,
+              decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
+              onSubmitted: (_) => setState(() => _editingSlot = null),
+            ),
           ),
         ),
       );
@@ -329,6 +334,7 @@ class _WakuScreenState extends State<WakuScreen> {
           : Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true);
     } else {
       thumb = ComposeCanvasView(
+        canvasSize: thumbSize,
         layers: polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
         photo: _photoWidget(interactive: false),
         textOf: (_) => '',
@@ -440,4 +446,13 @@ class _ThirdsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ThirdsPainter o) => false;
+}
+
+
+/// The frames set their text in caps — so type in caps, live, rather than
+/// jumping to uppercase after focus leaves.
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) =>
+      newValue.copyWith(text: newValue.text.toUpperCase());
 }

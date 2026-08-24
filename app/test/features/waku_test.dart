@@ -109,6 +109,17 @@ void main() {
     expect(find.text('Exposure'), findsNothing); // the look stayed in the camera
   });
 
+  testWidgets('text capacity is the slot\'s: input clamps at maxChars', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF446688))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    await t.tap(find.text('ADD A LINE'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'x' * 200);
+    final field = t.widget<TextField>(find.byKey(const ValueKey('slot-editor')));
+    expect(field.controller!.text.length, 56); // polaroid chin capacity
+    expect(field.maxLines, 2);
+  });
+
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF2255AA))))!;
     final frame = (await t.runAsync(() => _png(const Color(0xFF111111))))!;
