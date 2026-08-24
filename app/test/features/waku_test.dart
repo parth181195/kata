@@ -171,25 +171,44 @@ void main() {
     expect(find.text('TAPE 1/2'), findsOneWidget);
   });
 
-  testWidgets('archive label card: tombstone slots, prefill seeds the editor, title keeps its case', (t) async {
+  testWidgets('poster frame: fixed credit grid, huge title, nothing draggable', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF554433))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
-    await t.tap(find.text('LABEL'));
+    await t.tap(find.text('POSTER'));
     await t.pumpAndSettle();
-    // tombstone invitations (no EXIF in the test PNG, so no prefill)
-    expect(find.text('ARTIST'), findsOneWidget);
-    expect(find.text('Untitled'), findsOneWidget); // case preserved
-    expect(find.text('MEDIUM'), findsOneWidget);
-    // the accession line + barcode furniture
-    expect(find.text('KATA.0000.00'), findsWidgets); // canvas + thumbnail
-    // title editing keeps lowercase
-    await t.tap(find.text('Untitled'));
+    // credit headers are furniture; slots show invitations (no EXIF in test PNG)
+    for (final head in ['A PHOTO BY', 'CAMERA', 'FILM', 'EXPOSURE', 'DATE']) {
+      expect(find.text(head), findsWidgets);
+    }
+    expect(find.text('UNTITLED'), findsWidgets);
+    // the grid is the design: dragging the title does not move it
+    await t.tap(find.text('UNTITLED').first); // empty slot → editor opens
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'Rain over Bandra');
+    await t.testTextInput.receiveAction(TextInputAction.done); // close, keep empty
+    await t.pumpAndSettle();
+    final before = t.getTopLeft(find.text('UNTITLED').first);
+    await t.drag(find.text('UNTITLED').first, const Offset(60, 30));
+    await t.pumpAndSettle();
+    expect(t.getTopLeft(find.text('UNTITLED').first), before);
+  });
+
+  testWidgets('words frame: the dictionary grid with its fixed furniture', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF445566))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    await t.tap(find.text('WORDS'));
+    await t.pumpAndSettle();
+    expect(find.text('Untitled.'), findsWidgets); // lowercase word, case kept
+    expect(find.text('[noun]'), findsWidgets);
+    expect(find.text('ka\nta.'), findsWidgets); // the boxed mark
+    expect(find.text('001'), findsWidgets);
+    // title edits keep case
+    await t.tap(find.text('Untitled.').first);
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'Monsoon.');
     await t.testTextInput.receiveAction(TextInputAction.done);
     await t.pumpAndSettle();
-    expect(find.text('Rain over Bandra'), findsOneWidget);
-    expect(find.text('RAIN OVER BANDRA'), findsNothing);
+    expect(find.text('Monsoon.'), findsWidgets);
+    expect(find.text('MONSOON.'), findsNothing);
   });
 
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {

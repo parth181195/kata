@@ -212,7 +212,8 @@ class _WakuScreenState extends State<WakuScreen> {
       return customLayers(size, size.shortestSide * _matScale,
           frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
-    if (_frame == WakuFrame.archive) return labelLayers(size, size.shortestSide * 0.08, meta: _meta);
+    if (_frame == WakuFrame.poster) return posterLayers(size, size.shortestSide * 0.08, meta: _meta);
+    if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta);
     return polaroidLayers(size, size.shortestSide * 0.08);
   }
 
@@ -417,9 +418,11 @@ class _WakuScreenState extends State<WakuScreen> {
     } else {
       thumb = ComposeCanvasView(
         canvasSize: thumbSize,
-        layers: f == WakuFrame.archive
-            ? labelLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta)
-            : polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
+        layers: switch (f) {
+          WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
+          WakuFrame.words => wordsLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
+          _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
+        },
         photo: _photoWidget(interactive: false),
         textOf: (_) => '',
         dragOf: (_) => Offset.zero,
@@ -457,9 +460,16 @@ class _WakuScreenState extends State<WakuScreen> {
         if (_photo == null)
           Text('Pick a photo first — the frames preview with it.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4))
         else
-          Row(children: [
-            for (final f in WakuFrame.values) ...[_frameThumb(p, f), const SizedBox(width: 9)],
-          ]),
+          SizedBox(
+            height: 96,
+            child: ListView.separated(
+              key: const ValueKey('waku-frames'),
+              scrollDirection: Axis.horizontal,
+              itemCount: WakuFrame.values.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 9),
+              itemBuilder: (_, i) => _frameThumb(p, WakuFrame.values[i]),
+            ),
+          ),
         if (_frame == WakuFrame.custom && _frameImage != null) ...[
           const SizedBox(height: 10),
           KataListRow(title: 'Frame on top', value: _frameOnTop ? 'ON' : 'OFF', onTap: () => setState(() => _frameOnTop = !_frameOnTop)),
