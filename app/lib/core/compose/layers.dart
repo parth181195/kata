@@ -93,10 +93,15 @@ class ComposeCanvasView extends StatefulWidget {
 }
 
 class _ComposeCanvasViewState extends State<ComposeCanvasView> {
-  static const _snapTol = 5.0;
+  static const _snapTol = 6.0;
   static const _guideColor = Color(0xFFDB3B26); // the board's one hard red
   List<double> _vGuides = const [];
   List<double> _hGuides = const [];
+  // The gesture accumulates on the RAW position; snapping only shapes what is
+  // shown. Snapping the stored position instead glues the slot to the guide —
+  // every new delta would restart from the snapped point and re-snap.
+  Offset? _rawCenter;
+  String? _dragId;
 
   List<ComposeLayer> get layers => widget.layers;
   Widget get photo => widget.photo;
@@ -131,10 +136,15 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
 
   void _dragSlot(ComposeTextSlot slot, Offset delta) {
     final region = slot.region;
-    final current = dragOf(slot.id);
-    var next = Offset(current.dx + delta.dx / region.width, current.dy + delta.dy / region.height);
     final size = _slotTextSize(slot);
-    var center = region.center + Offset(next.dx * region.width, next.dy * region.height);
+    if (_dragId != slot.id || _rawCenter == null) {
+      final current = dragOf(slot.id);
+      _rawCenter = region.center + Offset(current.dx * region.width, current.dy * region.height);
+      _dragId = slot.id;
+    }
+    _rawCenter = _rawCenter! + delta;
+    var center = _rawCenter!;
+    Offset next;
     final v = <double>[];
     final h = <double>[];
     final pr = _photoRect;
@@ -172,6 +182,8 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   void _endDrag() => setState(() {
         _vGuides = const [];
         _hGuides = const [];
+        _rawCenter = null;
+        _dragId = null;
       });
 
   @override
