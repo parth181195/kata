@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'grain.dart';
+import 'stickers.dart';
 
 /// Shared composition base — kata share cards and Waku frames are the same
 /// machine: a fixed, ordered stack of layers, bottom to top. Users never add,
@@ -85,6 +86,8 @@ class ComposeCanvasView extends StatefulWidget {
     required this.onDragText,
     required this.editorBuilder,
     required this.canvasSize,
+    this.stickers = const [],
+    this.onStickerChanged,
     this.scaleOf = _one,
     this.angleOf = _zero,
     this.inkOf = _noInk,
@@ -101,6 +104,10 @@ class ComposeCanvasView extends StatefulWidget {
   static Color? _noInk(String _) => null;
 
   final Size canvasSize;
+  /// Fasteners placed by the user within the frame's allowance. Rendered
+  /// topmost — tape sits ON the print, like on the board.
+  final List<StickerInstance> stickers;
+  final void Function(String id, Offset posFraction, double angle)? onStickerChanged;
   final double Function(String id) scaleOf;
   final double Function(String id) angleOf;
   final Color? Function(String id) inkOf;
@@ -187,6 +194,31 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   void _endHandleDrag() {
     _scaleId = null;
     _angleId = null;
+  }
+
+  StickerInstance? _sticker(String? id) {
+    if (id == null || !id.startsWith('sticker:')) return null;
+    for (final st in widget.stickers) {
+      if (st.id == id) return st;
+    }
+    return null;
+  }
+
+  void _dragSticker(StickerInstance st, Offset delta) {
+    final cs = widget.canvasSize;
+    final p = Offset((st.pos.dx + delta.dx / cs.width).clamp(0.0, 1.0), (st.pos.dy + delta.dy / cs.height).clamp(0.0, 1.0));
+    widget.onStickerChanged?.call(st.id, p, st.angle);
+  }
+
+  void _rotateSticker(StickerInstance st, Offset delta) {
+    if (_angleId != st.id) {
+      _rawAngle = st.angle;
+      _angleId = st.id;
+    }
+    _rawAngle += delta.dx / 90;
+    var a = _rawAngle;
+    if (a.abs() < 0.05) a = 0; // level snap, raw keeps accumulating
+    widget.onStickerChanged?.call(st.id, st.pos, a);
   }
   String? get selectedId => widget.selectedId;
   void Function(String? id)? get onSelect => widget.onSelect;
@@ -307,10 +339,58 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
             ),
           final ComposeTextSlot slot => _slot(slot),
         },
+      for (final st in widget.stickers) _stickerView(st),
       if (_vGuides.isNotEmpty || _hGuides.isNotEmpty)
         Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _GuidePainter(_vGuides, _hGuides, _guideColor)))),
       ..._handleOverlay(),
+      ..._stickerHandles(),
     ]);
+  }
+
+  Widget _stickerView(StickerInstance st) {
+    final cs = widget.canvasSize;
+    final size = st.type.size;
+    final selected = selectedId == st.id;
+    return Positioned(
+      left: st.pos.dx * cs.width - size.width / 2,
+      top: st.pos.dy * cs.height - size.height / 2,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onSelect == null ? null : () => onSelect!(st.id),
+        onPanUpdate: widget.onStickerChanged == null ? null : (d) => _dragSticker(st, d.delta),
+        child: Transform.rotate(
+          angle: st.angle,
+          child: _chromed(selected: selected, child: StickerWidget(type: st.type, seed: st.seed)),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _stickerHandles() {
+    final st = _sticker(selectedId);
+    if (st == null || hideInvitations || widget.onStickerChanged == null) return const [];
+    final cs = widget.canvasSize;
+    final top = st.pos.dy * cs.height - st.type.size.height / 2;
+    return [
+      Positioned(
+        left: st.pos.dx * cs.width - 12,
+        top: top - 30,
+        child: GestureDetector(
+          key: const ValueKey('sticker-rotate'),
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (d) => _rotateSticker(st, d.delta),
+          onPanEnd: (_) => _endHandleDrag(),
+          onPanCancel: _endHandleDrag,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: chromeColor, border: Border.all(color: const Color(0x66000000), width: 0.5))),
+              Container(width: 1, height: 7, color: chromeColor),
+            ]),
+          ),
+        ),
+      ),
+    ];
   }
 
   /// The interactive handles for the active text slot, positioned in canvas
