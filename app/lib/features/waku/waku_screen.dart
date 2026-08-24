@@ -11,6 +11,7 @@ import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
 import '../../core/compose/stickers.dart';
 import 'waku_frames.dart';
+import 'waku_exif.dart';
 import 'waku_import.dart';
 
 /// 枠 Waku — put a photo in a frame from a curated gallery (one for now: the
@@ -58,6 +59,7 @@ class _WakuScreenState extends State<WakuScreen> {
   bool _placing = false; // pan/zoom/straighten in progress → thirds grid
 
   Uint8List? _photo;
+  PhotoMeta _meta = const PhotoMeta();
   Uint8List? _frameImage; // the custom frame, when WakuFrame.custom
   WakuFrame _frame = WakuFrame.polaroid;
   WakuRatio _ratio = WakuRatio.r4x5;
@@ -106,8 +108,11 @@ class _WakuScreenState extends State<WakuScreen> {
   Future<void> _pickPhoto() async {
     final b = await _pickImage('Choose a photo');
     if (b == null || !mounted) return;
+    final meta = await readPhotoMeta(b);
+    if (!mounted) return;
     setState(() {
       _photo = b;
+      _meta = meta;
       _viewer.value = Matrix4.identity();
     });
   }
@@ -455,6 +460,15 @@ class _WakuScreenState extends State<WakuScreen> {
           const SizedBox(height: 16),
           KataSectionHeader('Photo'),
           Text('Placement only — the look stayed in the camera.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          if (!_meta.isEmpty) ...[
+            const SizedBox(height: 8),
+            Text(_meta.line, style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: p.dim, letterSpacing: 0.1)),
+            if (_meta.filmMode != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(_meta.filmMode!.toUpperCase(), style: KataType.monoStyle(size: 9, weight: FontWeight.w500, color: p.dim, letterSpacing: 0.1)),
+              ),
+          ],
           const SizedBox(height: 8),
           Row(children: [
             Text('STRAIGHTEN', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
