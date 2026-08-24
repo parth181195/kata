@@ -153,6 +153,23 @@ void main() {
     expect(find.text('RESET STYLE'), findsOneWidget);
   });
 
+  testWidgets('stickers: added within allowance, selectable, removable', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF335544))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    // allowance shows on the chips; add both tapes, then the chip is spent
+    await t.tap(find.text('TAPE 0/2'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('TAPE 1/2'));
+    await t.pumpAndSettle();
+    expect(find.text('TAPE 2/2'), findsOneWidget);
+    // the newest tape arrives selected: rotate handle + Remove offered
+    expect(find.byKey(const ValueKey('sticker-rotate')), findsOneWidget);
+    expect(find.text('REMOVE'), findsOneWidget);
+    await t.tap(find.text('REMOVE'));
+    await t.pumpAndSettle();
+    expect(find.text('TAPE 1/2'), findsOneWidget);
+  });
+
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF2255AA))))!;
     final frame = (await t.runAsync(() => _png(const Color(0xFF111111))))!;

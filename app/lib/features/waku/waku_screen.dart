@@ -9,6 +9,7 @@ import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
+import '../../core/compose/stickers.dart';
 import 'waku_frames.dart';
 import 'waku_import.dart';
 
@@ -47,6 +48,8 @@ class _WakuScreenState extends State<WakuScreen> {
   final Map<String, double> _slotScale = {};
   final Map<String, double> _slotAngle = {};
   final Map<String, Color> _slotInk = {};
+  final List<StickerInstance> _stickers = [];
+  int _stickerSeq = 0;
   String? _editingSlot;
   String? _selected; // 'photo' or a slot id — chrome + contextual controls
   final _keys = FocusNode(debugLabel: 'waku-keys');
@@ -235,6 +238,14 @@ class _WakuScreenState extends State<WakuScreen> {
         inkOf: (id) => _slotInk[id],
         onScaleText: !interactive ? null : (id, v) => setState(() => _slotScale[id] = v),
         onRotateText: !interactive ? null : (id, v) => setState(() => _slotAngle[id] = v),
+        stickers: _stickers,
+        onStickerChanged: !interactive
+            ? null
+            : (id, pos, angle) => setState(() {
+                  final st = _stickers.firstWhere((s) => s.id == id);
+                  st.pos = pos;
+                  st.angle = angle;
+                }),
         editorBuilder: (id, slot, effective) => ConstrainedBox(
           constraints: BoxConstraints(maxWidth: slot.region.width - 24),
           child: IntrinsicWidth(
@@ -273,6 +284,26 @@ class _WakuScreenState extends State<WakuScreen> {
       setState(() => _selected = null);
       return KeyEventResult.handled;
     }
+    if (sel.startsWith('sticker:')) {
+      final st = _stickers.where((x) => x.id == sel).firstOrNull;
+      if (st == null) return KeyEventResult.ignored;
+      if (e.logicalKey == LogicalKeyboardKey.delete || e.logicalKey == LogicalKeyboardKey.backspace) {
+        _removeSelectedSticker();
+        return KeyEventResult.handled;
+      }
+      final shift = HardwareKeyboard.instance.isShiftPressed;
+      final step = shift ? 0.03 : 0.003;
+      Offset? d;
+      if (e.logicalKey == LogicalKeyboardKey.arrowLeft) d = Offset(-step, 0);
+      if (e.logicalKey == LogicalKeyboardKey.arrowRight) d = Offset(step, 0);
+      if (e.logicalKey == LogicalKeyboardKey.arrowUp) d = Offset(0, -step);
+      if (e.logicalKey == LogicalKeyboardKey.arrowDown) d = Offset(0, step);
+      if (d != null) {
+        setState(() => st.pos = Offset((st.pos.dx + d!.dx).clamp(0.0, 1.0), (st.pos.dy + d.dy).clamp(0.0, 1.0)));
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
     if (sel != 'photo') {
       final shift = HardwareKeyboard.instance.isShiftPressed;
       final step = shift ? 0.05 : 0.005;
@@ -299,6 +330,26 @@ class _WakuScreenState extends State<WakuScreen> {
     }
     return KeyEventResult.ignored;
   }
+
+  static const _stickerAllowance = {StickerType.tape: 2, StickerType.pin: 1, StickerType.hanko: 1};
+
+  int _stickerCount(StickerType t) => _stickers.where((s) => s.type == t).length;
+
+  void _addSticker(StickerType t) {
+    if (_stickerCount(t) >= (_stickerAllowance[t] ?? 0)) return;
+    setState(() {
+      final id = 'sticker:${t.name}-${_stickerSeq++}';
+      // arrive slightly off-centre and tilted, like a hand put it there
+      final n = _stickers.length;
+      _stickers.add(StickerInstance(id: id, type: t, pos: Offset(0.32 + 0.13 * (n % 4), 0.12 + 0.06 * (n % 3)), angle: (n.isEven ? -1 : 1) * 0.12, seed: _stickerSeq * 13 + 5));
+      _selected = id;
+    });
+  }
+
+  void _removeSelectedSticker() => setState(() {
+        _stickers.removeWhere((s) => s.id == _selected);
+        _selected = null;
+      });
 
   /// The selected slot's spec (capabilities don't depend on canvas size).
   ComposeTextSlot? _slotSpec(String id) {
@@ -461,6 +512,25 @@ class _WakuScreenState extends State<WakuScreen> {
                         _slotAngle.remove(_selected);
                         _slotInk.remove(_selected);
                       })),
+          ]),
+        ],
+        if (_selected != null && _selected!.startsWith('sticker:')) ...[
+          const SizedBox(height: 16),
+          KataSectionHeader('Sticker'),
+          Text('Drag to place it; the stem above tilts it. Delete removes it.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          const SizedBox(height: 8),
+          KataChip(label: 'Remove', onTap: _removeSelectedSticker),
+        ],
+        if (_photo != null) ...[
+          const SizedBox(height: 16),
+          KataSectionHeader('Stickers'),
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            for (final t in StickerType.values)
+              KataChip(
+                label: '${t.label} ${_stickerCount(t)}/${_stickerAllowance[t]}',
+                enabled: _stickerCount(t) < (_stickerAllowance[t] ?? 0),
+                onTap: () => _addSticker(t),
+              ),
           ]),
         ],
         const SizedBox(height: 16),
