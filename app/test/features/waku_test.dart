@@ -153,7 +153,8 @@ void main() {
     expect(find.text('RESET STYLE'), findsOneWidget);
   });
 
-  testWidgets('stickers: added within allowance, selectable, removable', skip: 'kit shelved until the drawings match real references', (t) async {
+  testWidgets('stickers: added within allowance, selectable, removable', // kit shelved until the drawings match real references
+      skip: true, (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF335544))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
     // allowance shows on the chips; add both tapes, then the chip is spent
