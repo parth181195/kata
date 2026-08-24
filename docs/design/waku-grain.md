@@ -100,24 +100,30 @@ template blur, and no visible repetition. Two things it gets wrong, below.
 
 ## 3. What's wrong today
 
-**(a) Preview and export don't show the same grain.** The shader computes
-`pxy = FlutterFragCoord().xy * uDpr`, where `uDpr` is the device ratio times the
-export ratio — so the tile repeats every 128 *device* pixels. Export at 4.5×
-therefore makes the tooth 4.5× finer *relative to the sheet* than what the user
-tuned by eye.
+**(a) Preview and export didn't show the same grain — fixed 2026-08-22.** The
+shader computed `pxy = FlutterFragCoord().xy * uDpr`, where `uDpr` was the
+device ratio times the export ratio, so the tile repeated every 128 *device*
+pixels: a 4× export rendered the tooth 4× finer relative to the sheet than the
+preview the user had tuned by eye, and the tile's repeat crowded in by the same
+factor.
 
 Both physical models say a medium's grain is fixed in the medium's own
-coordinates: Newson renders the model in input-image coordinates scaled by the
+coordinates. Newson renders the model in input-image coordinates scaled by the
 zoom factor s, with σ expressed in output pixels because "the filtering is
 related to the observed image, and not the underlying model" — the paper's
 selling point is that you can zoom in "to the point where the individual grains
 can be observed". Grain does not shrink when you look closer; it resolves.
 
-The fix is small and mostly deletion: express grain size as a fraction of the
-sheet's short side, sample the tile in sheet coordinates, and generate the
-template at `grainPx × rasterScale` for export so the extra resolution buys
-detail instead of shrinking the tooth. Preview then predicts the export, which is
-the whole point of a preview.
+What it does now (`GrainGeometry`): the export scale picks a template
+*magnification* t = ⌈raster⌉, capped at 4. The template is generated t× larger
+**and** with a t× larger clump, and the shader samples with `uScale = dpr · t`
+over `uTile = 128 · t`. Both the tooth's size on the sheet (`templatePx/uScale`)
+and the tile's repeat (`uTile/uScale`) then come out independent of t — the
+export spends its extra pixels resolving the same tooth. Past the cap the tile
+is magnified rather than regenerated: still the right size, just softer, instead
+of an unbounded CPU bill. Export tiles are generated off the UI isolate, and
+`rasterizePng` awaits `GrainOverlay.ready()` so it can't rasterise the preview
+tile by mistake.
 
 **(b) The tonal response is an accident of the blend mode.** `BlendMode.overlay`
 with a grey field g centred on ½ gives, for a base b:
@@ -138,8 +144,7 @@ engine.
 
 ## 4. What to build, ranked
 
-1. **Sheet-space grain** (fixes 3a). Half a day. Everything else is optional; this
-   one is a correctness bug the user can see.
+1. ~~Sheet-space grain~~ — done, see §3a.
 2. **Explicit f(Y) for photo-bearing surfaces.** Compute luma once, look up
    amplitude from a small piecewise-linear curve (AV1's shape, 8–14 points is
    plenty — they use a 256-entry LUT because it's a decoder), apply on luma so the
@@ -171,6 +176,7 @@ and anything in the H.264 SEI patent family.
 ## 5. Verification
 
 The shader compiles at build (impellerc); Dart-side template generation is unit
-tested for determinism and spec plumbing. Grain itself is judged by eye at both
-preview and export scale — after fix (1), those two should agree, which is the
-first thing to check. Sign-off is Parth's: curation, not measurement.
+tested for determinism and spec plumbing. The geometry is pinned by a unit test: the
+tooth's size and the tile's repeat on the sheet must not move as the export
+scale changes. Grain itself is judged by eye at both preview and export scale —
+those two should now agree, which is the first thing to check on a real export. Sign-off is Parth's: curation, not measurement.

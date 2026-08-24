@@ -21,8 +21,10 @@ Future<Uint8List> rasterizePng(GlobalKey boundaryKey, {double? pixelRatio, doubl
   final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final ratio = pixelRatio ?? (targetShortSide / boundary.size.shortestSide).clamp(1.0, 6.0);
   try {
-    // grain paints in true export pixels, not magnified preview pixels
+    // the sheet's tooth keeps its size; the export just resolves it finer, and
+    // that finer tile has to exist before we rasterise
     GrainOverlay.rasterScale.value = ratio;
+    await GrainOverlay.ready();
     if (settle) {
       // wait a couple of frames so images and the re-scaled grain have painted
       await WidgetsBinding.instance.endOfFrame;
