@@ -46,6 +46,11 @@ void main() {
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const ValueKey('slot-editor')), 'golden hour');
+    // while editing, the chrome stays and the grip still moves the slot
+    expect(find.byKey(const ValueKey('slot-grip')), findsOneWidget);
+    await t.drag(find.byKey(const ValueKey('slot-grip')), const Offset(25, 0));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('slot-editor')), findsOneWidget); // drag didn't kill the editor
     await t.testTextInput.receiveAction(TextInputAction.done);
     await t.pumpAndSettle();
     expect(find.text('GOLDEN HOUR'), findsOneWidget);

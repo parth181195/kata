@@ -105,8 +105,10 @@ class ComposeCanvasView extends StatelessWidget {
   }
 
   /// Selection chrome: hairline box + corner ticks in the kata language.
-  /// Purely visual — abilities stay with the layer underneath.
-  Widget _chromed({required bool selected, required Widget child}) {
+  /// Mostly visual — abilities stay with the layer underneath. While the
+  /// inline editor is open the text body belongs to the cursor, so a [grip]
+  /// above the box carries the move affordance instead.
+  Widget _chromed({required bool selected, required Widget child, void Function(Offset delta)? grip}) {
     if (!selected) return child;
     Widget tick() => Container(width: 6, height: 6, decoration: BoxDecoration(color: chromeColor, border: Border.all(color: const Color(0x66000000), width: 0.5)));
     return Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
@@ -118,6 +120,32 @@ class ComposeCanvasView extends StatelessWidget {
       ),
       for (final a in const [Alignment.topLeft, Alignment.topRight, Alignment.bottomLeft, Alignment.bottomRight])
         Positioned.fill(child: IgnorePointer(child: Align(alignment: a, child: tick()))),
+      if (grip != null)
+        Positioned(
+          top: -18,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: GestureDetector(
+              key: const ValueKey('slot-grip'),
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: (d) => grip(d.delta),
+              child: Container(
+                width: 34,
+                height: 13,
+                decoration: BoxDecoration(color: chromeColor, borderRadius: BorderRadius.circular(7), border: Border.all(color: const Color(0x66000000), width: 0.5)),
+                child: Center(
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    for (var i = 0; i < 3; i++) ...[
+                      if (i > 0) const SizedBox(width: 3),
+                      Container(width: 3, height: 3, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x99000000))),
+                    ],
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ),
     ]);
   }
 
@@ -153,7 +181,9 @@ class ComposeCanvasView extends StatelessWidget {
                   ? (d) => onDragText(slot.id, Offset(d.delta.dx / slot.region.width, d.delta.dy / slot.region.height))
                   : null,
               child: _chromed(
-                selected: selected && !editing,
+                selected: selected || editing,
+                // editing: the text field owns the body, the grip keeps the move
+                grip: editing && slot.draggable ? (d) => onDragText(slot.id, Offset(d.dx / slot.region.width, d.dy / slot.region.height)) : null,
                 child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: body),
               ),
             ),
