@@ -98,7 +98,7 @@ Future<PhotoMeta> readPhotoMetaSync(Uint8List bytes) async {
       exposure: exposure,
       focalMm: ratio(['EXIF FocalLength']),
       // the exif package decodes Fuji's MakerNote but doesn't name these tags
-      filmMode: fujiFilmSimName(rawInt('MakerNote Tag 0x1401'), rawInt('MakerNote Saturation')),
+      filmMode: fujiFilmSimName(rawInt('MakerNote Tag 0x1401'), tags['MakerNote Saturation']?.printable),
     );
   } catch (_) {
     return const PhotoMeta();
@@ -107,21 +107,36 @@ Future<PhotoMeta> readPhotoMetaSync(Uint8List bytes) async {
 
 
 /// Fujifilm names for MakerNote FilmMode (0x1401) — the monochrome looks live
-/// in the Saturation tag instead, which wins when it says B&W. Value tables
-/// per exiftool's FujiFilm module.
-String? fujiFilmSimName(int? filmMode, int? saturation) {
-  const mono = {
-    0x300: 'MONOCHROME',
-    0x301: 'MONOCHROME+R',
-    0x302: 'MONOCHROME+Y',
-    0x303: 'MONOCHROME+G',
-    0x310: 'ACROS',
-    0x311: 'ACROS+R',
-    0x312: 'ACROS+Y',
-    0x313: 'ACROS+G',
-  };
-  final m = mono[saturation];
-  if (m != null) return m;
+/// in the Saturation tag (0x1003) instead, which wins when it says B&W. The
+/// exif package names the values it knows ("None (B&W)") and prints raw
+/// numbers for the ones its table predates (ACROS is 0x4C0+), so both forms
+/// are mapped. Value tables per exiftool's FujiFilm module.
+String? fujiFilmSimName(int? filmMode, String? saturation) {
+  if (saturation != null) {
+    const monoNames = {
+      'None (B&W)': 'MONOCHROME',
+      'B&W Red Filter': 'MONOCHROME+R',
+      'B&W Yellow Filter': 'MONOCHROME+Y',
+      'B&W Green Filter': 'MONOCHROME+G',
+      'B&W Sepia': 'SEPIA',
+    };
+    const monoValues = {
+      0x300: 'MONOCHROME',
+      0x301: 'MONOCHROME+R',
+      0x302: 'MONOCHROME+Y',
+      0x303: 'MONOCHROME+G',
+      0x310: 'SEPIA',
+      0x4C0: 'ACROS',
+      0x4C1: 'ACROS+R',
+      0x4C2: 'ACROS+Y',
+      0x4C3: 'ACROS+G',
+    };
+    final named = monoNames[saturation.trim()];
+    if (named != null) return named;
+    final raw = int.tryParse(saturation.trim());
+    final mapped = monoValues[raw];
+    if (mapped != null) return mapped;
+  }
   const sims = {
     0x000: 'PROVIA',
     0x120: 'ASTIA',

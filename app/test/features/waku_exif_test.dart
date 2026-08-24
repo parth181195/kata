@@ -41,9 +41,10 @@ void main() {
 
 void _simChecks() {
   test('Fuji film-sim mapping: FilmMode names, monochrome wins via Saturation', () {
-    expect(fujiFilmSimName(0x600, 0), 'CLASSIC CHROME');
+    expect(fujiFilmSimName(0x600, 'Normal'), 'CLASSIC CHROME');
     expect(fujiFilmSimName(0x800, null), 'CLASSIC NEG');
-    expect(fujiFilmSimName(0x000, 0x310), 'ACROS'); // B&W overrides FilmMode
-    expect(fujiFilmSimName(0x1234, 0), isNull); // unknown stays honest
+    expect(fujiFilmSimName(null, 'None (B&W)'), 'MONOCHROME'); // package-named value
+    expect(fujiFilmSimName(0x000, '1216'), 'ACROS'); // raw 0x4C0 — newer than the package's table
+    expect(fujiFilmSimName(0x1234, 'Normal'), isNull); // unknown stays honest
   });
 }
