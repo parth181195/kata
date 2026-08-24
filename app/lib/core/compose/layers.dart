@@ -73,7 +73,7 @@ class ComposeCanvasView extends StatelessWidget {
       for (final l in layers)
         switch (l) {
           ComposeSurface(:final child, :final grain) => Positioned.fill(
-              child: IgnorePointer(child: grain == null || grain.isOff ? child : FilmGrain(spec: grain, child: child)),
+              child: IgnorePointer(child: grain == null || grain.isOff ? child : GrainOverlay(spec: grain, child: child)),
             ),
           ComposePhotoWindow(:final rect, :final shadow) => Positioned.fromRect(
               rect: rect,

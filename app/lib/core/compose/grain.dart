@@ -2,16 +2,18 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-/// Film grain in Fujifilm's own grammar: an effect strength crossed with a
-/// clump size — the same two axes a recipe's `GR-WS` carries.
+import 'grain_template.dart';
+
+/// Film grain in Fujifilm's own grammar: strength × clump size, the two axes
+/// a recipe's `GR-WS` carries. A curation input baked into each frame —
+/// users never see grain controls.
 enum GrainStrength {
   off('Off', 0),
-  weak('Weak', 0.22),
-  strong('Strong', 0.42);
+  weak('Weak', 0.5),
+  strong('Strong', 1.0);
 
   const GrainStrength(this.label, this.amount);
   final String label;
-  /// Mix toward the grain reconstruction (see shaders/grain.frag).
   final double amount;
 }
 
@@ -34,45 +36,92 @@ class GrainSpec {
 
   bool get isOff => strength == GrainStrength.off;
 
-  GrainSpec copyWith({GrainStrength? strength, GrainSize? size}) => GrainSpec(strength: strength ?? this.strength, size: size ?? this.size, seed: seed);
+  String get _cacheKey => '$seed:${size.px}';
 }
 
-/// Develops [child] as film grain rather than overlaying noise: the shader
-/// re-expresses the image as luminance-thresholded grain dots (density follows
-/// brightness, like silver halide) and mixes them back in. Falls back to the
-/// untouched child where shader filtering isn't available.
-class FilmGrain extends StatelessWidget {
-  const FilmGrain({super.key, required this.spec, required this.child});
+/// Lays authored grain over [child]: a Dart-generated correlated tile
+/// (band-passed, seamless — see GrainTemplate) sampled by a fragment shader
+/// with per-block random offsets, composited with an overlay blend so the
+/// surface beneath supplies the tonal response. CustomPainter + FragmentShader
+/// throughout: identical on Impeller and Skia, macOS/Android/Linux alike.
+class GrainOverlay extends StatefulWidget {
+  const GrainOverlay({super.key, required this.spec, required this.child});
   final GrainSpec spec;
   final Widget child;
 
-  static ui.FragmentProgram? _program;
-  static Future<ui.FragmentProgram>? _loading;
+  @override
+  State<GrainOverlay> createState() => _GrainOverlayState();
+}
 
-  static Future<ui.FragmentProgram> _load() => _loading ??= ui.FragmentProgram.fromAsset('shaders/grain.frag').then((p) => _program = p);
+class _GrainOverlayState extends State<GrainOverlay> {
+  static ui.FragmentProgram? _program;
+  static Future<ui.FragmentProgram>? _programLoading;
+  static final Map<String, ui.Image> _templates = {};
+  static final Map<String, Future<ui.Image>> _templateLoading = {};
+
+  static Future<ui.FragmentProgram> _loadProgram() =>
+      _programLoading ??= ui.FragmentProgram.fromAsset('shaders/grain_overlay.frag').then((p) => _program = p);
+
+  static Future<ui.Image> _loadTemplate(GrainSpec spec) => _templateLoading.putIfAbsent(
+      spec._cacheKey, () => GrainTemplate.image(seed: spec.seed, grainPx: spec.size.px).then((i) => _templates[spec._cacheKey] = i));
+
+  @override
+  void initState() {
+    super.initState();
+    _kick();
+  }
+
+  @override
+  void didUpdateWidget(GrainOverlay old) {
+    super.didUpdateWidget(old);
+    if (old.spec._cacheKey != widget.spec._cacheKey) _kick();
+  }
+
+  void _kick() {
+    if (widget.spec.isOff) return;
+    if (_program == null || _templates[widget.spec._cacheKey] == null) {
+      Future.wait([_loadProgram(), _loadTemplate(widget.spec)]).then((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (spec.isOff || !ui.ImageFilter.isShaderFilterSupported) return child;
-    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? View.of(context).devicePixelRatio;
+    final spec = widget.spec;
     final program = _program;
-    if (program == null) {
-      // kick the load; grain appears on the frame after it lands
-      _load();
-      return FutureBuilder<ui.FragmentProgram>(
-        future: _loading,
-        builder: (_, snap) => snap.hasData ? _grained(snap.data!, dpr) : child,
-      );
-    }
-    return _grained(program, dpr);
+    final template = _templates[spec._cacheKey];
+    if (spec.isOff || program == null || template == null) return widget.child;
+    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? View.of(context).devicePixelRatio;
+    return CustomPaint(
+      foregroundPainter: _GrainPainter(program, template, spec, dpr),
+      child: widget.child,
+    );
+  }
+}
+
+class _GrainPainter extends CustomPainter {
+  _GrainPainter(this.program, this.template, this.spec, this.dpr);
+  final ui.FragmentProgram program;
+  final ui.Image template;
+  final GrainSpec spec;
+  final double dpr;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shader = program.fragmentShader()
+      ..setFloat(0, size.width)
+      ..setFloat(1, size.height)
+      ..setFloat(2, dpr)
+      ..setFloat(3, spec.strength.amount)
+      ..setFloat(4, spec.seed.toDouble())
+      ..setImageSampler(0, template);
+    canvas.drawRect(Offset.zero & size, Paint()
+      ..shader = shader
+      ..blendMode = BlendMode.overlay);
   }
 
-  Widget _grained(ui.FragmentProgram program, double dpr) {
-    // float indices 0–1 are the engine-set input size (the leading vec2)
-    final shader = program.fragmentShader()
-      ..setFloat(2, spec.size.px * dpr)
-      ..setFloat(3, spec.strength.amount)
-      ..setFloat(4, spec.seed.toDouble());
-    return ImageFiltered(imageFilter: ui.ImageFilter.shader(shader), child: child);
-  }
+  @override
+  bool shouldRepaint(_GrainPainter o) =>
+      o.spec.strength != spec.strength || o.spec._cacheKey != spec._cacheKey || o.dpr != dpr || o.template != template;
 }
