@@ -18,6 +18,7 @@ Uint8List _jpegWithExif() {
 }
 
 void main() {
+  _simChecks();
   test('EXIF: the camera facts come out of a JPEG', () async {
     final meta = await readPhotoMetaSync(_jpegWithExif());
     expect(meta.model, 'X-S20');
@@ -35,5 +36,14 @@ void main() {
     final meta = await readPhotoMetaSync(bare);
     expect(meta.isEmpty, isTrue);
     expect(meta.line, '');
+  });
+}
+
+void _simChecks() {
+  test('Fuji film-sim mapping: FilmMode names, monochrome wins via Saturation', () {
+    expect(fujiFilmSimName(0x600, 0), 'CLASSIC CHROME');
+    expect(fujiFilmSimName(0x800, null), 'CLASSIC NEG');
+    expect(fujiFilmSimName(0x000, 0x310), 'ACROS'); // B&W overrides FilmMode
+    expect(fujiFilmSimName(0x1234, 0), isNull); // unknown stays honest
   });
 }

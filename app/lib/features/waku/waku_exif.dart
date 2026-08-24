@@ -83,6 +83,12 @@ Future<PhotoMeta> readPhotoMetaSync(Uint8List bytes) async {
       if (secs != null && secs >= 0.25) exposure = '${secs.toStringAsFixed(secs == secs.roundToDouble() ? 0 : 1)}"';
     }
 
+    int? rawInt(String key) {
+      final v = tags[key]?.printable;
+      if (v == null) return null;
+      return int.tryParse(RegExp(r'-?\d+').firstMatch(v)?.group(0) ?? '');
+    }
+
     return PhotoMeta(
       dateTime: when,
       iso: iso,
@@ -91,9 +97,44 @@ Future<PhotoMeta> readPhotoMetaSync(Uint8List bytes) async {
       fNumber: ratio(['EXIF FNumber']),
       exposure: exposure,
       focalMm: ratio(['EXIF FocalLength']),
-      filmMode: str(['MakerNote FilmMode']),
+      // the exif package decodes Fuji's MakerNote but doesn't name these tags
+      filmMode: fujiFilmSimName(rawInt('MakerNote Tag 0x1401'), rawInt('MakerNote Saturation')),
     );
   } catch (_) {
     return const PhotoMeta();
   }
+}
+
+
+/// Fujifilm names for MakerNote FilmMode (0x1401) — the monochrome looks live
+/// in the Saturation tag instead, which wins when it says B&W. Value tables
+/// per exiftool's FujiFilm module.
+String? fujiFilmSimName(int? filmMode, int? saturation) {
+  const mono = {
+    0x300: 'MONOCHROME',
+    0x301: 'MONOCHROME+R',
+    0x302: 'MONOCHROME+Y',
+    0x303: 'MONOCHROME+G',
+    0x310: 'ACROS',
+    0x311: 'ACROS+R',
+    0x312: 'ACROS+Y',
+    0x313: 'ACROS+G',
+  };
+  final m = mono[saturation];
+  if (m != null) return m;
+  const sims = {
+    0x000: 'PROVIA',
+    0x120: 'ASTIA',
+    0x200: 'VELVIA',
+    0x400: 'VELVIA',
+    0x500: 'PRO NEG. STD',
+    0x501: 'PRO NEG. HI',
+    0x600: 'CLASSIC CHROME',
+    0x700: 'ETERNA',
+    0x800: 'CLASSIC NEG',
+    0x900: 'BLEACH BYPASS',
+    0xA00: 'NOSTALGIC NEG',
+    0xB00: 'REALA ACE',
+  };
+  return sims[filmMode];
 }
