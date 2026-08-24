@@ -57,9 +57,14 @@ void main() {
 
     // the slot is draggable: a pan moves it via its Transform
     Offset translationOf() {
-      final tr = t.widgetList<Transform>(find.ancestor(of: find.text('GOLDEN HOUR'), matching: find.byType(Transform))).first;
-      final v = tr.transform.getTranslation();
-      return Offset(v.x, v.y);
+      // the slot renders rotate-inside-translate; sum every ancestor Transform
+      var dx = 0.0, dy = 0.0;
+      for (final tr in t.widgetList<Transform>(find.ancestor(of: find.text('GOLDEN HOUR'), matching: find.byType(Transform)))) {
+        final v = tr.transform.getTranslation();
+        dx += v.x;
+        dy += v.y;
+      }
+      return Offset(dx, dy);
     }
 
     final before = translationOf();
@@ -93,7 +98,7 @@ void main() {
     await t.tap(find.text('MONSOON'));
     await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('slot-editor')), findsNothing);
-    expect(find.text('Clear line'), findsOneWidget);
+    expect(find.text('CLEAR LINE'), findsOneWidget);
     // second tap edits
     await t.tap(find.text('MONSOON'));
     await t.pumpAndSettle();
@@ -118,6 +123,34 @@ void main() {
     final field = t.widget<TextField>(find.byKey(const ValueKey('slot-editor')));
     expect(field.controller!.text.length, 56); // polaroid chin capacity
     expect(field.maxLines, 2);
+  });
+
+  testWidgets('P2 handles: scale grows the type, ink swatches recolour it, level snap holds', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF775533))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    // type a line, close the editor, slot stays selected
+    await t.tap(find.text('ADD A LINE'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'chai break');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+
+    double fontSize() => t.widget<Text>(find.text('CHAI BREAK')).style!.fontSize!;
+    final before = fontSize();
+    expect(find.byKey(const ValueKey('slot-scale')), findsOneWidget);
+    await t.drag(find.byKey(const ValueKey('slot-scale')), const Offset(40, 40));
+    await t.pumpAndSettle();
+    expect(fontSize(), greaterThan(before));
+
+    expect(find.byKey(const ValueKey('slot-rotate')), findsOneWidget);
+    await t.drag(find.byKey(const ValueKey('slot-rotate')), const Offset(1, 0));
+    await t.pumpAndSettle(); // tiny drag: the level snap holds it at zero
+
+    // ink: pick the red pen
+    await t.tap(find.byKey(const ValueKey('ink-ffb3402b')));
+    await t.pumpAndSettle();
+    expect(t.widget<Text>(find.text('CHAI BREAK')).style!.color, const Color(0xFFB3402B));
+    expect(find.text('RESET STYLE'), findsOneWidget);
   });
 
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {

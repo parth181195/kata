@@ -35,7 +35,20 @@ class ComposePhotoWindow extends ComposeLayer {
 /// may slide it around within that region — nothing more.
 class ComposeTextSlot extends ComposeLayer {
   const ComposeTextSlot(
-      {required this.id, required this.region, required this.style, this.invitation = 'ADD A LINE', this.draggable = false, this.align = Alignment.center, this.maxLines = 1, this.maxChars = 40});
+      {required this.id,
+      required this.region,
+      required this.style,
+      this.invitation = 'ADD A LINE',
+      this.draggable = false,
+      this.align = Alignment.center,
+      this.maxLines = 1,
+      this.maxChars = 40,
+      this.scalable = false,
+      this.minScale = 0.8,
+      this.maxScale = 1.6,
+      this.rotatable = false,
+      this.maxAngle = 0.21,
+      this.inkChoices = const []});
   final String id;
   final Rect region;
   final TextStyle style;
@@ -46,6 +59,15 @@ class ComposeTextSlot extends ComposeLayer {
   /// much ink fits before the pen runs off the paper.
   final int maxLines;
   final int maxChars;
+  /// P2 handles — each one exists only where the frame grants it.
+  final bool scalable;
+  final double minScale;
+  final double maxScale;
+  final bool rotatable;
+  /// Radians either way; the default is a handwriting tilt, not a rotation.
+  final double maxAngle;
+  /// Curated ink palette; empty = the frame's ink is fixed.
+  final List<Color> inkChoices;
 }
 
 /// Renders a layer stack and routes the permitted interactions back up.
@@ -61,13 +83,28 @@ class ComposeCanvasView extends StatefulWidget {
     required this.onDragText,
     required this.editorBuilder,
     required this.canvasSize,
+    this.scaleOf = _one,
+    this.angleOf = _zero,
+    this.inkOf = _noInk,
+    this.onScaleText,
+    this.onRotateText,
     this.selectedId,
     this.onSelect,
     this.chromeColor = const Color(0xFFFFFFFF),
     this.hideInvitations = false,
   });
 
+  static double _one(String _) => 1;
+  static double _zero(String _) => 0;
+  static Color? _noInk(String _) => null;
+
   final Size canvasSize;
+  final double Function(String id) scaleOf;
+  final double Function(String id) angleOf;
+  final Color? Function(String id) inkOf;
+  /// Absolute, already clamped to the slot's declared range.
+  final void Function(String id, double scale)? onScaleText;
+  final void Function(String id, double angle)? onRotateText;
 
   final List<ComposeLayer> layers;
   final Widget photo;
@@ -79,7 +116,7 @@ class ComposeCanvasView extends StatefulWidget {
   /// Reports the slot's new ABSOLUTE offset, as fractions of its region —
   /// snapping and frame-edge clamping have already been applied.
   final void Function(String id, Offset fraction) onDragText;
-  final Widget Function(String id, ComposeTextSlot slot) editorBuilder;
+  final Widget Function(String id, ComposeTextSlot slot, TextStyle effective) editorBuilder;
   /// The selected element ('photo' or a slot id). Chrome renders only while
   /// set — exports pass null and rasterise clean.
   final String? selectedId;
@@ -109,7 +146,46 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   Offset Function(String id) get dragOf => widget.dragOf;
   String? get editingId => widget.editingId;
   void Function(String id) get onTapText => widget.onTapText;
-  Widget Function(String id, ComposeTextSlot slot) get editorBuilder => widget.editorBuilder;
+  Widget Function(String id, ComposeTextSlot slot, TextStyle effective) get editorBuilder => widget.editorBuilder;
+  double _rawScale = 1;
+  double _rawAngle = 0;
+  String? _scaleId;
+  String? _angleId;
+
+  /// The slot's style with the user's ink and scale applied.
+  TextStyle _effectiveStyle(ComposeTextSlot slot) {
+    var st = slot.style;
+    final ink = widget.inkOf(slot.id);
+    if (ink != null) st = st.copyWith(color: ink);
+    final sc = widget.scaleOf(slot.id);
+    if (sc != 1 && st.fontSize != null) st = st.copyWith(fontSize: st.fontSize! * sc);
+    return st;
+  }
+
+  void _scaleSlot(ComposeTextSlot slot, Offset delta) {
+    if (_scaleId != slot.id) {
+      _rawScale = widget.scaleOf(slot.id);
+      _scaleId = slot.id;
+    }
+    _rawScale += (delta.dx + delta.dy) / 140;
+    widget.onScaleText?.call(slot.id, _rawScale.clamp(slot.minScale, slot.maxScale));
+  }
+
+  void _rotateSlot(ComposeTextSlot slot, Offset delta) {
+    if (_angleId != slot.id) {
+      _rawAngle = widget.angleOf(slot.id);
+      _angleId = slot.id;
+    }
+    _rawAngle += delta.dx / 120;
+    var a = _rawAngle.clamp(-slot.maxAngle, slot.maxAngle);
+    if (a.abs() < 0.03) a = 0; // snaps level, raw keeps accumulating
+    widget.onRotateText?.call(slot.id, a);
+  }
+
+  void _endHandleDrag() {
+    _scaleId = null;
+    _angleId = null;
+  }
   String? get selectedId => widget.selectedId;
   void Function(String? id)? get onSelect => widget.onSelect;
   Color get chromeColor => widget.chromeColor;
@@ -127,7 +203,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   Size _slotTextSize(ComposeTextSlot slot) {
     final text = textOf(slot.id).trim();
     final tp = TextPainter(
-      text: TextSpan(text: (text.isEmpty ? slot.invitation : text).toUpperCase(), style: slot.style),
+      text: TextSpan(text: (text.isEmpty ? slot.invitation : text).toUpperCase(), style: _effectiveStyle(slot)),
       maxLines: slot.maxLines,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: slot.region.width - 24);
@@ -211,14 +287,88 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
         },
       if (_vGuides.isNotEmpty || _hGuides.isNotEmpty)
         Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _GuidePainter(_vGuides, _hGuides, _guideColor)))),
+      ..._handleOverlay(),
     ]);
   }
 
+  /// The interactive handles for the active text slot, positioned in canvas
+  /// space so every one of them is fully hit-testable.
+  List<Widget> _handleOverlay() {
+    if (hideInvitations) return const [];
+    ComposeTextSlot? slot;
+    for (final l in layers) {
+      if (l is ComposeTextSlot && (selectedId == l.id || editingId == l.id)) slot = l;
+    }
+    if (slot == null) return const [];
+    final editing = editingId == slot.id;
+    final drag = dragOf(slot.id);
+    final size = _slotTextSize(slot);
+    final center = slot.region.center + Offset(drag.dx * slot.region.width, drag.dy * slot.region.height);
+    final box = Rect.fromCenter(center: center, width: size.width, height: size.height);
+    Widget handleDot({double w = 10, double h = 10, BoxShape shape = BoxShape.circle}) => Container(
+        width: w, height: h, decoration: BoxDecoration(shape: shape, color: chromeColor, border: Border.all(color: const Color(0x66000000), width: 0.5)));
+    return [
+      if (editing && slot.draggable)
+        Positioned(
+          left: center.dx - 20,
+          top: box.top - 22,
+          child: GestureDetector(
+            key: const ValueKey('slot-grip'),
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (d) => _dragSlot(slot!, d.delta),
+            onPanEnd: (_) => _endDrag(),
+            onPanCancel: _endDrag,
+            child: Container(
+              width: 40,
+              height: 16,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: chromeColor, borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0x66000000), width: 0.5)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                for (var i = 0; i < 3; i++) ...[
+                  if (i > 0) const SizedBox(width: 3),
+                  Container(width: 3, height: 3, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x99000000))),
+                ],
+              ]),
+            ),
+          ),
+        ),
+      if (!editing && slot.rotatable)
+        Positioned(
+          left: center.dx - 12,
+          top: box.top - 30,
+          child: GestureDetector(
+            key: const ValueKey('slot-rotate'),
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (d) => _rotateSlot(slot!, d.delta),
+            onPanEnd: (_) => _endHandleDrag(),
+            onPanCancel: _endHandleDrag,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [handleDot(), Container(width: 1, height: 7, color: chromeColor)]),
+            ),
+          ),
+        ),
+      if (!editing && slot.scalable)
+        Positioned(
+          left: box.right - 10,
+          top: box.bottom - 10,
+          child: GestureDetector(
+            key: const ValueKey('slot-scale'),
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (d) => _scaleSlot(slot!, d.delta),
+            onPanEnd: (_) => _endHandleDrag(),
+            onPanCancel: _endHandleDrag,
+            child: Padding(padding: const EdgeInsets.all(6), child: handleDot(w: 9, h: 9, shape: BoxShape.rectangle)),
+          ),
+        ),
+    ];
+  }
+
   /// Selection chrome: hairline box + corner ticks in the kata language.
-  /// Mostly visual — abilities stay with the layer underneath. While the
-  /// inline editor is open the text body belongs to the cursor, so a [grip]
-  /// above the box carries the move affordance instead.
-  Widget _chromed({required bool selected, required Widget child, void Function(Offset delta)? grip, VoidCallback? onGripEnd}) {
+  /// Purely visual — the interactive handles live on the canvas overlay,
+  /// where the whole canvas is hit-testable (a Stack never hit-tests outside
+  /// its own bounds, so handles hanging off the box would be unclickable).
+  Widget _chromed({required bool selected, required Widget child}) {
     if (!selected) return child;
     Widget tick() => Container(width: 6, height: 6, decoration: BoxDecoration(color: chromeColor, border: Border.all(color: const Color(0x66000000), width: 0.5)));
     return Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
@@ -230,34 +380,6 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
       ),
       for (final a in const [Alignment.topLeft, Alignment.topRight, Alignment.bottomLeft, Alignment.bottomRight])
         Positioned.fill(child: IgnorePointer(child: Align(alignment: a, child: tick()))),
-      if (grip != null)
-        Positioned(
-          top: -18,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: GestureDetector(
-              key: const ValueKey('slot-grip'),
-              behavior: HitTestBehavior.opaque,
-              onPanUpdate: (d) => grip(d.delta),
-              onPanEnd: (_) => onGripEnd?.call(),
-              onPanCancel: () => onGripEnd?.call(),
-              child: Container(
-                width: 34,
-                height: 13,
-                decoration: BoxDecoration(color: chromeColor, borderRadius: BorderRadius.circular(7), border: Border.all(color: const Color(0x66000000), width: 0.5)),
-                child: Center(
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    for (var i = 0; i < 3; i++) ...[
-                      if (i > 0) const SizedBox(width: 3),
-                      Container(width: 3, height: 3, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x99000000))),
-                    ],
-                  ]),
-                ),
-              ),
-            ),
-          ),
-        ),
     ]);
   }
 
@@ -268,15 +390,16 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final editing = editingId == slot.id;
     final selected = selectedId == slot.id;
     final text = textOf(slot.id).trim();
+    final st = _effectiveStyle(slot);
     final Widget body;
     if (editing) {
-      body = editorBuilder(slot.id, slot);
+      body = editorBuilder(slot.id, slot, st);
     } else if (text.isEmpty) {
       body = hideInvitations
           ? const SizedBox.shrink()
-          : Text(slot.invitation, style: slot.style.copyWith(color: (slot.style.color ?? Colors.black).withValues(alpha: 0.32)));
+          : Text(slot.invitation, style: st.copyWith(color: (st.color ?? Colors.black).withValues(alpha: 0.32)));
     } else {
-      body = Text(text.toUpperCase(), maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: slot.style);
+      body = Text(text.toUpperCase(), maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: st);
     }
     return Positioned.fromRect(
       rect: slot.region,
@@ -292,12 +415,12 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
               onPanUpdate: slot.draggable && !editing ? (d) => _dragSlot(slot, d.delta) : null,
               onPanEnd: slot.draggable && !editing ? (_) => _endDrag() : null,
               onPanCancel: slot.draggable && !editing ? _endDrag : null,
-              child: _chromed(
-                selected: selected || editing,
-                // editing: the text field owns the body, the grip keeps the move
-                grip: editing && slot.draggable ? (d) => _dragSlot(slot, d) : null,
-                onGripEnd: _endDrag,
-                child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: body),
+              child: Transform.rotate(
+                angle: widget.angleOf(slot.id),
+                child: _chromed(
+                  selected: selected || editing,
+                  child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: body),
+                ),
               ),
             ),
           ),

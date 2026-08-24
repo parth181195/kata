@@ -35,6 +35,11 @@ List<ComposeLayer> polaroidLayers(Size size, double unit) {
       // a real chin holds about two handwritten lines before the pen falls off
       maxLines: 2,
       maxChars: 56,
+      // handwriting sits smaller or larger, tilts a little, and comes in
+      // whatever pen was lying around — all still the frame's palette
+      scalable: true,
+      rotatable: true,
+      inkChoices: [Color(0xFF3A362E), Color(0xFF3D4E6B), Color(0xFFB3402B)],
     ),
   ];
 }

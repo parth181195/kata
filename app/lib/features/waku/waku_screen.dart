@@ -44,6 +44,9 @@ class _WakuScreenState extends State<WakuScreen> {
   final _slotFocus = FocusNode();
   final Map<String, TextEditingController> _slotText = {};
   final Map<String, Offset> _slotDrag = {}; // fractions of the slot's region
+  final Map<String, double> _slotScale = {};
+  final Map<String, double> _slotAngle = {};
+  final Map<String, Color> _slotInk = {};
   String? _editingSlot;
   String? _selected; // 'photo' or a slot id — chrome + contextual controls
   final _keys = FocusNode(debugLabel: 'waku-keys');
@@ -227,7 +230,12 @@ class _WakuScreenState extends State<WakuScreen> {
             ? (_, _) {}
             // absolute, already snapped and frame-clamped by the canvas
             : (id, o) => setState(() => _slotDrag[id] = o),
-        editorBuilder: (id, slot) => ConstrainedBox(
+        scaleOf: (id) => _slotScale[id] ?? 1,
+        angleOf: (id) => _slotAngle[id] ?? 0,
+        inkOf: (id) => _slotInk[id],
+        onScaleText: !interactive ? null : (id, v) => setState(() => _slotScale[id] = v),
+        onRotateText: !interactive ? null : (id, v) => setState(() => _slotAngle[id] = v),
+        editorBuilder: (id, slot, effective) => ConstrainedBox(
           constraints: BoxConstraints(maxWidth: slot.region.width - 24),
           child: IntrinsicWidth(
             child: TextField(
@@ -241,8 +249,8 @@ class _WakuScreenState extends State<WakuScreen> {
               inputFormatters: [LengthLimitingTextInputFormatter(slot.maxChars), _UpperCaseFormatter()],
               textAlign: TextAlign.center,
               textCapitalization: TextCapitalization.characters,
-              style: slot.style,
-              cursorColor: slot.style.color,
+              style: effective,
+              cursorColor: effective.color,
               decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
               onSubmitted: (_) => setState(() => _editingSlot = null),
             ),
@@ -290,6 +298,14 @@ class _WakuScreenState extends State<WakuScreen> {
       }
     }
     return KeyEventResult.ignored;
+  }
+
+  /// The selected slot's spec (capabilities don't depend on canvas size).
+  ComposeTextSlot? _slotSpec(String id) {
+    for (final l in _layers(const Size(1000, 1250))) {
+      if (l is ComposeTextSlot && l.id == id) return l;
+    }
+    return null;
   }
 
   void _resetPhoto() => setState(() {
@@ -343,7 +359,7 @@ class _WakuScreenState extends State<WakuScreen> {
         hideInvitations: true,
         onTapText: (_) {},
         onDragText: (_, _) {},
-        editorBuilder: (_, _) => const SizedBox.shrink(),
+        editorBuilder: (_, _, _) => const SizedBox.shrink(),
       );
     }
     return InkWell(
@@ -408,9 +424,44 @@ class _WakuScreenState extends State<WakuScreen> {
         if (_selected != null && _selected != 'photo') ...[
           const SizedBox(height: 16),
           KataSectionHeader('Text'),
-          Text('Drag to place it. Tap again or press Enter to edit; Delete clears.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
-          const SizedBox(height: 8),
-          KataPillButton(label: 'Clear line', kind: KataButtonKind.secondary, display: false, height: 36, onPressed: () => setState(() => _slotText[_selected]?.clear())),
+          Text('Drag to place it. Tap again or press Enter to edit; Delete clears. Corner handle sizes it; the stem above tilts it.',
+              style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          if ((_slotSpec(_selected!)?.inkChoices ?? const []).isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Text('INK', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
+              const SizedBox(width: 10),
+              for (final ink in _slotSpec(_selected!)!.inkChoices) ...[
+                InkWell(
+                  key: ValueKey('ink-${ink.toARGB32().toRadixString(16)}'),
+                  onTap: () => setState(() => _slotInk[_selected!] = ink),
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: ink,
+                      border: Border.all(color: (_slotInk[_selected] ?? _slotSpec(_selected!)!.style.color) == ink ? p.fg : p.hairline, width: (_slotInk[_selected] ?? _slotSpec(_selected!)!.style.color) == ink ? 2 : 1),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ]),
+          ],
+          const SizedBox(height: 10),
+          Wrap(spacing: 7, children: [
+            KataChip(label: 'Clear line', onTap: () => setState(() => _slotText[_selected]?.clear())),
+            if ((_slotScale[_selected] ?? 1) != 1 || (_slotAngle[_selected] ?? 0) != 0 || _slotInk[_selected] != null)
+              KataChip(
+                  label: 'Reset style',
+                  onTap: () => setState(() {
+                        _slotScale.remove(_selected);
+                        _slotAngle.remove(_selected);
+                        _slotInk.remove(_selected);
+                      })),
+          ]),
         ],
         const SizedBox(height: 16),
         KataSectionHeader('Ratio'),
