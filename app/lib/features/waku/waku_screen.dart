@@ -331,6 +331,9 @@ class _WakuScreenState extends State<WakuScreen> {
     return KeyEventResult.ignored;
   }
 
+  /// Shelved until the drawings match real references — Parth is capturing
+  /// actual tape/pins/seals to draw against. Flip on to bring the kit back.
+  static const _stickersEnabled = false;
   static const _stickerAllowance = {StickerType.tape: 2, StickerType.pin: 1, StickerType.hanko: 1};
 
   int _stickerCount(StickerType t) => _stickers.where((s) => s.type == t).length;
@@ -521,7 +524,7 @@ class _WakuScreenState extends State<WakuScreen> {
           const SizedBox(height: 8),
           KataChip(label: 'Remove', onTap: _removeSelectedSticker),
         ],
-        if (_photo != null) ...[
+        if (_stickersEnabled && _photo != null) ...[
           const SizedBox(height: 16),
           KataSectionHeader('Stickers'),
           Wrap(spacing: 7, runSpacing: 7, children: [
