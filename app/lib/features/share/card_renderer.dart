@@ -1,9 +1,8 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
+import '../../core/compose/export.dart';
 import 'card_templates.dart';
 
 /// Renders a [ShareCard] off-screen at [pixelRatio] and returns PNG bytes.
@@ -12,18 +11,8 @@ class CardRenderer {
   CardRenderer(this._key);
   final GlobalKey _key;
 
-  Future<Uint8List> toPng({double pixelRatio = 3, bool settle = true}) async {
-    if (settle) {
-      // wait for images (network) to settle a couple of frames
-      await WidgetsBinding.instance.endOfFrame;
-      await WidgetsBinding.instance.endOfFrame;
-    }
-    final boundary = _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-    final img = await boundary.toImage(pixelRatio: pixelRatio);
-    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-    img.dispose();
-    return bytes!.buffer.asUint8List();
-  }
+  Future<Uint8List> toPng({double pixelRatio = 3, bool settle = true}) =>
+      rasterizePng(_key, pixelRatio: pixelRatio, settle: settle);
 }
 
 /// Hosts the full-size card under a RepaintBoundary. Shown scaled in the composer; the same boundary is rasterised for export.

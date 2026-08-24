@@ -1,14 +1,12 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
+import '../../core/compose/export.dart';
 import 'card_renderer.dart';
 import 'card_templates.dart';
 
@@ -61,24 +59,13 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
       return;
     }
     try {
-      if (_isDesktop) {
-        // no OS share sheet on Linux/Windows: hand over a file instead
-        final path = await FilePicker.platform.saveFile(dialogTitle: 'Save card', fileName: name, bytes: png);
-        if (path == null) return; // cancelled
-        final f = File(path);
-        if (!await f.exists() || (await f.length()) == 0) await f.writeAsBytes(png);
-        if (mounted) KataToast.show(context, 'Saved $name');
-      } else {
-        await Share.shareXFiles([XFile.fromData(png, name: name, mimeType: 'image/png')], subject: '${widget.recipe.name} — Kata recipe card', text: _spec.payload);
-      }
+      if (mounted) await deliverPng(context, png, name: name, subject: '${widget.recipe.name} — Kata recipe card', text: _spec.payload);
     } catch (e) {
       if (mounted) KataToast.show(context, 'Card made, but sharing failed — try Save instead');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
-
-  bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
 
   Future<void> _copyCode() async {
     await Clipboard.setData(ClipboardData(text: _spec.payload));

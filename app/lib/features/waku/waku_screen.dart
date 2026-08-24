@@ -1,19 +1,21 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:kata_ui/kata_ui.dart';
-import 'package:share_plus/share_plus.dart';
 
+import '../../core/compose/export.dart';
+import '../../core/compose/grain.dart';
+import '../../core/compose/layers.dart';
 import 'waku_frames.dart';
+import 'waku_import.dart';
 
-/// 枠 Waku — put a photo in a good frame. The presets are the point: gallery
-/// and museum mats, an instant print, a 35mm strip, a float — picked from live
-/// thumbnails. Any image of your own works as a frame too: opaque images
-/// become the surround, a PNG with a transparent window sits on top.
+/// 枠 Waku — put a photo in a frame from a curated gallery (one for now: the
+/// instant print), or bring any image of your own as the frame. Frames are
+/// layer stacks inside; users get exactly the handles each layer offers —
+/// pan/pinch the photo, tap a text slot to edit it, drag the draggable ones.
+/// Accepts JPEG/PNG/WebP and camera RAW (the embedded preview is used).
 class WakuScreen extends StatefulWidget {
   const WakuScreen({super.key, this.initialPhoto, this.initialFrame});
   /// Test seams: the pickers can't run under widget tests.
@@ -38,14 +40,18 @@ enum WakuRatio {
 class _WakuScreenState extends State<WakuScreen> {
   final _boundary = GlobalKey();
   final _viewer = TransformationController();
+  final _slotFocus = FocusNode();
+  final Map<String, TextEditingController> _slotText = {};
+  final Map<String, Offset> _slotDrag = {}; // fractions of the slot's region
+  String? _editingSlot;
 
   Uint8List? _photo;
   Uint8List? _frameImage; // the custom frame, when WakuFrame.custom
-  WakuFrame _frame = WakuFrame.gallery;
+  WakuFrame _frame = WakuFrame.polaroid;
   WakuRatio _ratio = WakuRatio.r4x5;
-  double _matScale = 0.08; // mat unit as a fraction of the short side
+  double _matScale = 0.08; // custom surround inset, fraction of the short side
+  GrainSpec _grain = const GrainSpec();
   bool _frameOnTop = false; // custom PNGs with a transparent window
-  String _caption = '';
   bool _busy = false;
 
   @override
@@ -56,20 +62,33 @@ class _WakuScreenState extends State<WakuScreen> {
       _frameImage = widget.initialFrame;
       _frame = WakuFrame.custom;
     }
+    _slotFocus.addListener(() {
+      if (!_slotFocus.hasFocus && _editingSlot != null) setState(() => _editingSlot = null);
+    });
   }
 
   @override
   void dispose() {
     _viewer.dispose();
+    _slotFocus.dispose();
+    for (final c in _slotText.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
   bool get _overlayMode => _frame == WakuFrame.custom && _frameImage != null && _frameOnTop;
 
+  TextEditingController _ctl(String id) => _slotText.putIfAbsent(id, TextEditingController.new);
+
   Future<Uint8List?> _pickImage(String title) async {
-    final res = await FilePicker.platform.pickFiles(dialogTitle: title, type: FileType.image, withData: true);
-    return res?.files.firstOrNull?.bytes;
+    final res = await FilePicker.platform.pickFiles(dialogTitle: title, type: FileType.custom, allowedExtensions: wakuImportExtensions, withData: true);
+    final raw = res?.files.firstOrNull?.bytes;
+    if (raw == null) return null;
+    final usable = await prepareWakuImage(raw);
+    if (usable == null && mounted) KataToast.show(context, "Couldn't read an image out of that file");
+    return usable;
   }
 
   Future<void> _pickPhoto() async {
@@ -92,26 +111,15 @@ class _WakuScreenState extends State<WakuScreen> {
 
   Future<void> _export() async {
     if (_photo == null || _busy) return;
-    setState(() => _busy = true);
+    _slotFocus.unfocus();
+    setState(() {
+      _editingSlot = null;
+      _busy = true; // ComposeCanvasView hides empty-slot invitations while busy
+    });
     const name = 'waku.png';
     try {
-      await WidgetsBinding.instance.endOfFrame;
-      final boundary = _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-      // scale so the short side lands around 2048px regardless of preview size
-      final ratio = (2048 / boundary.size.shortestSide).clamp(1.0, 6.0);
-      final img = await boundary.toImage(pixelRatio: ratio);
-      final bytes = (await img.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
-      img.dispose();
-      if (_isDesktop) {
-        final path = await FilePicker.platform.saveFile(dialogTitle: 'Save frame', fileName: name, bytes: bytes);
-        if (path != null) {
-          final f = File(path);
-          if (!await f.exists() || (await f.length()) == 0) await f.writeAsBytes(bytes);
-          if (mounted) KataToast.show(context, 'Saved $name');
-        }
-      } else {
-        await Share.shareXFiles([XFile.fromData(bytes, name: name, mimeType: 'image/png')]);
-      }
+      final png = await rasterizePng(_boundary);
+      if (mounted) await deliverPng(context, png, name: name);
     } catch (_) {
       if (mounted) KataToast.show(context, 'Could not render the frame');
     } finally {
@@ -160,76 +168,98 @@ class _WakuScreenState extends State<WakuScreen> {
     );
   }
 
+  List<ComposeLayer> _layers(Size size) {
+    if (_frame == WakuFrame.custom && _frameImage != null) {
+      return customLayers(size, size.shortestSide * _matScale,
+          frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop, grain: _grain);
+    }
+    return polaroidLayers(size, size.shortestSide * 0.08, grain: _grain);
+  }
+
+  Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
+        layers: _layers(size),
+        photo: _photoWidget(interactive: interactive),
+        textOf: (id) => _slotText[id]?.text ?? '',
+        dragOf: (id) => _slotDrag[id] ?? Offset.zero,
+        editingId: interactive ? _editingSlot : null,
+        hideInvitations: _busy || !interactive,
+        onTapText: !interactive
+            ? (_) {}
+            : (id) => setState(() {
+                  _editingSlot = id;
+                }),
+        onDragText: !interactive
+            ? (_, _) {}
+            : (id, d) => setState(() {
+                  final o = (_slotDrag[id] ?? Offset.zero) + d;
+                  _slotDrag[id] = Offset(o.dx.clamp(-0.5, 0.5), o.dy.clamp(-0.4, 0.4));
+                }),
+        editorBuilder: (id, slot) => IntrinsicWidth(
+          child: TextField(
+            key: const ValueKey('slot-editor'),
+            controller: _ctl(id),
+            focusNode: _slotFocus,
+            autofocus: true,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            textCapitalization: TextCapitalization.characters,
+            style: slot.style,
+            cursorColor: slot.style.color,
+            decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
+            onSubmitted: (_) => setState(() => _editingSlot = null),
+          ),
+        ),
+      );
+
   Widget _preview(KataPalette p) {
     if (_photo == null) {
-      return KataEmptyState(glyph: '枠', title: 'Waku', body: 'Put a photo in a frame worth the print — or bring your own frame.', actionLabel: 'Choose photo', onAction: _pickPhoto);
+      return KataEmptyState(
+          glyph: '枠',
+          title: 'Waku',
+          body: 'Put a photo in a frame worth the print — or bring your own frame.\nJPEG · PNG · WebP · camera RAW',
+          actionLabel: 'Choose photo',
+          onAction: _pickPhoto);
     }
     return AspectRatio(
       aspectRatio: _ratio.aspect,
       child: RepaintBoundary(
         key: _boundary,
-        child: LayoutBuilder(builder: (context, box) {
-          final size = box.biggest;
-          final unit = size.shortestSide * _matScale;
-          if (_frame == WakuFrame.custom && _frameImage != null) {
-            final frameImg = Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true);
-            return Stack(fit: StackFit.expand, children: [
-              if (_overlayMode) ...[
-                Positioned.fill(child: _photoWidget()),
-                Positioned.fill(child: IgnorePointer(child: frameImg)),
-              ] else ...[
-                frameImg,
-                Positioned.fill(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(unit, unit, unit, _caption.trim().isEmpty ? unit : unit * 2.1),
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(boxShadow: [BoxShadow(color: Color(0x59000000), blurRadius: 16, offset: Offset(0, 5))]),
-                      child: _photoWidget(),
-                    ),
-                  ),
-                ),
-                if (_caption.trim().isNotEmpty)
-                  Positioned(
-                    left: unit,
-                    right: unit,
-                    bottom: unit * 0.6,
-                    child: Text(_caption.trim().toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: KataType.monoStyle(size: (size.shortestSide * 0.022).clamp(7.0, 15.0), weight: FontWeight.w500, color: Colors.white, letterSpacing: 0.18)
-                            .copyWith(shadows: const [Shadow(color: Color(0xAA000000), blurRadius: 6)])),
-                  ),
-              ],
-            ]);
-          }
-          return WakuFramed(frame: _frame, photo: _photoWidget(), size: size, unit: unit, caption: _caption);
-        }),
+        child: LayoutBuilder(builder: (context, box) => _canvas(box.biggest)),
       ),
     );
   }
 
-  /// The frame row shows the frames themselves: live thumbnails, not labels.
   Widget _frameThumb(KataPalette p, WakuFrame f) {
     final on = _frame == f;
-    final thumb = f == WakuFrame.custom
-        ? (_frameImage == null
-            ? Container(
-                color: p.surface,
-                child: Center(child: Text('+', style: KataType.displayStyle(size: 20, color: p.dim))),
-              )
-            : Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true))
-        : WakuFramed(frame: f, photo: _photoWidget(interactive: false), size: const Size(58, 72), unit: 5.6, caption: '');
+    const thumbSize = Size(58, 72);
+    final Widget thumb;
+    if (f == WakuFrame.custom) {
+      thumb = _frameImage == null
+          ? Container(color: p.surface, child: Center(child: Text('+', style: KataType.displayStyle(size: 20, color: p.dim))))
+          : Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true);
+    } else {
+      thumb = ComposeCanvasView(
+        layers: polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
+        photo: _photoWidget(interactive: false),
+        textOf: (_) => '',
+        dragOf: (_) => Offset.zero,
+        editingId: null,
+        hideInvitations: true,
+        onTapText: (_) {},
+        onDragText: (_, _) {},
+        editorBuilder: (_, _) => const SizedBox.shrink(),
+      );
+    }
     return InkWell(
       onTap: () => f == WakuFrame.custom && _frameImage == null ? _pickFrame() : setState(() => _frame = f),
       onDoubleTap: f == WakuFrame.custom ? _pickFrame : null,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 58,
-          height: 72,
+          width: thumbSize.width,
+          height: thumbSize.height,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: on ? p.fg : p.hairline, width: on ? 1.5 : 1)),
-          child: thumb,
+          child: IgnorePointer(child: thumb),
         ),
         const SizedBox(height: 5),
         Text(f.label.toUpperCase(), style: KataType.monoStyle(size: 7.5, weight: FontWeight.w500, color: on ? p.fg : p.muted, letterSpacing: 0.12)),
@@ -247,16 +277,9 @@ class _WakuScreenState extends State<WakuScreen> {
         if (_photo == null)
           Text('Pick a photo first — the frames preview with it.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4))
         else
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              key: const ValueKey('waku-frames'),
-              scrollDirection: Axis.horizontal,
-              itemCount: WakuFrame.values.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 9),
-              itemBuilder: (_, i) => _frameThumb(p, WakuFrame.values[i]),
-            ),
-          ),
+          Row(children: [
+            for (final f in WakuFrame.values) ...[_frameThumb(p, f), const SizedBox(width: 9)],
+          ]),
         if (_frame == WakuFrame.custom && _frameImage != null) ...[
           const SizedBox(height: 10),
           KataListRow(title: 'Frame on top', value: _frameOnTop ? 'ON' : 'OFF', onTap: () => setState(() => _frameOnTop = !_frameOnTop)),
@@ -267,17 +290,27 @@ class _WakuScreenState extends State<WakuScreen> {
         Wrap(spacing: 7, runSpacing: 7, children: [
           for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
         ]),
-        if (!_overlayMode) ...[
+        if (_frame == WakuFrame.custom && _frameImage != null && !_overlayMode) ...[
           const SizedBox(height: 16),
-          KataSectionHeader('Mat width'),
+          KataSectionHeader('Surround width'),
           Slider(value: _matScale, min: 0.03, max: 0.16, onChanged: (v) => setState(() => _matScale = v)),
         ],
-        const SizedBox(height: 8),
-        KataSectionHeader('Caption'),
-        KataSearchField(hint: 'Optional caption', onChanged: (v) => setState(() => _caption = v)),
+        const SizedBox(height: 16),
+        KataSectionHeader('Grain'),
+        Wrap(spacing: 7, runSpacing: 7, children: [
+          for (final g in GrainStrength.values)
+            KataChip(label: g.label, selected: _grain.strength == g, onTap: () => setState(() => _grain = _grain.copyWith(strength: g))),
+        ]),
+        if (!_grain.isOff) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            for (final gs in GrainSize.values)
+              KataChip(label: gs.label, selected: _grain.size == gs, onTap: () => setState(() => _grain = _grain.copyWith(size: gs))),
+          ]),
+        ],
         const SizedBox(height: 20),
         KataPillButton(label: _isDesktop ? 'Save PNG' : 'Share', height: 46, loading: _busy, onPressed: _photo == null ? null : _export),
         const SizedBox(height: 8),
-        Text('Drag and pinch the photo to place it in the frame.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
+        Text('Drag and pinch the photo to place it. Tap the frame’s text to edit; drag it to move it.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
       ];
 }
