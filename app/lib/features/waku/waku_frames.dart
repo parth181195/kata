@@ -204,8 +204,8 @@ class _PosterFurniture extends StatelessWidget {
     return LayoutBuilder(builder: (context, box) {
       final w = box.maxWidth;
       final chips = (palette == null || palette!.isEmpty) ? _fallbackChips : palette!;
-      final chipW = (w * 0.034).clamp(4.0, 34.0);
-      final chipH = chipW * 0.56;
+      final chipW = (w * 0.030).clamp(4.0, 30.0);
+      final chipH = chipW; // square swatches
       final markSize = (w * 0.085).clamp(12.0, 90.0);
       return Stack(children: [
         Positioned(
