@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'grain.dart';
 
 /// Shared composition base — kata share cards and Waku frames are the same
-/// machine: a fixed, ordered stack of
-/// layers, bottom to top. Users never add, remove, or reorder layers — each
-/// layer only offers the interactions its frame gave it (pan/zoom the photo,
-/// edit a text slot, drag the slots marked draggable).
+/// machine: a fixed, ordered stack of layers, bottom to top. Users never add,
+/// remove, or reorder layers — each layer only offers the interactions its
+/// frame gave it (place the photo, edit a text slot, drag the slots marked
+/// draggable). Selection reveals those handles; it never adds abilities.
 sealed class ComposeLayer {
   const ComposeLayer();
 }
@@ -20,12 +20,15 @@ class ComposeSurface extends ComposeLayer {
   final GrainSpec? grain;
 }
 
-/// The window the photo shows through. Interaction (pan/pinch) belongs to the
-/// photo widget itself.
+/// The window the photo shows through. The photo's freedoms are placement
+/// only — pan/zoom/straighten/flip live on the photo widget; the window's
+/// geometry belongs to the frame.
 class ComposePhotoWindow extends ComposeLayer {
   const ComposePhotoWindow({required this.rect, this.shadow});
   final Rect rect;
   final List<BoxShadow>? shadow;
+
+  static const selectionId = 'photo';
 }
 
 /// An editable text slot. Lives inside [region]; when [draggable], the user
@@ -52,6 +55,9 @@ class ComposeCanvasView extends StatelessWidget {
     required this.onTapText,
     required this.onDragText,
     required this.editorBuilder,
+    this.selectedId,
+    this.onSelect,
+    this.chromeColor = const Color(0xFFFFFFFF),
     this.hideInvitations = false,
   });
 
@@ -64,12 +70,19 @@ class ComposeCanvasView extends StatelessWidget {
   final void Function(String id) onTapText;
   final void Function(String id, Offset fractionDelta) onDragText;
   final Widget Function(String id, ComposeTextSlot slot) editorBuilder;
+  /// The selected element ('photo' or a slot id). Chrome renders only while
+  /// set — exports pass null and rasterise clean.
+  final String? selectedId;
+  final void Function(String? id)? onSelect;
+  final Color chromeColor;
   /// Export renders with the empty-slot invitations hidden.
   final bool hideInvitations;
 
   @override
   Widget build(BuildContext context) {
     return Stack(fit: StackFit.expand, children: [
+      // tap on bare frame ground = deselect
+      if (onSelect != null) Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => onSelect!(null))),
       for (final l in layers)
         switch (l) {
           ComposeSurface(:final child, :final grain) => Positioned.fill(
@@ -77,10 +90,34 @@ class ComposeCanvasView extends StatelessWidget {
             ),
           ComposePhotoWindow(:final rect, :final shadow) => Positioned.fromRect(
               rect: rect,
-              child: shadow == null ? photo : DecoratedBox(decoration: BoxDecoration(boxShadow: shadow), child: photo),
+              child: _chromed(
+                selected: selectedId == ComposePhotoWindow.selectionId,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: onSelect == null ? null : () => onSelect!(ComposePhotoWindow.selectionId),
+                  child: shadow == null ? photo : DecoratedBox(decoration: BoxDecoration(boxShadow: shadow), child: photo),
+                ),
+              ),
             ),
           final ComposeTextSlot slot => _slot(slot),
         },
+    ]);
+  }
+
+  /// Selection chrome: hairline box + corner ticks in the kata language.
+  /// Purely visual — abilities stay with the layer underneath.
+  Widget _chromed({required bool selected, required Widget child}) {
+    if (!selected) return child;
+    Widget tick() => Container(width: 6, height: 6, decoration: BoxDecoration(color: chromeColor, border: Border.all(color: const Color(0x66000000), width: 0.5)));
+    return Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
+      child,
+      Positioned.fill(
+        child: IgnorePointer(
+          child: DecoratedBox(decoration: BoxDecoration(border: Border.all(color: chromeColor, width: 1))),
+        ),
+      ),
+      for (final a in const [Alignment.topLeft, Alignment.topRight, Alignment.bottomLeft, Alignment.bottomRight])
+        Positioned.fill(child: IgnorePointer(child: Align(alignment: a, child: tick()))),
     ]);
   }
 
@@ -89,6 +126,7 @@ class ComposeCanvasView extends StatelessWidget {
     final dx = drag.dx * slot.region.width;
     final dy = drag.dy * slot.region.height;
     final editing = editingId == slot.id;
+    final selected = selectedId == slot.id;
     final text = textOf(slot.id).trim();
     final Widget body;
     if (editing) {
@@ -103,6 +141,7 @@ class ComposeCanvasView extends StatelessWidget {
     return Positioned.fromRect(
       rect: slot.region,
       child: ClipRect(
+        clipBehavior: selected || editing ? Clip.none : Clip.hardEdge,
         child: Align(
           alignment: slot.align,
           child: Transform.translate(
@@ -113,7 +152,10 @@ class ComposeCanvasView extends StatelessWidget {
               onPanUpdate: slot.draggable && !editing
                   ? (d) => onDragText(slot.id, Offset(d.delta.dx / slot.region.width, d.delta.dy / slot.region.height))
                   : null,
-              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: body),
+              child: _chromed(
+                selected: selected && !editing,
+                child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: body),
+              ),
             ),
           ),
         ),

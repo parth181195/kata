@@ -110,11 +110,9 @@ class _GrainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader()
-      ..setFloat(0, size.width)
-      ..setFloat(1, size.height)
-      ..setFloat(2, dpr)
-      ..setFloat(3, spec.strength.amount)
-      ..setFloat(4, spec.seed.toDouble())
+      ..setFloat(0, dpr)
+      ..setFloat(1, spec.strength.amount)
+      ..setFloat(2, spec.seed.toDouble())
       ..setImageSampler(0, template);
     canvas.drawRect(Offset.zero & size, Paint()
       ..shader = shader

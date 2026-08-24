@@ -9,7 +9,6 @@
 // the mids). Runs under a plain CustomPainter FragmentShader: works on both
 // Impeller and Skia, every platform kata ships on.
 
-uniform vec2 uSize;      // painted rect size, logical px
 uniform float uDpr;      // device pixel ratio → grain lives in physical px
 uniform float uStrength; // amplitude scale
 uniform float uSeed;

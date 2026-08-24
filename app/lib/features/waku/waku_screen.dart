@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/compose/export.dart';
@@ -43,6 +45,11 @@ class _WakuScreenState extends State<WakuScreen> {
   final Map<String, TextEditingController> _slotText = {};
   final Map<String, Offset> _slotDrag = {}; // fractions of the slot's region
   String? _editingSlot;
+  String? _selected; // 'photo' or a slot id — chrome + contextual controls
+  final _keys = FocusNode(debugLabel: 'waku-keys');
+  double _photoAngle = 0; // straighten, degrees (placement freedom, not look)
+  bool _photoFlip = false;
+  bool _placing = false; // pan/zoom/straighten in progress → thirds grid
 
   Uint8List? _photo;
   Uint8List? _frameImage; // the custom frame, when WakuFrame.custom
@@ -67,6 +74,7 @@ class _WakuScreenState extends State<WakuScreen> {
 
   @override
   void dispose() {
+    _keys.dispose();
     _viewer.dispose();
     _slotFocus.dispose();
     for (final c in _slotText.values) {
@@ -112,10 +120,12 @@ class _WakuScreenState extends State<WakuScreen> {
     _slotFocus.unfocus();
     setState(() {
       _editingSlot = null;
+      _selected = null; // chrome must never rasterise
       _busy = true; // ComposeCanvasView hides empty-slot invitations while busy
     });
     const name = 'waku.png';
     try {
+      await WidgetsBinding.instance.endOfFrame; // the busy rebuild (hidden invitations) must paint first
       final png = await rasterizePng(_boundary);
       if (mounted) await deliverPng(context, png, name: name);
     } catch (e, st) {
@@ -154,16 +164,35 @@ class _WakuScreenState extends State<WakuScreen> {
   }
 
   Widget _photoWidget({bool interactive = true}) {
-    final img = Image.memory(_photo!, fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true);
+    var img = Image.memory(_photo!, fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true) as Widget;
     if (!interactive) return img;
+    if (_photoFlip) img = Transform.flip(flipX: true, child: img);
+    if (_photoAngle != 0) {
+      final a = _photoAngle.abs() * math.pi / 180;
+      img = LayoutBuilder(builder: (context, box) {
+        // scale so the rotated photo still covers the window's corners
+        final w = box.maxWidth, h = box.maxHeight;
+        final cover = math.max(math.cos(a) + (h / w) * math.sin(a), math.cos(a) + (w / h) * math.sin(a));
+        return Transform.rotate(
+          angle: _photoAngle * math.pi / 180,
+          child: Transform.scale(scale: cover, child: Image.memory(_photo!, fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true)),
+        );
+      });
+      if (_photoFlip) img = Transform.flip(flipX: true, child: img);
+    }
     return ClipRect(
-      child: InteractiveViewer(
-        transformationController: _viewer,
-        minScale: 1,
-        maxScale: 6,
-        constrained: true,
-        child: img,
-      ),
+      child: Stack(fit: StackFit.expand, children: [
+        InteractiveViewer(
+          transformationController: _viewer,
+          minScale: 1,
+          maxScale: 6,
+          constrained: true,
+          onInteractionStart: (_) => setState(() => _placing = true),
+          onInteractionEnd: (_) => setState(() => _placing = false),
+          child: img,
+        ),
+        if (_placing && !_busy) const IgnorePointer(child: CustomPaint(painter: _ThirdsPainter())),
+      ]),
     );
   }
 
@@ -181,11 +210,17 @@ class _WakuScreenState extends State<WakuScreen> {
         textOf: (id) => _slotText[id]?.text ?? '',
         dragOf: (id) => _slotDrag[id] ?? Offset.zero,
         editingId: interactive ? _editingSlot : null,
+        selectedId: interactive && !_busy ? _selected : null,
+        onSelect: !interactive ? null : (id) => setState(() => _selected = id),
         hideInvitations: _busy || !interactive,
         onTapText: !interactive
             ? (_) {}
             : (id) => setState(() {
-                  _editingSlot = id;
+                  // select first; an empty slot means "I want to type" — edit at once,
+                  // a filled one edits on the second tap
+                  final empty = (_slotText[id]?.text ?? '').trim().isEmpty;
+                  if (_selected == id || empty) _editingSlot = id;
+                  _selected = id;
                 }),
         onDragText: !interactive
             ? (_, _) {}
@@ -210,6 +245,54 @@ class _WakuScreenState extends State<WakuScreen> {
         ),
       );
 
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+    if (_editingSlot != null) {
+      if (e.logicalKey == LogicalKeyboardKey.escape) {
+        setState(() => _editingSlot = null);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored; // the TextField owns the rest
+    }
+    final sel = _selected;
+    if (sel == null) return KeyEventResult.ignored;
+    if (e.logicalKey == LogicalKeyboardKey.escape) {
+      setState(() => _selected = null);
+      return KeyEventResult.handled;
+    }
+    if (sel != 'photo') {
+      final shift = HardwareKeyboard.instance.isShiftPressed;
+      final step = shift ? 0.05 : 0.005;
+      Offset? d;
+      if (e.logicalKey == LogicalKeyboardKey.arrowLeft) d = Offset(-step, 0);
+      if (e.logicalKey == LogicalKeyboardKey.arrowRight) d = Offset(step, 0);
+      if (e.logicalKey == LogicalKeyboardKey.arrowUp) d = Offset(0, -step);
+      if (e.logicalKey == LogicalKeyboardKey.arrowDown) d = Offset(0, step);
+      if (d != null) {
+        setState(() {
+          final o = (_slotDrag[sel] ?? Offset.zero) + d!;
+          _slotDrag[sel] = Offset(o.dx.clamp(-0.5, 0.5), o.dy.clamp(-0.4, 0.4));
+        });
+        return KeyEventResult.handled;
+      }
+      if (e.logicalKey == LogicalKeyboardKey.enter) {
+        setState(() => _editingSlot = sel);
+        return KeyEventResult.handled;
+      }
+      if (e.logicalKey == LogicalKeyboardKey.delete || e.logicalKey == LogicalKeyboardKey.backspace) {
+        setState(() => _slotText[sel]?.clear());
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _resetPhoto() => setState(() {
+        _viewer.value = Matrix4.identity();
+        _photoAngle = 0;
+        _photoFlip = false;
+      });
+
   Widget _preview(KataPalette p) {
     if (_photo == null) {
       return KataEmptyState(
@@ -219,11 +302,19 @@ class _WakuScreenState extends State<WakuScreen> {
           actionLabel: 'Choose photo',
           onAction: _pickPhoto);
     }
-    return AspectRatio(
-      aspectRatio: _ratio.aspect,
-      child: RepaintBoundary(
-        key: _boundary,
-        child: LayoutBuilder(builder: (context, box) => _canvas(box.biggest)),
+    return Focus(
+      focusNode: _keys,
+      onKeyEvent: _onKey,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTapDown: (_) => _keys.requestFocus(),
+        child: AspectRatio(
+          aspectRatio: _ratio.aspect,
+          child: RepaintBoundary(
+            key: _boundary,
+            child: LayoutBuilder(builder: (context, box) => _canvas(box.biggest)),
+          ),
+        ),
       ),
     );
   }
@@ -284,6 +375,37 @@ class _WakuScreenState extends State<WakuScreen> {
           KataListRow(title: 'Frame on top', value: _frameOnTop ? 'ON' : 'OFF', onTap: () => setState(() => _frameOnTop = !_frameOnTop)),
           Text('For PNG frames with a transparent window. Off uses the image as the surround behind your photo.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
         ],
+        if (_selected == 'photo' && _photo != null) ...[
+          const SizedBox(height: 16),
+          KataSectionHeader('Photo'),
+          Text('Placement only — the look stayed in the camera.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Text('STRAIGHTEN', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
+            Expanded(
+              child: Slider(
+                value: _photoAngle,
+                min: -7,
+                max: 7,
+                onChangeStart: (_) => setState(() => _placing = true),
+                onChangeEnd: (_) => setState(() => _placing = false),
+                onChanged: (v) => setState(() => _photoAngle = v),
+              ),
+            ),
+            Text('${_photoAngle.toStringAsFixed(1)}°', style: KataType.monoStyle(size: 9, color: p.dim)),
+          ]),
+          Wrap(spacing: 7, children: [
+            KataChip(label: 'Flip', selected: _photoFlip, onTap: () => setState(() => _photoFlip = !_photoFlip)),
+            KataChip(label: 'Reset', onTap: _resetPhoto),
+          ]),
+        ],
+        if (_selected != null && _selected != 'photo') ...[
+          const SizedBox(height: 16),
+          KataSectionHeader('Text'),
+          Text('Drag to place it. Tap again or press Enter to edit; Delete clears.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          const SizedBox(height: 8),
+          KataPillButton(label: 'Clear line', kind: KataButtonKind.secondary, display: false, height: 36, onPressed: () => setState(() => _slotText[_selected]?.clear())),
+        ],
         const SizedBox(height: 16),
         KataSectionHeader('Ratio'),
         Wrap(spacing: 7, runSpacing: 7, children: [
@@ -299,4 +421,23 @@ class _WakuScreenState extends State<WakuScreen> {
         const SizedBox(height: 8),
         Text('Drag and pinch the photo to place it. Tap the frame’s text to edit; drag it to move it.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
       ];
+}
+
+
+/// Rule-of-thirds aid shown only while placing the photo; never exported.
+class _ThirdsPainter extends CustomPainter {
+  const _ThirdsPainter();
+  @override
+  void paint(Canvas c, Size s) {
+    final line = Paint()
+      ..color = const Color(0x66FFFFFF)
+      ..strokeWidth = 0.7;
+    for (var i = 1; i < 3; i++) {
+      c.drawLine(Offset(s.width * i / 3, 0), Offset(s.width * i / 3, s.height), line);
+      c.drawLine(Offset(0, s.height * i / 3), Offset(s.width, s.height * i / 3), line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ThirdsPainter o) => false;
 }
