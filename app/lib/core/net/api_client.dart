@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth_interceptor.dart';
@@ -84,6 +87,7 @@ class ApiClient {
   static Map<String, dynamic> _asMap(dynamic d) => d is Map<String, dynamic> ? d : (d is Map ? d.cast<String, dynamic>() : <String, dynamic>{});
 }
 
-final tokenStoreProvider = Provider<TokenStore>((_) => SecureTokenStore());
+final tokenStoreProvider = Provider<TokenStore>(
+    (_) => kDebugMode && !kIsWeb && (Platform.isMacOS || Platform.isLinux || Platform.isWindows) ? DebugFileTokenStore() : SecureTokenStore());
 final sessionLostProvider = StateProvider<int>((_) => 0); // bumped by the interceptor when refresh fails
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(tokens: ref.watch(tokenStoreProvider), onSessionLost: () => ref.read(sessionLostProvider.notifier).state++));
