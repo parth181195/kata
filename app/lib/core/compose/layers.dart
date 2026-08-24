@@ -502,17 +502,18 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final text = textOf(slot.id).trim();
     final st = _effectiveStyle(slot);
     final prefill = slot.prefill?.trim() ?? '';
+    final ta = slot.align.x < 0 ? TextAlign.left : (slot.align.x > 0 ? TextAlign.right : TextAlign.center);
     final Widget body;
     if (editing) {
       body = editorBuilder(slot.id, slot, st);
     } else if (text.isEmpty && prefill.isNotEmpty) {
-      body = Text(slot.uppercase ? prefill.toUpperCase() : prefill, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: st);
+      body = Text(slot.uppercase ? prefill.toUpperCase() : prefill, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: ta, style: st);
     } else if (text.isEmpty) {
       body = hideInvitations
           ? const SizedBox.shrink()
           : Text(slot.invitation, style: st.copyWith(color: (st.color ?? Colors.black).withValues(alpha: 0.32)));
     } else {
-      body = Text(slot.uppercase ? text.toUpperCase() : text, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: st);
+      body = Text(slot.uppercase ? text.toUpperCase() : text, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: ta, style: st);
     }
     return Positioned.fromRect(
       rect: slot.region,

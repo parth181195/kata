@@ -13,6 +13,7 @@ import '../../core/compose/stickers.dart';
 import 'waku_frames.dart';
 import 'waku_exif.dart';
 import 'waku_import.dart';
+import 'waku_palette.dart';
 
 /// 枠 Waku — put a photo in a frame from a curated gallery (one for now: the
 /// instant print), or bring any image of your own as the frame. Frames are
@@ -60,6 +61,7 @@ class _WakuScreenState extends State<WakuScreen> {
 
   Uint8List? _photo;
   PhotoMeta _meta = const PhotoMeta();
+  List<Color>? _palette;
   Uint8List? _frameImage; // the custom frame, when WakuFrame.custom
   WakuFrame _frame = WakuFrame.polaroid;
   WakuRatio _ratio = WakuRatio.r4x5;
@@ -109,10 +111,12 @@ class _WakuScreenState extends State<WakuScreen> {
     final b = await _pickImage('Choose a photo');
     if (b == null || !mounted) return;
     final meta = await readPhotoMeta(b);
+    final palette = await extractPalette(b);
     if (!mounted) return;
     setState(() {
       _photo = b;
       _meta = meta;
+      _palette = palette;
       _viewer.value = Matrix4.identity();
     });
   }
@@ -212,7 +216,7 @@ class _WakuScreenState extends State<WakuScreen> {
       return customLayers(size, size.shortestSide * _matScale,
           frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
-    if (_frame == WakuFrame.poster) return posterLayers(size, size.shortestSide * 0.08, meta: _meta);
+    if (_frame == WakuFrame.poster) return posterLayers(size, size.shortestSide * 0.08, meta: _meta, palette: _palette);
     if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta);
     return polaroidLayers(size, size.shortestSide * 0.08);
   }
@@ -271,7 +275,7 @@ class _WakuScreenState extends State<WakuScreen> {
               maxLines: slot.maxLines,
               textInputAction: TextInputAction.done,
               inputFormatters: [LengthLimitingTextInputFormatter(slot.maxChars), if (slot.uppercase) _UpperCaseFormatter()],
-              textAlign: TextAlign.center,
+              textAlign: slot.align.x < 0 ? TextAlign.left : (slot.align.x > 0 ? TextAlign.right : TextAlign.center),
               textCapitalization: slot.uppercase ? TextCapitalization.characters : TextCapitalization.sentences,
               style: effective,
               cursorColor: effective.color,
@@ -419,7 +423,7 @@ class _WakuScreenState extends State<WakuScreen> {
       thumb = ComposeCanvasView(
         canvasSize: thumbSize,
         layers: switch (f) {
-          WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
+          WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, palette: _palette),
           WakuFrame.words => wordsLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
           _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
         },

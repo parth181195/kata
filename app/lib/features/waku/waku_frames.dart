@@ -79,21 +79,23 @@ TextStyle chinStyle(Size size) => TextStyle(
     );
 
 
-/// Film-poster frame: the mid-century one-sheet grid. Cream stock, a colour
-/// calibration strip and a reel mark up top, tiny credit columns fed by EXIF,
-/// a massive black title, and the photo seated on the lower half. Frame #2 of
-/// the curated gallery.
-List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta()}) {
-  final m = size.width * 0.075;
+/// Film-poster frame: the mid-century one-sheet grid, proportioned after the
+/// Interstellar/GET OUT school. Cream stock; a calibration strip cut from the
+/// photo's own palette; the kata mark; credit columns (bold head, italic
+/// value) fed by EXIF; a massive w900 title; the photo on the lower half with
+/// a broad quiet foot. Nothing moves — the grid is the design.
+List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta(), List<Color>? palette}) {
+  final m = size.width * 0.095;
   const ink = Color(0xFF1A1916);
-  final headY = size.height * 0.082;
-  final headH = (size.shortestSide * 0.016).clamp(5.0, 12.0);
-  final photoTop = size.height * 0.545;
+  final headY = size.height * 0.125;
+  final headH = (size.shortestSide * 0.0155).clamp(5.0, 11.0);
+  final photoTop = size.height * 0.415;
+  final photoBottom = size.height * 0.87;
   final usable = size.width - 2 * m;
   final colW = usable / 5;
 
-  TextStyle small({FontWeight w = FontWeight.w500}) => TextStyle(
-      fontFamily: 'Inter', package: 'kata_ui', fontSize: (size.shortestSide * 0.0148).clamp(4.5, 10.0), fontWeight: w, height: 1.25, color: ink);
+  TextStyle small({FontWeight w = FontWeight.w400, FontStyle? style}) => TextStyle(
+      fontFamily: 'Inter', package: 'kata_ui', fontSize: (size.shortestSide * 0.0148).clamp(4.5, 10.0), fontWeight: w, fontStyle: style, height: 1.25, color: ink);
 
   String? exposurePrefill;
   if (meta.iso != null || meta.fNumber != null || meta.exposure != null) {
@@ -110,30 +112,33 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
   }
   final cameraPrefill = [meta.make, meta.model].whereType<String>().join(' ');
 
+  // slots pad their ink 10px for the tap target; regions start 10 early so the
+  // ink itself sits on the column line the headers use
   ComposeTextSlot credit(String id, int col, String invitation, String? prefill) => ComposeTextSlot(
         id: id,
-        region: Rect.fromLTWH(m + col * colW, headY + headH * 1.5, colW - 6, headH * 3.2),
-        style: small(),
+        region: Rect.fromLTWH(m + col * colW - 10, headY + headH * 1.45, colW - 4, headH * 3.4),
+        style: small(style: FontStyle.italic),
         invitation: invitation,
         prefill: prefill,
         align: Alignment.topLeft,
         maxLines: 2,
         maxChars: 24,
+        uppercase: false,
       );
 
   return [
     const ComposeSurface(ColoredBox(color: Color(0xFFF0EBDD)), grain: GrainSpec(strength: GrainStrength.weak, size: GrainSize.small)),
-    ComposeSurface(_PosterFurniture(margin: m, headY: headY, headStyle: small(w: FontWeight.w700), colW: colW)),
-    ComposePhotoWindow(rect: Rect.fromLTRB(m, photoTop, size.width - m, size.height - m * 0.9)),
+    ComposeSurface(_PosterFurniture(margin: m, headY: headY, headStyle: small(w: FontWeight.w700), colW: colW, palette: palette)),
+    ComposePhotoWindow(rect: Rect.fromLTRB(m, photoTop, size.width - m, photoBottom)),
     ComposeTextSlot(
       id: 'title',
-      region: Rect.fromLTRB(m, headY + headH * 5.4, size.width - m, photoTop - unit * 0.5),
+      region: Rect.fromLTRB(m - 10, size.height * 0.245, size.width - m, photoTop - unit * 0.4),
       style: TextStyle(
           fontFamily: 'Inter',
           package: 'kata_ui',
-          fontSize: (size.shortestSide * 0.165).clamp(18.0, 200.0),
+          fontSize: (size.shortestSide * 0.175).clamp(18.0, 220.0),
           fontWeight: FontWeight.w900,
-          height: 0.88,
+          height: 0.9,
           letterSpacing: -1.5,
           color: ink),
       invitation: 'UNTITLED',
@@ -144,51 +149,56 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
       minScale: 0.55,
       maxScale: 1.15,
     ),
-    credit('artist', 0, 'YOU', null),
-    credit('camera', 1, 'CAMERA', cameraPrefill.isEmpty ? null : cameraPrefill),
-    credit('film', 2, 'FILM', meta.filmMode),
-    credit('exposure', 3, 'EXPOSURE', exposurePrefill),
-    credit('date', 4, 'DATE', datePrefill),
+    credit('camera', 0, 'camera', cameraPrefill.isEmpty ? null : cameraPrefill),
+    credit('lens', 1, 'lens', meta.focalMm == null ? null : '${meta.focalMm!.round()}mm'),
+    credit('film', 2, 'film', meta.filmMode),
+    credit('exposure', 3, 'exposure', exposurePrefill),
+    credit('date', 4, 'date', datePrefill),
   ];
 }
 
-/// The one-sheet's fixed furniture: calibration chips, credit headers, reel mark.
+/// The one-sheet's fixed furniture: the photo-palette strip, credit headers,
+/// and the kata mark.
 class _PosterFurniture extends StatelessWidget {
-  const _PosterFurniture({required this.margin, required this.headY, required this.headStyle, required this.colW});
+  const _PosterFurniture({required this.margin, required this.headY, required this.headStyle, required this.colW, this.palette});
   final double margin;
   final double headY;
   final TextStyle headStyle;
   final double colW;
+  final List<Color>? palette;
 
-  static const _chips = [Color(0xFF15130F), Color(0xFF2E6E71), Color(0xFF4C7A3F), Color(0xFFD9A62E), Color(0xFFC2482B)];
-  static const _heads = ['A PHOTO BY', 'CAMERA', 'FILM', 'EXPOSURE', 'DATE'];
+  static const _fallbackChips = [Color(0xFF15130F), Color(0xFF2E6E71), Color(0xFF4C7A3F), Color(0xFFD9A62E), Color(0xFFC2482B)];
+  static const _heads = ['CAMERA', 'LENS', 'FILM', 'EXPOSURE', 'DATE'];
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, box) {
-      final chipW = (box.maxWidth * 0.028).clamp(4.0, 26.0);
-      final chipH = chipW * 0.62;
+      final w = box.maxWidth;
+      final chips = (palette == null || palette!.isEmpty) ? _fallbackChips : palette!;
+      final chipW = (w * 0.034).clamp(4.0, 34.0);
+      final chipH = chipW * 0.56;
+      final markSize = (w * 0.085).clamp(12.0, 90.0);
       return Stack(children: [
         Positioned(
           left: margin,
-          top: headY - chipH * 2.1,
-          child: Row(children: [for (final c in _chips) Container(width: chipW, height: chipH, color: c)]),
+          top: box.maxHeight * 0.048,
+          child: Row(children: [for (final c in chips) Container(width: chipW, height: chipH, color: c)]),
         ),
         Positioned(
           right: margin,
-          top: headY - chipH * 2.3,
-          child: SizedBox(width: chipW * 2.6, height: chipH * 1.7, child: CustomPaint(painter: _ReelMarkPainter(headStyle.color!))),
+          top: box.maxHeight * 0.038,
+          child: SizedBox(width: markSize, height: markSize, child: CustomPaint(painter: _KataMarkPainter(headStyle.color!))),
         ),
         for (var i = 0; i < _heads.length; i++)
-          Positioned(left: margin + i * colW, top: headY, width: colW - 6, child: Text(_heads[i], style: headStyle)),
+          Positioned(left: margin + i * colW, top: headY, width: colW - 4, child: Text(_heads[i], style: headStyle)),
       ]);
     });
   }
 }
 
-/// The little festival mark: an oval globe with meridians and a reel hub.
-class _ReelMarkPainter extends CustomPainter {
-  _ReelMarkPainter(this.color);
+/// The kata mark: the 型 seal in its ring, as the app wears it.
+class _KataMarkPainter extends CustomPainter {
+  _KataMarkPainter(this.color);
   final Color color;
 
   @override
@@ -196,62 +206,19 @@ class _ReelMarkPainter extends CustomPainter {
     final st = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = (s.height * 0.06).clamp(0.5, 1.4);
-    final r = Rect.fromLTWH(st.strokeWidth, st.strokeWidth, s.width - 2 * st.strokeWidth, s.height - 2 * st.strokeWidth);
-    c.drawOval(r, st);
-    c.drawLine(Offset(r.left, r.center.dy), Offset(r.right, r.center.dy), st);
-    c.drawOval(Rect.fromCenter(center: r.center, width: r.width * 0.55, height: r.height), st);
-    c.drawOval(Rect.fromCenter(center: r.center, width: r.width * 0.16, height: r.height * 0.28), st);
+      ..strokeWidth = (s.shortestSide * 0.05).clamp(0.6, 2.2);
+    final r = s.shortestSide / 2 - st.strokeWidth;
+    c.drawCircle(s.center(Offset.zero), r, st);
+    final tp = TextPainter(
+      text: TextSpan(text: '型', style: TextStyle(fontSize: s.shortestSide * 0.52, color: color, fontWeight: FontWeight.w600, height: 1)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(c, Offset((s.width - tp.width) / 2, (s.height - tp.height) / 2));
   }
 
   @override
-  bool shouldRepaint(_ReelMarkPainter o) => o.color != color;
+  bool shouldRepaint(_KataMarkPainter o) => o.color != color;
 }
-
-/// Real Code 39: start/stop asterisks around the digits, nine elements per
-/// character (three wide), narrow gaps between characters.
-class Code39Painter extends CustomPainter {
-  Code39Painter(this.digits, this.color);
-  final String digits;
-  final Color color;
-
-  static const _patterns = {
-    '*': 'nwnnwnwnn',
-    '0': 'nnnwwnwnn',
-    '1': 'wnnwnnnnw',
-    '2': 'nnwwnnnnw',
-    '3': 'wnwwnnnnn',
-    '4': 'nnnwwnnnw',
-    '5': 'wnnwwnnnn',
-    '6': 'nnwwwnnnn',
-    '7': 'nnnwnnwnw',
-    '8': 'wnnwnnwnn',
-    '9': 'nnwwnnwnn',
-  };
-
-  @override
-  void paint(Canvas c, Size s) {
-    final payload = '*${digits.isEmpty ? '0' : digits}*';
-    // total narrow units: per char 6 narrow + 3 wide(=2u each) = 12u, +1 gap
-    final units = payload.length * 13 - 1;
-    final u = s.width / units;
-    final paint = Paint()..color = color;
-    var x = 0.0;
-    for (final ch in payload.split('')) {
-      final pattern = _patterns[ch] ?? _patterns['0']!;
-      for (var i = 0; i < pattern.length; i++) {
-        final w = (pattern[i] == 'w' ? 2 : 1) * u;
-        if (i.isEven) c.drawRect(Rect.fromLTWH(x, 0, w, s.height), paint);
-        x += w;
-      }
-      x += u; // inter-character gap
-    }
-  }
-
-  @override
-  bool shouldRepaint(Code39Painter o) => o.digits != digits || o.color != color;
-}
-
 
 /// "words." dictionary poster — frame #3. Warm-gray stock; a boxed ka ta.
 /// mark; the shot year running vertical up the left; the photo square-set

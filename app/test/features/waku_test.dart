@@ -177,7 +177,7 @@ void main() {
     await t.tap(find.text('POSTER'));
     await t.pumpAndSettle();
     // credit headers are furniture; slots show invitations (no EXIF in test PNG)
-    for (final head in ['A PHOTO BY', 'CAMERA', 'FILM', 'EXPOSURE', 'DATE']) {
+    for (final head in ['CAMERA', 'LENS', 'FILM', 'EXPOSURE', 'DATE']) {
       expect(find.text(head), findsWidgets);
     }
     expect(find.text('UNTITLED'), findsWidgets);
