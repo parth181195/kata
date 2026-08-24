@@ -11,19 +11,21 @@ sealed class ComposeLayer {
   const ComposeLayer();
 }
 
-/// Backdrop or decoration painted by the frame. Never interactive.
+/// Backdrop or decoration painted by the frame. Never interactive. [grain]
+/// textures the surface itself — a curation choice baked into the frame, not a
+/// user control; the photo keeps whatever grain the camera gave it.
 class ComposeSurface extends ComposeLayer {
-  const ComposeSurface(this.child);
+  const ComposeSurface(this.child, {this.grain});
   final Widget child;
+  final GrainSpec? grain;
 }
 
 /// The window the photo shows through. Interaction (pan/pinch) belongs to the
-/// photo widget itself. [grain] lays film grain over the window's contents.
+/// photo widget itself.
 class ComposePhotoWindow extends ComposeLayer {
-  const ComposePhotoWindow({required this.rect, this.shadow, this.grain});
+  const ComposePhotoWindow({required this.rect, this.shadow});
   final Rect rect;
   final List<BoxShadow>? shadow;
-  final GrainSpec? grain;
 }
 
 /// An editable text slot. Lives inside [region]; when [draggable], the user
@@ -70,14 +72,12 @@ class ComposeCanvasView extends StatelessWidget {
     return Stack(fit: StackFit.expand, children: [
       for (final l in layers)
         switch (l) {
-          ComposeSurface(:final child) => Positioned.fill(child: IgnorePointer(child: child)),
-          ComposePhotoWindow(:final rect, :final shadow, :final grain) => Positioned.fromRect(
+          ComposeSurface(:final child, :final grain) => Positioned.fill(
+              child: IgnorePointer(child: grain == null || grain.isOff ? child : FilmGrain(spec: grain, child: child)),
+            ),
+          ComposePhotoWindow(:final rect, :final shadow) => Positioned.fromRect(
               rect: rect,
-              child: () {
-                var w = photo;
-                if (grain != null && !grain.isOff) w = FilmGrain(spec: grain, child: w);
-                return shadow == null ? w : DecoratedBox(decoration: BoxDecoration(boxShadow: shadow), child: w);
-              }(),
+              child: shadow == null ? photo : DecoratedBox(decoration: BoxDecoration(boxShadow: shadow), child: photo),
             ),
           final ComposeTextSlot slot => _slot(slot),
         },

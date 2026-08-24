@@ -63,16 +63,13 @@ void main() {
     expect(translationOf().dx, greaterThan(before.dx));
   });
 
-  testWidgets('grain controls follow the Fuji grammar: strength, then size', (t) async {
+  testWidgets('grain is the frame\'s own — no user controls for it anywhere', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF667788))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
-    await t.scrollUntilVisible(find.text('WEAK'), 80, scrollable: find.byType(Scrollable).first);
-    expect(find.text('WEAK'), findsOneWidget);
-    expect(find.text('SMALL'), findsNothing); // size hides while grain is off
-    await t.tap(find.text('STRONG'));
-    await t.pumpAndSettle();
-    expect(find.text('SMALL'), findsOneWidget);
-    expect(find.text('LARGE'), findsOneWidget);
+    // curated frames bake their surface grain in; nothing to toggle
+    expect(find.text('GRAIN'), findsNothing);
+    expect(find.text('WEAK'), findsNothing);
+    expect(find.text('STRONG'), findsNothing);
   });
 
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {

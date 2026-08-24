@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/compose/export.dart';
-import '../../core/compose/grain.dart';
 import '../../core/compose/layers.dart';
 import 'waku_frames.dart';
 import 'waku_import.dart';
@@ -50,7 +49,6 @@ class _WakuScreenState extends State<WakuScreen> {
   WakuFrame _frame = WakuFrame.polaroid;
   WakuRatio _ratio = WakuRatio.r4x5;
   double _matScale = 0.08; // custom surround inset, fraction of the short side
-  GrainSpec _grain = const GrainSpec();
   bool _frameOnTop = false; // custom PNGs with a transparent window
   bool _busy = false;
 
@@ -171,9 +169,9 @@ class _WakuScreenState extends State<WakuScreen> {
   List<ComposeLayer> _layers(Size size) {
     if (_frame == WakuFrame.custom && _frameImage != null) {
       return customLayers(size, size.shortestSide * _matScale,
-          frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop, grain: _grain);
+          frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
-    return polaroidLayers(size, size.shortestSide * 0.08, grain: _grain);
+    return polaroidLayers(size, size.shortestSide * 0.08);
   }
 
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
@@ -294,19 +292,6 @@ class _WakuScreenState extends State<WakuScreen> {
           const SizedBox(height: 16),
           KataSectionHeader('Surround width'),
           Slider(value: _matScale, min: 0.03, max: 0.16, onChanged: (v) => setState(() => _matScale = v)),
-        ],
-        const SizedBox(height: 16),
-        KataSectionHeader('Grain'),
-        Wrap(spacing: 7, runSpacing: 7, children: [
-          for (final g in GrainStrength.values)
-            KataChip(label: g.label, selected: _grain.strength == g, onTap: () => setState(() => _grain = _grain.copyWith(strength: g))),
-        ]),
-        if (!_grain.isOff) ...[
-          const SizedBox(height: 8),
-          Wrap(spacing: 7, runSpacing: 7, children: [
-            for (final gs in GrainSize.values)
-              KataChip(label: gs.label, selected: _grain.size == gs, onTap: () => setState(() => _grain = _grain.copyWith(size: gs))),
-          ]),
         ],
         const SizedBox(height: 20),
         KataPillButton(label: _isDesktop ? 'Save PNG' : 'Share', height: 46, loading: _busy, onPressed: _photo == null ? null : _export),

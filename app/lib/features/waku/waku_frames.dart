@@ -17,15 +17,15 @@ enum WakuFrame {
 /// Instant-print: bright white stock, tight even sides, the classic deep chin.
 /// Layers, bottom → top: paper · photo window · the chin's hand-written line
 /// (editable, and draggable along the chin like a real pen would wander).
-List<ComposeLayer> polaroidLayers(Size size, double unit, {GrainSpec? grain}) {
+List<ComposeLayer> polaroidLayers(Size size, double unit) {
   final m = unit * 0.72;
   final chin = unit * 2.9;
   return [
-    const ComposeSurface(ColoredBox(color: Color(0xFFFBFAF6))),
+    // the stock itself has tooth — our call, per frame; users don't touch grain
+    const ComposeSurface(ColoredBox(color: Color(0xFFFBFAF6)), grain: GrainSpec(strength: GrainStrength.weak, size: GrainSize.small)),
     ComposePhotoWindow(
       rect: Rect.fromLTRB(m, m * 1.15, size.width - m, size.height - chin),
       shadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 3, offset: Offset(0, 1))],
-      grain: grain,
     ),
     ComposeTextSlot(
       id: 'chin',
@@ -39,10 +39,10 @@ List<ComposeLayer> polaroidLayers(Size size, double unit, {GrainSpec? grain}) {
 /// Any image of yours as the frame. Surround mode: the image behind, the photo
 /// floating inset on a shadow. Overlay mode (a PNG with a transparent window):
 /// the photo fills and the frame draws over it.
-List<ComposeLayer> customLayers(Size size, double unit, {required Widget frameImage, required bool overlay, GrainSpec? grain}) {
+List<ComposeLayer> customLayers(Size size, double unit, {required Widget frameImage, required bool overlay}) {
   if (overlay) {
     return [
-      ComposePhotoWindow(rect: Offset.zero & size, grain: grain),
+      ComposePhotoWindow(rect: Offset.zero & size),
       ComposeSurface(frameImage),
     ];
   }
@@ -52,7 +52,6 @@ List<ComposeLayer> customLayers(Size size, double unit, {required Widget frameIm
     ComposePhotoWindow(
       rect: Rect.fromLTRB(inset, inset, size.width - inset, size.height - inset),
       shadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 16, offset: Offset(0, 5))],
-      grain: grain,
     ),
   ];
 }
