@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'grain.dart';
@@ -201,21 +203,38 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   /// The slot's text metrics: [box] is the padded body (chrome, clamping),
   /// [ink] the glyphs' own extent — edge snaps align the INK to the photo,
   /// not the padding around it.
-  (Size box, Size ink) _slotSizes(ComposeTextSlot slot) {
+  (Size box, double inkL, double inkR) _slotSizes(ComposeTextSlot slot) {
     final text = textOf(slot.id).trim();
+    final shown = (text.isEmpty ? slot.invitation : text).toUpperCase();
     final tp = TextPainter(
-      text: TextSpan(text: (text.isEmpty ? slot.invitation : text).toUpperCase(), style: _effectiveStyle(slot)),
+      text: TextSpan(text: shown, style: _effectiveStyle(slot)),
       maxLines: slot.maxLines,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: slot.region.width - 24);
-    return (Size(tp.width + 20, tp.height + 12), Size(tp.width, tp.height));
+    // tp.width includes the trailing letter-spacing after the last glyph, so
+    // the painted ink is NOT centred in the layout box — it hangs left. Snap
+    // by the ink's actual offsets from the body centre, from selection boxes.
+    var inkL = -tp.width / 2;
+    var inkR = tp.width / 2;
+    final boxes = tp.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: shown.length));
+    if (boxes.isNotEmpty) {
+      var l = double.infinity, r = -double.infinity;
+      for (final b in boxes) {
+        l = math.min(l, b.left);
+        r = math.max(r, b.right);
+      }
+      final spacing = _effectiveStyle(slot).letterSpacing ?? 0;
+      inkL = l - tp.width / 2;
+      inkR = (r - spacing) - tp.width / 2;
+    }
+    return (Size(tp.width + 20, tp.height + 12), inkL, inkR);
   }
 
   Size _slotTextSize(ComposeTextSlot slot) => _slotSizes(slot).$1;
 
   void _dragSlot(ComposeTextSlot slot, Offset delta) {
     final region = slot.region;
-    final (size, ink) = _slotSizes(slot);
+    final (size, inkL, inkR) = _slotSizes(slot);
     if (_dragId != slot.id || _rawCenter == null) {
       final current = dragOf(slot.id);
       _rawCenter = region.center + Offset(current.dx * region.width, current.dy * region.height);
@@ -232,11 +251,11 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
       if ((center.dx - pr.center.dx).abs() < _snapTol) {
         center = Offset(pr.center.dx, center.dy);
         v.add(pr.center.dx);
-      } else if ((center.dx - ink.width / 2 - pr.left).abs() < _snapTol) {
-        center = Offset(pr.left + ink.width / 2, center.dy);
+      } else if ((center.dx + inkL - pr.left).abs() < _snapTol) {
+        center = Offset(pr.left - inkL, center.dy);
         v.add(pr.left);
-      } else if ((center.dx + ink.width / 2 - pr.right).abs() < _snapTol) {
-        center = Offset(pr.right - ink.width / 2, center.dy);
+      } else if ((center.dx + inkR - pr.right).abs() < _snapTol) {
+        center = Offset(pr.right - inkR, center.dy);
         v.add(pr.right);
       }
     }
