@@ -212,6 +212,7 @@ class _WakuScreenState extends State<WakuScreen> {
       return customLayers(size, size.shortestSide * _matScale,
           frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
+    if (_frame == WakuFrame.archive) return labelLayers(size, size.shortestSide * 0.08, meta: _meta);
     return polaroidLayers(size, size.shortestSide * 0.08);
   }
 
@@ -229,9 +230,15 @@ class _WakuScreenState extends State<WakuScreen> {
             ? (_) {}
             : (id) => setState(() {
                   // select first; an empty slot means "I want to type" — edit at once,
-                  // a filled one edits on the second tap
-                  final empty = (_slotText[id]?.text ?? '').trim().isEmpty;
-                  if (_selected == id || empty) _editingSlot = id;
+                  // a filled one edits on the second tap. EXIF-prefilled slots count
+                  // as filled, and editing them starts from the prefill.
+                  final spec = _slotSpec(id);
+                  final prefill = spec?.prefill?.trim() ?? '';
+                  final empty = (_slotText[id]?.text ?? '').trim().isEmpty && prefill.isEmpty;
+                  if (_selected == id || empty) {
+                    if ((_slotText[id]?.text ?? '').trim().isEmpty && prefill.isNotEmpty) _ctl(id).text = prefill;
+                    _editingSlot = id;
+                  }
                   _selected = id;
                 }),
         onDragText: !interactive
@@ -262,9 +269,9 @@ class _WakuScreenState extends State<WakuScreen> {
               minLines: 1,
               maxLines: slot.maxLines,
               textInputAction: TextInputAction.done,
-              inputFormatters: [LengthLimitingTextInputFormatter(slot.maxChars), _UpperCaseFormatter()],
+              inputFormatters: [LengthLimitingTextInputFormatter(slot.maxChars), if (slot.uppercase) _UpperCaseFormatter()],
               textAlign: TextAlign.center,
-              textCapitalization: TextCapitalization.characters,
+              textCapitalization: slot.uppercase ? TextCapitalization.characters : TextCapitalization.sentences,
               style: effective,
               cursorColor: effective.color,
               decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
@@ -410,7 +417,9 @@ class _WakuScreenState extends State<WakuScreen> {
     } else {
       thumb = ComposeCanvasView(
         canvasSize: thumbSize,
-        layers: polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
+        layers: f == WakuFrame.archive
+            ? labelLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta)
+            : polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
         photo: _photoWidget(interactive: false),
         textOf: (_) => '',
         dragOf: (_) => Offset.zero,

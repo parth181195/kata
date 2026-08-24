@@ -51,7 +51,9 @@ class ComposeTextSlot extends ComposeLayer {
       this.maxScale = 1.6,
       this.rotatable = false,
       this.maxAngle = 0.21,
-      this.inkChoices = const []});
+      this.inkChoices = const [],
+      this.prefill,
+      this.uppercase = true});
   final String id;
   final Rect region;
   final TextStyle style;
@@ -71,6 +73,11 @@ class ComposeTextSlot extends ComposeLayer {
   final double maxAngle;
   /// Curated ink palette; empty = the frame's ink is fixed.
   final List<Color> inkChoices;
+  /// Auto-filled content (EXIF-fed) shown in full ink and exported — unlike
+  /// the invitation — until the user types their own. Editing seeds from it.
+  final String? prefill;
+  /// Museum labels aren't shouty: slots may keep their case.
+  final bool uppercase;
 }
 
 /// Renders a layer stack and routes the permitted interactions back up.
@@ -237,7 +244,8 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   /// not the padding around it.
   (Size box, double inkL, double inkR) _slotSizes(ComposeTextSlot slot) {
     final text = textOf(slot.id).trim();
-    final shown = (text.isEmpty ? slot.invitation : text).toUpperCase();
+    final base = text.isEmpty ? (slot.prefill?.trim().isNotEmpty == true ? slot.prefill!.trim() : slot.invitation) : text;
+    final shown = slot.uppercase ? base.toUpperCase() : base;
     final tp = TextPainter(
       text: TextSpan(text: shown, style: _effectiveStyle(slot)),
       maxLines: slot.maxLines,
@@ -493,15 +501,18 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final selected = selectedId == slot.id;
     final text = textOf(slot.id).trim();
     final st = _effectiveStyle(slot);
+    final prefill = slot.prefill?.trim() ?? '';
     final Widget body;
     if (editing) {
       body = editorBuilder(slot.id, slot, st);
+    } else if (text.isEmpty && prefill.isNotEmpty) {
+      body = Text(slot.uppercase ? prefill.toUpperCase() : prefill, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: st);
     } else if (text.isEmpty) {
       body = hideInvitations
           ? const SizedBox.shrink()
           : Text(slot.invitation, style: st.copyWith(color: (st.color ?? Colors.black).withValues(alpha: 0.32)));
     } else {
-      body = Text(text.toUpperCase(), maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: st);
+      body = Text(slot.uppercase ? text.toUpperCase() : text, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: st);
     }
     return Positioned.fromRect(
       rect: slot.region,

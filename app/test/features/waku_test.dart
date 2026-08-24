@@ -171,6 +171,27 @@ void main() {
     expect(find.text('TAPE 1/2'), findsOneWidget);
   });
 
+  testWidgets('archive label card: tombstone slots, prefill seeds the editor, title keeps its case', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF554433))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    await t.tap(find.text('LABEL'));
+    await t.pumpAndSettle();
+    // tombstone invitations (no EXIF in the test PNG, so no prefill)
+    expect(find.text('ARTIST'), findsOneWidget);
+    expect(find.text('Untitled'), findsOneWidget); // case preserved
+    expect(find.text('MEDIUM'), findsOneWidget);
+    // the accession line + barcode furniture
+    expect(find.text('KATA.0000.00'), findsWidgets); // canvas + thumbnail
+    // title editing keeps lowercase
+    await t.tap(find.text('Untitled'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'Rain over Bandra');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(find.text('Rain over Bandra'), findsOneWidget);
+    expect(find.text('RAIN OVER BANDRA'), findsNothing);
+  });
+
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF2255AA))))!;
     final frame = (await t.runAsync(() => _png(const Color(0xFF111111))))!;
