@@ -61,7 +61,12 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> with WidgetsBindi
         body: widget.shell,
         bottomNavigationBar: SafeArea(
           top: false,
-          child: KataBottomNav(index: widget.shell.currentIndex, onTap: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex)),
+          child: KataBottomNav(
+            index: widget.shell.currentIndex,
+            labels: const ['Library', 'Camera', 'Waku', 'Mine', 'Profile'],
+            iconKinds: const [0, 1, 4, 2, 3],
+            onTap: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
+          ),
         ),
       ),
     );

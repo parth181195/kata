@@ -12,7 +12,7 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('KATA 型'), findsOneWidget);
 
-    await t.tap(find.byKey(const ValueKey('nav-3')));
+    await t.tap(find.byKey(const ValueKey('nav-4')));
     await t.pumpAndSettle();
     expect(find.text('PARTH JANSARI'), findsOneWidget);
     expect(find.text('parth@example.com'), findsOneWidget);
@@ -52,7 +52,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('nav-1')));
     await t.pumpAndSettle();
     expect(find.text('CAMERA'), findsNWidgets(2)); // nav label + screen title
-    await t.tap(find.byKey(const ValueKey('nav-3')));
+    await t.tap(find.byKey(const ValueKey('nav-4')));
     await t.pumpAndSettle();
     expect(find.text('PROFILE'), findsNWidgets(2));
     await t.tap(find.text('Component kit'));

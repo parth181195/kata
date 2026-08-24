@@ -10,7 +10,7 @@ void main() {
   testWidgets('new kata → name → save draft → appears in Mine as DRAFT → edit → publish → IN REVIEW; fake API has it', (t) async {
     final api = FakeRecipeApi.fromSeed(seedJson);
     final c = await pumpKata(t, initialLocation: '/mine', api: api);
-    await t.tap(find.byKey(const ValueKey('nav-2')));
+    await t.tap(find.byKey(const ValueKey('nav-3')));
     await t.pumpAndSettle();
     // My recipes segment → empty → "New kata"
     await t.tap(find.text('DRAFTS'));

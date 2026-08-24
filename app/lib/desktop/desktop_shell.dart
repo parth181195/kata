@@ -11,6 +11,7 @@ import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe_repository.dart';
 import 'desktop_camera.dart';
+import '../features/waku/waku_screen.dart';
 import 'desktop_editor.dart';
 import 'desktop_import.dart';
 import 'desktop_library.dart';
@@ -29,7 +30,7 @@ class DesktopShell extends ConsumerStatefulWidget {
   ConsumerState<DesktopShell> createState() => _DesktopShellState();
 }
 
-enum DesktopSection { library, saved, mine, camera, settings, editor }
+enum DesktopSection { library, saved, mine, camera, waku, settings, editor }
 
 /// What descendants may ask the shell to do.
 abstract class DesktopShellController {
@@ -149,6 +150,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
       DesktopSection.saved => const DesktopLibrary(savedOnly: true),
       DesktopSection.mine => const DesktopMine(),
       DesktopSection.camera => const DesktopCamera(),
+      DesktopSection.waku => const WakuScreen(),
       DesktopSection.settings => const DesktopSettings(),
       DesktopSection.editor => DesktopEditor(
           key: ValueKey((_editorArgs, _editorSeed?.hash ?? _editorSeed?.filmSimulation)),
@@ -236,6 +238,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
                   (DesktopSection.saved, 'Saved'),
                   (DesktopSection.mine, 'Mine'),
                   (DesktopSection.camera, 'Camera'),
+                  (DesktopSection.waku, 'Waku'),
                 ])
                   _railItem(p, label, s),
                 const Spacer(),

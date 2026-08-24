@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../tokens.dart';
 
-/// 4 tabs — Library, Camera, Mine, Profile — hairline line-icons + tiny mono labels, dot under the active one.
+/// Tab bar — hairline line-icons + tiny mono labels, dot under the active one.
+/// One tab per label; [iconKinds] picks each tab's icon (defaults to label order:
+/// 0 library · 1 camera · 2 mine · 3 profile · 4 frame).
 class KataBottomNav extends StatelessWidget {
-  const KataBottomNav({super.key, required this.index, required this.onTap, this.labels = const ['Library', 'Camera', 'Mine', 'Profile']});
+  const KataBottomNav({super.key, required this.index, required this.onTap, this.labels = const ['Library', 'Camera', 'Mine', 'Profile'], this.iconKinds});
   final int index;
   final ValueChanged<int> onTap;
   final List<String> labels;
+  final List<int>? iconKinds;
 
   @override
   Widget build(BuildContext context) {
@@ -17,13 +20,13 @@ class KataBottomNav extends StatelessWidget {
       height: 64,
       decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.dark ? p.surface : p.hairline))),
       child: Row(children: [
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < labels.length; i++)
           Expanded(
             child: InkWell(
               key: ValueKey('nav-$i'),
               onTap: () => onTap(i),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                CustomPaint(size: const Size(22, 18), painter: _NavIcon(i, i == index ? p.fg : p.muted)),
+                CustomPaint(size: const Size(22, 18), painter: _NavIcon(iconKinds?[i] ?? i, i == index ? p.fg : p.muted)),
                 const SizedBox(height: 5),
                 Text(
                   labels[i].toUpperCase(),
@@ -81,9 +84,12 @@ class _NavIcon extends CustomPainter {
             ..close(),
           st,
         );
-      default: // profile — head + shoulders
+      case 3: // profile — head + shoulders
         c.drawCircle(Offset(w / 2, h * 0.3), h * 0.22, st);
         c.drawArc(Rect.fromLTWH(w * 0.18, h * 0.6, w * 0.64, h * 0.9), 3.1416, 3.1416, false, st);
+      default: // waku — a frame: outer moulding around an inner window
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0.75, 0.75, w - 1.5, h - 1.5), const Radius.circular(2)), st);
+        c.drawRect(Rect.fromLTWH(w * 0.24, h * 0.24, w * 0.52, h * 0.52), st);
     }
   }
 
