@@ -8,6 +8,8 @@ import 'package:flutter/rendering.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'grain.dart';
+
 /// The one render-and-deliver pipeline: kata share cards and Waku frames both
 /// end here. Rasterise a boundary, then hand the PNG to the platform's way of
 /// getting a file to the user.
@@ -16,17 +18,23 @@ import 'package:share_plus/share_plus.dart';
 /// scale (the share cards do), or [targetShortSide] to hit a resolution
 /// regardless of preview size (Waku does).
 Future<Uint8List> rasterizePng(GlobalKey boundaryKey, {double? pixelRatio, double targetShortSide = 2048, bool settle = true}) async {
-  if (settle) {
-    // wait a couple of frames so images (network, just-decoded) have painted
-    await WidgetsBinding.instance.endOfFrame;
-    await WidgetsBinding.instance.endOfFrame;
-  }
   final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final ratio = pixelRatio ?? (targetShortSide / boundary.size.shortestSide).clamp(1.0, 6.0);
-  final img = await boundary.toImage(pixelRatio: ratio);
-  final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-  img.dispose();
-  return bytes!.buffer.asUint8List();
+  try {
+    // grain paints in true export pixels, not magnified preview pixels
+    GrainOverlay.rasterScale.value = ratio;
+    if (settle) {
+      // wait a couple of frames so images and the re-scaled grain have painted
+      await WidgetsBinding.instance.endOfFrame;
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    final img = await boundary.toImage(pixelRatio: ratio);
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    img.dispose();
+    return bytes!.buffer.asUint8List();
+  } finally {
+    GrainOverlay.rasterScale.value = 1;
+  }
 }
 
 bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);

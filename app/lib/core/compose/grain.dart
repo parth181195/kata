@@ -49,6 +49,11 @@ class GrainOverlay extends StatefulWidget {
   final GrainSpec spec;
   final Widget child;
 
+  /// Export renders the boundary at a higher pixel ratio than the screen;
+  /// grain must be generated in those pixels or it exports as magnified
+  /// blocks. rasterizePng sets this around toImage; painters repaint on it.
+  static final ValueNotifier<double> rasterScale = ValueNotifier<double>(1);
+
   @override
   State<GrainOverlay> createState() => _GrainOverlayState();
 }
@@ -101,7 +106,7 @@ class _GrainOverlayState extends State<GrainOverlay> {
 }
 
 class _GrainPainter extends CustomPainter {
-  _GrainPainter(this.program, this.template, this.spec, this.dpr);
+  _GrainPainter(this.program, this.template, this.spec, this.dpr) : super(repaint: GrainOverlay.rasterScale);
   final ui.FragmentProgram program;
   final ui.Image template;
   final GrainSpec spec;
@@ -110,7 +115,7 @@ class _GrainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader()
-      ..setFloat(0, dpr)
+      ..setFloat(0, dpr * GrainOverlay.rasterScale.value)
       ..setFloat(1, spec.strength.amount)
       ..setFloat(2, spec.seed.toDouble())
       ..setImageSampler(0, template);
