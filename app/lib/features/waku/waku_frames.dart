@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/compose/grain.dart';
@@ -8,24 +10,49 @@ import 'waku_exif.dart';
 /// its own. One for now — the instant print. Each frame is a fixed layer
 /// stack; what users may touch is declared per layer, never changed by them.
 enum WakuFrame {
-  polaroid('Polaroid'),
-  poster('Poster'),
-  words('Words'),
+  polaroid('Polaroid', canvasAspect: 88 / 107),
+  poster('Poster', canvasAspect: 2 / 3, photoRatioAdjustable: true),
+  words('Words', canvasAspect: 0.72, photoRatioAdjustable: true),
   custom('Custom');
 
-  const WakuFrame(this.label);
+  const WakuFrame(this.label, {this.canvasAspect, this.photoRatioAdjustable = false});
   final String label;
+  /// A real print has one shape: frames with a fixed sheet ignore the user's
+  /// canvas ratio. When [photoRatioAdjustable], the ratio chips shape the
+  /// photo window inside the sheet instead.
+  final double? canvasAspect;
+  final bool photoRatioAdjustable;
+}
+
+/// Fits a window of [aspect] inside [area], centred — how fixed-sheet frames
+/// place their photo when the user picks a ratio.
+Rect fitPhotoRect(Rect area, double? aspect) {
+  if (aspect == null) return area;
+  var w = area.width;
+  var h = w / aspect;
+  if (h > area.height) {
+    h = area.height;
+    w = h * aspect;
+  }
+  return Rect.fromCenter(center: area.center, width: w, height: h);
+}
+
+/// The stock's tooth follows the photo's own grain: ISO is the honest proxy.
+double grainPxForIso(int? iso) {
+  if (iso == null || iso <= 0) return GrainSize.small.px;
+  final stops = (math.log(iso / 200) / math.ln2);
+  return (1.3 + 0.30 * stops).clamp(1.2, 3.4);
 }
 
 /// Instant-print: bright white stock, tight even sides, the classic deep chin.
 /// Layers, bottom → top: paper · photo window · the chin's hand-written line
 /// (editable, and draggable along the chin like a real pen would wander).
-List<ComposeLayer> polaroidLayers(Size size, double unit) {
+List<ComposeLayer> polaroidLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta()}) {
   final m = unit * 0.72;
   final chin = unit * 2.9;
   return [
     // the stock itself has tooth — our call, per frame; users don't touch grain
-    const ComposeSurface(ColoredBox(color: Color(0xFFFBFAF6)), grain: GrainSpec(strength: GrainStrength.weak, size: GrainSize.small)),
+    const ComposeSurface(ColoredBox(color: Color(0xFFFBFAF6))),
     ComposePhotoWindow(
       rect: Rect.fromLTRB(m, m * 1.15, size.width - m, size.height - chin),
       shadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 3, offset: Offset(0, 1))],
@@ -44,6 +71,7 @@ List<ComposeLayer> polaroidLayers(Size size, double unit) {
       rotatable: true,
       inkChoices: [Color(0xFF3A362E), Color(0xFF3D4E6B), Color(0xFFB3402B)],
     ),
+    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak, matchPx: grainPxForIso(meta.iso))),
   ];
 }
 
@@ -84,7 +112,7 @@ TextStyle chinStyle(Size size) => TextStyle(
 /// photo's own palette; the kata mark; credit columns (bold head, italic
 /// value) fed by EXIF; a massive w900 title; the photo on the lower half with
 /// a broad quiet foot. Nothing moves — the grid is the design.
-List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta(), List<Color>? palette}) {
+List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta(), List<Color>? palette, double? photoAspect}) {
   final m = size.width * 0.095;
   const ink = Color(0xFF1A1916);
   final headY = size.height * 0.125;
@@ -127,9 +155,9 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
       );
 
   return [
-    const ComposeSurface(ColoredBox(color: Color(0xFFF0EBDD)), grain: GrainSpec(strength: GrainStrength.weak, size: GrainSize.small)),
+    const ComposeSurface(ColoredBox(color: Color(0xFFF0EBDD))),
     ComposeSurface(_PosterFurniture(margin: m, headY: headY, headStyle: small(w: FontWeight.w700), colW: colW, palette: palette)),
-    ComposePhotoWindow(rect: Rect.fromLTRB(m, photoTop, size.width - m, photoBottom)),
+    ComposePhotoWindow(rect: fitPhotoRect(Rect.fromLTRB(m, photoTop, size.width - m, photoBottom), photoAspect)),
     ComposeTextSlot(
       id: 'title',
       region: Rect.fromLTRB(m - 10, size.height * 0.245, size.width - m, photoTop - unit * 0.4),
@@ -154,6 +182,7 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
     credit('film', 2, 'film', meta.filmMode),
     credit('exposure', 3, 'exposure', exposurePrefill),
     credit('date', 4, 'date', datePrefill),
+    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak, matchPx: grainPxForIso(meta.iso))),
   ];
 }
 
@@ -226,10 +255,10 @@ class _KataMarkPainter extends CustomPainter {
 /// lowercase word with its full stop; [noun]; an etymology line prefilled
 /// from the exposure; a small quoted line at the foot. Every slot is fixed —
 /// this grid is the design.
-List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta()}) {
+List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta(), double? photoAspect}) {
   const ink = Color(0xFF26241F);
   final w = size.width, h = size.height;
-  final photo = Rect.fromLTRB(w * 0.30, h * 0.265, w * 0.925, h * 0.79);
+  final photo = fitPhotoRect(Rect.fromLTRB(w * 0.30, h * 0.265, w * 0.925, h * 0.79), photoAspect);
 
   TextStyle inter(double f, {FontWeight wt = FontWeight.w400, FontStyle? style, double height = 1.35, Color color = ink}) => TextStyle(
       fontFamily: 'Inter', package: 'kata_ui', fontSize: (size.shortestSide * f).clamp(5.0, 200.0), fontWeight: wt, fontStyle: style, height: height, color: color);
@@ -246,7 +275,7 @@ List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const P
   }
 
   return [
-    const ComposeSurface(ColoredBox(color: Color(0xFFE7E4DA)), grain: GrainSpec(strength: GrainStrength.weak, size: GrainSize.small)),
+    const ComposeSurface(ColoredBox(color: Color(0xFFE7E4DA))),
     ComposeSurface(_WordsFurniture(photo: photo, ink: ink, year: meta.dateTime?.year.toString(), sim: meta.filmMode)),
     ComposePhotoWindow(rect: photo),
     ComposeTextSlot(
@@ -290,6 +319,7 @@ List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const P
       uppercase: false,
       maxChars: 48,
     ),
+    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak, matchPx: grainPxForIso(meta.iso))),
   ];
 }
 

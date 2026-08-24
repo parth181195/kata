@@ -216,9 +216,10 @@ class _WakuScreenState extends State<WakuScreen> {
       return customLayers(size, size.shortestSide * _matScale,
           frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
-    if (_frame == WakuFrame.poster) return posterLayers(size, size.shortestSide * 0.08, meta: _meta, palette: _palette);
-    if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta);
-    return polaroidLayers(size, size.shortestSide * 0.08);
+    final photoAspect = _frame.photoRatioAdjustable ? _ratio.aspect : null;
+    if (_frame == WakuFrame.poster) return posterLayers(size, size.shortestSide * 0.08, meta: _meta, palette: _palette, photoAspect: photoAspect);
+    if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta, photoAspect: photoAspect);
+    return polaroidLayers(size, size.shortestSide * 0.08, meta: _meta);
   }
 
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
@@ -401,7 +402,7 @@ class _WakuScreenState extends State<WakuScreen> {
         behavior: HitTestBehavior.translucent,
         onTapDown: (_) => _keys.requestFocus(),
         child: AspectRatio(
-          aspectRatio: _ratio.aspect,
+          aspectRatio: _frame.canvasAspect ?? _ratio.aspect,
           child: RepaintBoundary(
             key: _boundary,
             child: LayoutBuilder(builder: (context, box) => _canvas(box.biggest)),
@@ -425,7 +426,7 @@ class _WakuScreenState extends State<WakuScreen> {
         layers: switch (f) {
           WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, palette: _palette),
           WakuFrame.words => wordsLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
-          _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08),
+          _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
         },
         photo: _photoWidget(interactive: false),
         textOf: (_) => '',
@@ -573,11 +574,14 @@ class _WakuScreenState extends State<WakuScreen> {
               ),
           ]),
         ],
-        const SizedBox(height: 16),
-        KataSectionHeader('Ratio'),
-        Wrap(spacing: 7, runSpacing: 7, children: [
-          for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
-        ]),
+        if (_frame.canvasAspect == null || _frame.photoRatioAdjustable) ...[
+          const SizedBox(height: 16),
+          // a fixed sheet keeps its shape; the chips then crop the photo window
+          KataSectionHeader(_frame.canvasAspect == null ? 'Ratio' : 'Photo ratio'),
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
+          ]),
+        ],
         if (_frame == WakuFrame.custom && _frameImage != null && !_overlayMode) ...[
           const SizedBox(height: 16),
           KataSectionHeader('Surround width'),

@@ -34,6 +34,14 @@ class ComposePhotoWindow extends ComposeLayer {
   static const selectionId = 'photo';
 }
 
+/// The sheet's grain, laid over everything beneath it in the stack — ground,
+/// furniture, ink, photo alike, the way a printed page carries one tooth.
+/// Frames place it above their content; chrome and handles stay clean.
+class ComposeGrainSheet extends ComposeLayer {
+  const ComposeGrainSheet(this.spec);
+  final GrainSpec spec;
+}
+
 /// An editable text slot. Lives inside [region]; when [draggable], the user
 /// may slide it around within that region — nothing more.
 class ComposeTextSlot extends ComposeLayer {
@@ -333,6 +341,9 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
         switch (l) {
           ComposeSurface(:final child, :final grain) => Positioned.fill(
               child: IgnorePointer(child: grain == null || grain.isOff ? child : GrainOverlay(spec: grain, child: child)),
+            ),
+          ComposeGrainSheet(:final spec) => Positioned.fill(
+              child: IgnorePointer(child: spec.isOff ? const SizedBox.shrink() : GrainOverlay(spec: spec, child: const SizedBox.expand())),
             ),
           ComposePhotoWindow(:final rect, :final shadow) => Positioned.fromRect(
               rect: rect,

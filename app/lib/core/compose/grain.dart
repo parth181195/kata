@@ -29,14 +29,19 @@ enum GrainSize {
 }
 
 class GrainSpec {
-  const GrainSpec({this.strength = GrainStrength.off, this.size = GrainSize.small, this.seed = 7});
+  const GrainSpec({this.strength = GrainStrength.off, this.size = GrainSize.small, this.seed = 7, this.matchPx});
   final GrainStrength strength;
   final GrainSize size;
   final int seed;
+  /// Matched to the photo (derived from its ISO): the stock's tooth sits in
+  /// the same grain regime as the picture. Overrides [size] when set.
+  final double? matchPx;
+
+  double get px => matchPx ?? size.px;
 
   bool get isOff => strength == GrainStrength.off;
 
-  String get _cacheKey => '$seed:${size.px}';
+  String get _cacheKey => '$seed:${px.toStringAsFixed(2)}';
 }
 
 /// Lays authored grain over [child]: a Dart-generated correlated tile
@@ -68,7 +73,7 @@ class _GrainOverlayState extends State<GrainOverlay> {
       _programLoading ??= ui.FragmentProgram.fromAsset('shaders/grain_overlay.frag').then((p) => _program = p);
 
   static Future<ui.Image> _loadTemplate(GrainSpec spec) => _templateLoading.putIfAbsent(
-      spec._cacheKey, () => GrainTemplate.image(seed: spec.seed, grainPx: spec.size.px).then((i) => _templates[spec._cacheKey] = i));
+      spec._cacheKey, () => GrainTemplate.image(seed: spec.seed, grainPx: spec.px).then((i) => _templates[spec._cacheKey] = i));
 
   @override
   void initState() {
