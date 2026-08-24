@@ -198,21 +198,24 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     return null;
   }
 
-  /// Where the slot's text actually is and how big: needed for edge snapping
-  /// and for keeping the ink inside the frame.
-  Size _slotTextSize(ComposeTextSlot slot) {
+  /// The slot's text metrics: [box] is the padded body (chrome, clamping),
+  /// [ink] the glyphs' own extent — edge snaps align the INK to the photo,
+  /// not the padding around it.
+  (Size box, Size ink) _slotSizes(ComposeTextSlot slot) {
     final text = textOf(slot.id).trim();
     final tp = TextPainter(
       text: TextSpan(text: (text.isEmpty ? slot.invitation : text).toUpperCase(), style: _effectiveStyle(slot)),
       maxLines: slot.maxLines,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: slot.region.width - 24);
-    return Size(tp.width + 20, tp.height + 12); // + body padding
+    return (Size(tp.width + 20, tp.height + 12), Size(tp.width, tp.height));
   }
+
+  Size _slotTextSize(ComposeTextSlot slot) => _slotSizes(slot).$1;
 
   void _dragSlot(ComposeTextSlot slot, Offset delta) {
     final region = slot.region;
-    final size = _slotTextSize(slot);
+    final (size, ink) = _slotSizes(slot);
     if (_dragId != slot.id || _rawCenter == null) {
       final current = dragOf(slot.id);
       _rawCenter = region.center + Offset(current.dx * region.width, current.dy * region.height);
@@ -229,11 +232,11 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
       if ((center.dx - pr.center.dx).abs() < _snapTol) {
         center = Offset(pr.center.dx, center.dy);
         v.add(pr.center.dx);
-      } else if ((center.dx - size.width / 2 - pr.left).abs() < _snapTol) {
-        center = Offset(pr.left + size.width / 2, center.dy);
+      } else if ((center.dx - ink.width / 2 - pr.left).abs() < _snapTol) {
+        center = Offset(pr.left + ink.width / 2, center.dy);
         v.add(pr.left);
-      } else if ((center.dx + size.width / 2 - pr.right).abs() < _snapTol) {
-        center = Offset(pr.right - size.width / 2, center.dy);
+      } else if ((center.dx + ink.width / 2 - pr.right).abs() < _snapTol) {
+        center = Offset(pr.right - ink.width / 2, center.dy);
         v.add(pr.right);
       }
     }
