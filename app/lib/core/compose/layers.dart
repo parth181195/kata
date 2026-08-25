@@ -106,8 +106,6 @@ class ComposeCanvasView extends StatefulWidget {
     this.scaleOf = _one,
     this.angleOf = _zero,
     this.inkOf = _noInk,
-    this.onScaleText,
-    this.onRotateText,
     this.selectedId,
     this.onSelect,
     this.chromeColor = const Color(0xFFFFFFFF),
@@ -127,9 +125,6 @@ class ComposeCanvasView extends StatefulWidget {
   final double Function(String id) scaleOf;
   final double Function(String id) angleOf;
   final Color? Function(String id) inkOf;
-  /// Absolute, already clamped to the slot's declared range.
-  final void Function(String id, double scale)? onScaleText;
-  final void Function(String id, double angle)? onRotateText;
 
   final List<ComposeLayer> layers;
   final Widget photo;
@@ -178,9 +173,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   String? get editingId => widget.editingId;
   void Function(String id) get onTapText => widget.onTapText;
   Widget Function(String id, ComposeTextSlot slot, TextStyle effective) get editorBuilder => widget.editorBuilder;
-  double _rawScale = 1;
   double _rawAngle = 0;
-  String? _scaleId;
   String? _angleId;
 
   /// The slot's style with the user's ink and scale applied.
@@ -193,30 +186,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     return st;
   }
 
-  void _scaleSlot(ComposeTextSlot slot, Offset delta) {
-    if (_scaleId != slot.id) {
-      _rawScale = widget.scaleOf(slot.id);
-      _scaleId = slot.id;
-    }
-    _rawScale += (delta.dx + delta.dy) / 140;
-    widget.onScaleText?.call(slot.id, _rawScale.clamp(slot.minScale, slot.maxScale));
-  }
-
-  void _rotateSlot(ComposeTextSlot slot, Offset delta) {
-    if (_angleId != slot.id) {
-      _rawAngle = widget.angleOf(slot.id);
-      _angleId = slot.id;
-    }
-    _rawAngle += delta.dx / 120;
-    var a = _rawAngle.clamp(-slot.maxAngle, slot.maxAngle);
-    if (a.abs() < 0.03) a = 0; // snaps level, raw keeps accumulating
-    widget.onRotateText?.call(slot.id, a);
-  }
-
-  void _endHandleDrag() {
-    _scaleId = null;
-    _angleId = null;
-  }
+  void _endHandleDrag() => _angleId = null;
 
   StickerInstance? _sticker(String? id) {
     if (id == null || !id.startsWith('sticker:')) return null;
@@ -421,8 +391,11 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     ];
   }
 
-  /// The interactive handles for the active text slot, positioned in canvas
-  /// space so every one of them is fully hit-testable.
+  /// The move grip for the active text slot, positioned in canvas space so it
+  /// stays hit-testable outside the slot's own box. Size and tilt are not here:
+  /// handles on a print fight the drag that places the line, and a panel
+  /// control can say what it is doing. The frame still decides whether a slot
+  /// may be scaled or tilted at all — [ComposeTextSlot.scalable] / [rotatable].
   List<Widget> _handleOverlay() {
     if (hideInvitations) return const [];
     ComposeTextSlot? slot;
@@ -435,8 +408,6 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final size = _slotTextSize(slot);
     final center = slot.region.center + Offset(drag.dx * slot.region.width, drag.dy * slot.region.height);
     final box = Rect.fromCenter(center: center, width: size.width, height: size.height);
-    Widget handleDot({double w = 10, double h = 10, BoxShape shape = BoxShape.circle}) => Container(
-        width: w, height: h, decoration: BoxDecoration(shape: shape, color: chromeColor, border: Border.all(color: const Color(0x66000000), width: 0.5)));
     return [
       if (editing && slot.draggable)
         Positioned(
@@ -460,35 +431,6 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
                 ],
               ]),
             ),
-          ),
-        ),
-      if (!editing && slot.rotatable)
-        Positioned(
-          left: center.dx - 12,
-          top: box.top - 30,
-          child: GestureDetector(
-            key: const ValueKey('slot-rotate'),
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: (d) => _rotateSlot(slot!, d.delta),
-            onPanEnd: (_) => _endHandleDrag(),
-            onPanCancel: _endHandleDrag,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [handleDot(), Container(width: 1, height: 7, color: chromeColor)]),
-            ),
-          ),
-        ),
-      if (!editing && slot.scalable)
-        Positioned(
-          left: box.right - 10,
-          top: box.bottom - 10,
-          child: GestureDetector(
-            key: const ValueKey('slot-scale'),
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: (d) => _scaleSlot(slot!, d.delta),
-            onPanEnd: (_) => _endHandleDrag(),
-            onPanCancel: _endHandleDrag,
-            child: Padding(padding: const EdgeInsets.all(6), child: handleDot(w: 9, h: 9, shape: BoxShape.rectangle)),
           ),
         ),
     ];

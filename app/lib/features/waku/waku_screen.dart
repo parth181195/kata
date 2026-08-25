@@ -257,8 +257,6 @@ class _WakuScreenState extends State<WakuScreen> {
         scaleOf: (id) => _slotScale[id] ?? 1,
         angleOf: (id) => _slotAngle[id] ?? 0,
         inkOf: (id) => _slotInk[id],
-        onScaleText: !interactive ? null : (id, v) => setState(() => _slotScale[id] = v),
-        onRotateText: !interactive ? null : (id, v) => setState(() => _slotAngle[id] = v),
         stickers: _stickers,
         onStickerChanged: !interactive
             ? null
@@ -520,8 +518,43 @@ class _WakuScreenState extends State<WakuScreen> {
         if (_selected != null && _selected != 'photo') ...[
           const SizedBox(height: 16),
           KataSectionHeader('Text'),
-          Text('Drag to place it. Tap again or press Enter to edit; Delete clears. Corner handle sizes it; the stem above tilts it.',
+          Text('Drag to place it. Tap again or press Enter to edit; Delete clears.',
               style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          // size and tilt are set here, not by handles on the print: a slider
+          // says what it is doing and doesn't fight the drag that places the line
+          if (_slotSpec(_selected!)?.scalable ?? false) ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              Text('SIZE', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
+              Expanded(
+                child: Slider(
+                  key: const ValueKey('slot-size'),
+                  value: (_slotScale[_selected] ?? 1).clamp(_slotSpec(_selected!)!.minScale, _slotSpec(_selected!)!.maxScale),
+                  min: _slotSpec(_selected!)!.minScale,
+                  max: _slotSpec(_selected!)!.maxScale,
+                  onChanged: (v) => setState(() => _slotScale[_selected!] = v),
+                ),
+              ),
+              Text('${((_slotScale[_selected] ?? 1) * 100).round()}%', style: KataType.monoStyle(size: 9, color: p.dim)),
+            ]),
+          ],
+          if (_slotSpec(_selected!)?.rotatable ?? false) ...[
+            Row(children: [
+              Text('TILT', style: KataType.monoStyle(size: 8.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.14)),
+              Expanded(
+                child: Slider(
+                  key: const ValueKey('slot-tilt'),
+                  value: (_slotAngle[_selected] ?? 0).clamp(-_slotSpec(_selected!)!.maxAngle, _slotSpec(_selected!)!.maxAngle),
+                  min: -_slotSpec(_selected!)!.maxAngle,
+                  max: _slotSpec(_selected!)!.maxAngle,
+                  // a hand can't set a pen down at exactly 0.4°, and a line that
+                  // means to be level should be level: the middle snaps
+                  onChanged: (v) => setState(() => _slotAngle[_selected!] = v.abs() < 0.03 ? 0 : v),
+                ),
+              ),
+              Text('${((_slotAngle[_selected] ?? 0) * 180 / math.pi).toStringAsFixed(1)}°', style: KataType.monoStyle(size: 9, color: p.dim)),
+            ]),
+          ],
           if ((_slotSpec(_selected!)?.inkChoices ?? const []).isNotEmpty) ...[
             const SizedBox(height: 10),
             Row(children: [

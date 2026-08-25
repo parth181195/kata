@@ -178,7 +178,7 @@ void main() {
     expect(field.maxLines, 2);
   });
 
-  testWidgets('P2 handles: scale grows the type, ink swatches recolour it, level snap holds', (t) async {
+  testWidgets('size and tilt are panel controls, not handles on the print', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF775533))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
     // type a line, close the editor, slot stays selected
@@ -188,16 +188,26 @@ void main() {
     await t.testTextInput.receiveAction(TextInputAction.done);
     await t.pumpAndSettle();
 
+    // nothing to grab on the sheet itself beyond the grip that places the line
+    expect(find.byKey(const ValueKey('slot-scale')), findsNothing);
+    expect(find.byKey(const ValueKey('slot-rotate')), findsNothing);
+
     double fontSize() => t.widget<Text>(find.text('CHAI BREAK')).style!.fontSize!;
     final before = fontSize();
-    expect(find.byKey(const ValueKey('slot-scale')), findsOneWidget);
-    await t.drag(find.byKey(const ValueKey('slot-scale')), const Offset(40, 40));
+    final size = find.byKey(const ValueKey('slot-size'));
+    await t.ensureVisible(size);
+    await t.pumpAndSettle();
+    await t.drag(size, const Offset(60, 0)); // slide it right: bigger type
     await t.pumpAndSettle();
     expect(fontSize(), greaterThan(before));
 
-    expect(find.byKey(const ValueKey('slot-rotate')), findsOneWidget);
-    await t.drag(find.byKey(const ValueKey('slot-rotate')), const Offset(1, 0));
-    await t.pumpAndSettle(); // tiny drag: the level snap holds it at zero
+    // the tilt slider reads out in degrees and snaps level near the middle
+    final tilt = find.byKey(const ValueKey('slot-tilt'));
+    await t.ensureVisible(tilt);
+    await t.pumpAndSettle();
+    await t.drag(tilt, const Offset(30, 0));
+    await t.pumpAndSettle();
+    expect(find.textContaining('°'), findsOneWidget);
 
     // ink: pick the red pen
     await t.tap(find.byKey(const ValueKey('ink-ffb3402b')));
