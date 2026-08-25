@@ -34,12 +34,17 @@ class ComposePhotoWindow extends ComposeLayer {
   static const selectionId = 'photo';
 }
 
-/// The stock's tooth. Frames place it directly above their ground and below
-/// everything printed on it: ink fills a paper's texture rather than wearing it,
-/// and the photograph brings its own grain from the camera.
+/// The stock's tooth. Frames lay it twice: once over the bare ground at full
+/// weight, and once over everything printed on it at a third of that, skipping
+/// the photograph — ink fills a paper's texture rather than erasing it, and the
+/// picture already carries the camera's grain.
 class ComposeGrainSheet extends ComposeLayer {
-  const ComposeGrainSheet(this.spec);
+  const ComposeGrainSheet(this.spec, {this.overInk = false});
   final GrainSpec spec;
+
+  /// Lay it over what's already printed instead of under it, skipping the
+  /// photograph — that one arrived with the camera's own grain in it.
+  final bool overInk;
 }
 
 /// An editable text slot. Lives inside [region]; when [draggable], the user
@@ -357,13 +362,16 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
           ComposeSurface(:final child, :final grain) => Positioned.fill(
               child: IgnorePointer(child: grain == null || grain.isOff || !widget.grain ? child : GrainOverlay(spec: grain, child: child)),
             ),
-          ComposeGrainSheet(:final spec) => Positioned.fill(
+          ComposeGrainSheet(:final spec, :final overInk) => Positioned.fill(
               child: IgnorePointer(
-                // Frames place this directly above their ground: ink fills a
-                // paper's tooth, it doesn't sit on top of it, so everything
-                // printed after — type, furniture, the photograph with the
-                // camera's own grain already in it — covers the texture.
-                child: spec.isOff || !widget.grain ? const SizedBox.shrink() : GrainOverlay(spec: spec, child: const SizedBox.expand()),
+                child: spec.isOff || !widget.grain
+                    ? const SizedBox.shrink()
+                    : ClipPath(
+                        // the ground pass covers the sheet; the ink pass skips
+                        // the photograph, which brought its own grain
+                        clipper: _ExceptRect(overInk ? _photoRect : null),
+                        child: GrainOverlay(spec: spec, child: const SizedBox.expand()),
+                      ),
               ),
             ),
           ComposePhotoWindow(:final rect, :final shadow) => Positioned.fromRect(
@@ -548,6 +556,26 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   }
 }
 
+
+/// Everything but [hole] — the sheet minus its window.
+class _ExceptRect extends CustomClipper<Path> {
+  _ExceptRect(this.hole);
+  final Rect? hole;
+
+  @override
+  Path getClip(Size size) {
+    final p = Path()..addRect(Offset.zero & size);
+    if (hole != null) {
+      p
+        ..addRect(hole!)
+        ..fillType = PathFillType.evenOdd;
+    }
+    return p;
+  }
+
+  @override
+  bool shouldReclip(_ExceptRect o) => o.hole != hole;
+}
 
 class _GuidePainter extends CustomPainter {
   _GuidePainter(this.v, this.h, this.color);

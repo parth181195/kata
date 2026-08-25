@@ -79,6 +79,7 @@ List<ComposeLayer> polaroidLayers(Size size, double unit, {PhotoMeta meta = cons
       rotatable: true,
       inkChoices: [Color(0xFF3A362E), Color(0xFF3D4E6B), Color(0xFFB3402B)],
     ),
+    const ComposeGrainSheet(GrainSpec.ink, overInk: true),
   ];
 }
 
@@ -214,6 +215,7 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
       align: Alignment.topCenter,
       maxChars: 34,
     ),
+    const ComposeGrainSheet(GrainSpec.ink, overInk: true),
   ];
 }
 
@@ -375,6 +377,7 @@ List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const P
       uppercase: false,
       maxChars: 48,
     ),
+    const ComposeGrainSheet(GrainSpec.ink, overInk: true),
   ];
 }
 

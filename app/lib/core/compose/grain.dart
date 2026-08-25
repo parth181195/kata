@@ -46,6 +46,13 @@ class GrainSpec {
   /// camera gave it.
   static const paper = GrainSpec(strength: GrainStrength.weak, clumpPx: 1.25, amountScale: 0.55);
 
+  /// The same tooth seen *through* ink. A printed sheet's texture doesn't stop
+  /// at the edge of a letter — ink fills most of the paper's valleys, not all
+  /// of them — so the type carries a third of the ground's tooth rather than
+  /// none, which is what made it sit on top of the sheet instead of on it.
+  /// Same seed and clump as [paper] on purpose: one continuous texture.
+  static const ink = GrainSpec(strength: GrainStrength.weak, clumpPx: 1.25, amountScale: 0.18);
+
   double get px => clumpPx ?? size.px;
 
   double get amount => strength.amount * amountScale;

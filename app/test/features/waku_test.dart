@@ -98,7 +98,8 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(save);
     await t.pump();
-    expect(find.byType(GrainOverlay), findsOneWidget);
+    // two passes: the ground's tooth, and the same tooth through the ink
+    expect(find.byType(GrainOverlay), findsNWidgets(2));
   });
 
   testWidgets('the canvas paints grain when it is asked to — that is the export frame', (t) async {
