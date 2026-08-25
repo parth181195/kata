@@ -112,6 +112,7 @@ class ComposeCanvasView extends StatefulWidget {
     this.onSelect,
     this.chromeColor = const Color(0xFFFFFFFF),
     this.hideInvitations = false,
+    this.grain = true,
   });
 
   static double _one(String _) => 1;
@@ -148,6 +149,12 @@ class ComposeCanvasView extends StatefulWidget {
   final Color chromeColor;
   /// Export renders with the empty-slot invitations hidden.
   final bool hideInvitations;
+
+  /// Paint the frame's grain. It covers the whole sheet through an overlay
+  /// blend, which is a full-canvas composite on every frame — too much to carry
+  /// while someone is dragging a photo around. Waku leaves it off in the
+  /// preview and switches it on for the one frame it rasterises.
+  final bool grain;
 
   @override
   State<ComposeCanvasView> createState() => _ComposeCanvasViewState();
@@ -340,10 +347,12 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
       for (final l in layers)
         switch (l) {
           ComposeSurface(:final child, :final grain) => Positioned.fill(
-              child: IgnorePointer(child: grain == null || grain.isOff ? child : GrainOverlay(spec: grain, child: child)),
+              child: IgnorePointer(child: grain == null || grain.isOff || !widget.grain ? child : GrainOverlay(spec: grain, child: child)),
             ),
           ComposeGrainSheet(:final spec) => Positioned.fill(
-              child: IgnorePointer(child: spec.isOff ? const SizedBox.shrink() : GrainOverlay(spec: spec, child: const SizedBox.expand())),
+              child: IgnorePointer(
+                child: spec.isOff || !widget.grain ? const SizedBox.shrink() : GrainOverlay(spec: spec, child: const SizedBox.expand()),
+              ),
             ),
           ComposePhotoWindow(:final rect, :final shadow) => Positioned.fromRect(
               rect: rect,

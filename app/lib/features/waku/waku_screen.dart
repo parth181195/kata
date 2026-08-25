@@ -136,7 +136,7 @@ class _WakuScreenState extends State<WakuScreen> {
     setState(() {
       _editingSlot = null;
       _selected = null; // chrome must never rasterise
-      _busy = true; // ComposeCanvasView hides empty-slot invitations while busy
+      _busy = true; // hides empty-slot invitations and brings the grain in
     });
     const name = 'waku.png';
     try {
@@ -232,6 +232,9 @@ class _WakuScreenState extends State<WakuScreen> {
         selectedId: interactive && !_busy ? _selected : null,
         onSelect: !interactive ? null : (id) => setState(() => _selected = id),
         hideInvitations: _busy || !interactive,
+        // the sheet's tooth is a print's texture, not a placement aid: it goes
+        // on for the frame we rasterise and stays off while the canvas is live
+        grain: _busy,
         onTapText: !interactive
             ? (_) {}
             : (id) => setState(() {
@@ -433,6 +436,7 @@ class _WakuScreenState extends State<WakuScreen> {
         dragOf: (_) => Offset.zero,
         editingId: null,
         hideInvitations: true,
+        grain: false, // three 58px overlay blends buy nothing you can see
         onTapText: (_) {},
         onDragText: (_, _) {},
         editorBuilder: (_, _, _) => const SizedBox.shrink(),
@@ -591,6 +595,8 @@ class _WakuScreenState extends State<WakuScreen> {
         KataPillButton(label: _isDesktop ? 'Save PNG' : 'Share', height: 46, loading: _busy, onPressed: _photo == null ? null : _export),
         const SizedBox(height: 8),
         Text('Drag and pinch the photo to place it. Tap the frame’s text to edit; drag it to move it.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
+        const SizedBox(height: 6),
+        Text('The paper grain goes on when you save.', textAlign: TextAlign.center, style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.1)),
       ];
 }
 

@@ -93,6 +93,13 @@ AV1 template architecture back on the table, and it won:
   seams when we tried them.
 - **Curation**: `GrainSpec{strength, size, seed, matchPx}` per frame. Users never
   see a grain control. Size follows the photo's ISO via `grainPxForIso`.
+- **Only on the frame that gets saved** (2026-08-25): the tooth covers the whole
+  sheet through an overlay blend, which is a full-canvas composite every time
+  the canvas rebuilds — dragging a photo around carried it on every frame, and
+  the three frame thumbnails carried three more. `ComposeCanvasView.grain` is
+  off for the live preview and the thumbnails, and Waku turns it on for the one
+  frame it rasterises. Measured on the GPU: preview render rms 0.000 (flat),
+  export render rms 2.397 (grained) — the same amplitude as before.
 
 Judged against the "what reads fake" list, this does well: it has clump energy
 rather than white noise, two particle scales rather than one, soft edges from the

@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kata/core/compose/grain.dart';
+import 'package:kata/core/compose/layers.dart';
 import 'package:kata/features/waku/waku_screen.dart';
 import 'package:kata_ui/kata_ui.dart';
 
@@ -80,6 +83,56 @@ void main() {
     expect(find.text('GRAIN'), findsNothing);
     expect(find.text('WEAK'), findsNothing);
     expect(find.text('STRONG'), findsNothing);
+
+    // and it isn't carried while the canvas is live: a full-sheet overlay blend
+    // on every drag frame is what made placing a photo feel heavy
+    expect(find.byType(GrainOverlay), findsNothing);
+    expect(find.text('The paper grain goes on when you save.'), findsOneWidget);
+
+    // ...but it must be there for the frame that gets rasterised, or saving
+    // would quietly hand back a sheet with no tooth at all
+    final desktop = Platform.isLinux || Platform.isMacOS || Platform.isWindows;
+    // KataPillButton renders its label in caps when display is on
+    final save = find.text(desktop ? 'SAVE PNG' : 'SHARE');
+    await t.ensureVisible(save);
+    await t.pumpAndSettle();
+    await t.tap(save);
+    await t.pump();
+    expect(find.byType(GrainOverlay), findsOneWidget);
+  });
+
+  testWidgets('the canvas paints grain when it is asked to — that is the export frame', (t) async {
+    Widget canvas({required bool grain}) => MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 300,
+                height: 400,
+                child: ComposeCanvasView(
+                  canvasSize: const Size(300, 400),
+                  grain: grain,
+                  layers: const [
+                    ComposeSurface(ColoredBox(color: Color(0xFFFBFAF6))),
+                    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak)),
+                  ],
+                  photo: const SizedBox.shrink(),
+                  textOf: (_) => '',
+                  dragOf: (_) => Offset.zero,
+                  editingId: null,
+                  onTapText: (_) {},
+                  onDragText: (_, _) {},
+                  editorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    await t.pumpWidget(canvas(grain: false));
+    expect(find.byType(GrainOverlay), findsNothing);
+
+    await t.pumpWidget(canvas(grain: true));
+    expect(find.byType(GrainOverlay), findsOneWidget);
   });
 
   testWidgets('selection: filled text needs two taps to edit; photo select shows placement controls', (t) async {
