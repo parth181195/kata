@@ -34,9 +34,9 @@ class ComposePhotoWindow extends ComposeLayer {
   static const selectionId = 'photo';
 }
 
-/// The sheet's grain, laid over everything beneath it in the stack — ground,
-/// furniture, ink, photo alike, the way a printed page carries one tooth.
-/// Frames place it above their content; chrome and handles stay clean.
+/// The stock's tooth. Frames place it directly above their ground and below
+/// everything printed on it: ink fills a paper's texture rather than wearing it,
+/// and the photograph brings its own grain from the camera.
 class ComposeGrainSheet extends ComposeLayer {
   const ComposeGrainSheet(this.spec);
   final GrainSpec spec;
@@ -61,7 +61,8 @@ class ComposeTextSlot extends ComposeLayer {
       this.maxAngle = 0.21,
       this.inkChoices = const [],
       this.prefill,
-      this.uppercase = true});
+      this.uppercase = true,
+      this.fitRegion = false});
   final String id;
   final Rect region;
   final TextStyle style;
@@ -86,6 +87,11 @@ class ComposeTextSlot extends ComposeLayer {
   final String? prefill;
   /// Museum labels aren't shouty: slots may keep their case.
   final bool uppercase;
+
+  /// Shrink the type until the line fits its region. A poster title is set to
+  /// the sheet, not to a point size: two words at 105pt and five words at 60pt
+  /// are the same design, and neither may run into the photograph.
+  final bool fitRegion;
 }
 
 /// Renders a layer stack and routes the permitted interactions back up.
@@ -176,14 +182,46 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   double _rawAngle = 0;
   String? _angleId;
 
-  /// The slot's style with the user's ink and scale applied.
+  /// The slot's style with the user's ink and scale applied, shrunk to the
+  /// region when the frame asked for that.
   TextStyle _effectiveStyle(ComposeTextSlot slot) {
     var st = slot.style;
     final ink = widget.inkOf(slot.id);
     if (ink != null) st = st.copyWith(color: ink);
-    final sc = widget.scaleOf(slot.id);
+    final sc = widget.scaleOf(slot.id) * _fitScale(slot, st);
     if (sc != 1 && st.fontSize != null) st = st.copyWith(fontSize: st.fontSize! * sc);
     return st;
+  }
+
+  /// Largest fraction of the base size at which the slot's text still fits its
+  /// region, by bisection. Cheap enough: short strings, and only slots that ask.
+  double _fitScale(ComposeTextSlot slot, TextStyle st) {
+    if (!slot.fitRegion || st.fontSize == null) return 1;
+    final text = textOf(slot.id).trim();
+    final base = text.isEmpty ? (slot.prefill?.trim().isNotEmpty == true ? slot.prefill!.trim() : slot.invitation) : text;
+    final shown = slot.uppercase ? base.toUpperCase() : base;
+    if (shown.isEmpty) return 1;
+    final maxW = slot.region.width - 20, maxH = slot.region.height - 12;
+    bool fits(double f) {
+      final tp = TextPainter(
+        text: TextSpan(text: shown, style: st.copyWith(fontSize: st.fontSize! * f)),
+        maxLines: slot.maxLines,
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: maxW);
+      return !tp.didExceedMaxLines && tp.height <= maxH && tp.width <= maxW;
+    }
+
+    if (fits(1)) return 1;
+    var lo = 0.3, hi = 1.0;
+    for (var i = 0; i < 10; i++) {
+      final mid = (lo + hi) / 2;
+      if (fits(mid)) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
   }
 
   void _endHandleDrag() => _angleId = null;
@@ -321,6 +359,10 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
             ),
           ComposeGrainSheet(:final spec) => Positioned.fill(
               child: IgnorePointer(
+                // Frames place this directly above their ground: ink fills a
+                // paper's tooth, it doesn't sit on top of it, so everything
+                // printed after — type, furniture, the photograph with the
+                // camera's own grain already in it — covers the texture.
                 child: spec.isOff || !widget.grain ? const SizedBox.shrink() : GrainOverlay(spec: spec, child: const SizedBox.expand()),
               ),
             ),

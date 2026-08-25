@@ -244,6 +244,11 @@ void main() {
       expect(find.text(head), findsWidgets);
     }
     expect(find.text('UNTITLED'), findsWidgets);
+    // the one-sheet's own furniture: a tagline over the title, a billing block
+    // under the photograph
+    expect(find.text('A QUIET WEEK'), findsWidgets);
+    expect(find.text('YOUR NAME'), findsWidgets);
+    expect(find.text('PHOTOGRAPHED WITH KATA 型'), findsWidgets); // the thumbnail draws it too
     // the grid is the design: dragging the title does not move it
     await t.tap(find.text('UNTITLED').first); // empty slot → editor opens
     await t.pumpAndSettle();

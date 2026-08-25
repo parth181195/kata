@@ -29,15 +29,26 @@ enum GrainSize {
 }
 
 class GrainSpec {
-  const GrainSpec({this.strength = GrainStrength.off, this.size = GrainSize.small, this.seed = 7, this.matchPx});
+  const GrainSpec({this.strength = GrainStrength.off, this.size = GrainSize.small, this.seed = 7, this.clumpPx, this.amountScale = 1});
   final GrainStrength strength;
   final GrainSize size;
   final int seed;
-  /// Matched to the photo (derived from its ISO): the stock's tooth sits in
-  /// the same grain regime as the picture. Overrides [size] when set.
-  final double? matchPx;
+  /// An explicit clump size on the sheet, overriding [size] — what the paper
+  /// stocks use, since a printed tooth is finer than any film grain.
+  final double? clumpPx;
 
-  double get px => matchPx ?? size.px;
+  /// Trims the strength without inventing a new step in Fuji's Weak/Strong —
+  /// paper tooth is quieter than any film grain.
+  final double amountScale;
+
+  /// Matte stock: quiet, slightly clumped, and nothing to do with the photo's
+  /// ISO — paper is paper, and the picture already carries whatever grain the
+  /// camera gave it.
+  static const paper = GrainSpec(strength: GrainStrength.weak, clumpPx: 1.25, amountScale: 0.55);
+
+  double get px => clumpPx ?? size.px;
+
+  double get amount => strength.amount * amountScale;
 
   bool get isOff => strength == GrainStrength.off;
 
@@ -220,7 +231,7 @@ class _GrainPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader()
       ..setFloat(0, geometry.uScale)
-      ..setFloat(1, spec.strength.amount)
+      ..setFloat(1, spec.amount)
       ..setFloat(2, spec.seed.toDouble())
       ..setFloat(3, geometry.uTile)
       ..setImageSampler(0, template);
@@ -231,7 +242,7 @@ class _GrainPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GrainPainter o) =>
-      o.spec.strength != spec.strength ||
+      o.spec.amount != spec.amount ||
       o.geometry.uScale != geometry.uScale ||
       o.geometry.uTile != geometry.uTile ||
       o.template != template;

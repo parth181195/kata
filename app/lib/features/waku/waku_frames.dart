@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -37,11 +36,19 @@ Rect fitPhotoRect(Rect area, double? aspect) {
   return Rect.fromCenter(center: area.center, width: w, height: h);
 }
 
-/// The stock's tooth follows the photo's own grain: ISO is the honest proxy.
-double grainPxForIso(int? iso) {
-  if (iso == null || iso <= 0) return GrainSize.small.px;
-  final stops = (math.log(iso / 200) / math.ln2);
-  return (1.3 + 0.30 * stops).clamp(1.2, 3.4);
+/// A print hangs from its foot: the photo's bottom edge sits on [bottom] and it
+/// grows upward, never past [top]. Centring it in a band instead leaves a foot
+/// that changes depth with every ratio — the one thing a printed sheet doesn't do.
+Rect hangPhotoRect({required double left, required double right, required double top, required double bottom, double? aspect}) {
+  if (aspect == null) return Rect.fromLTRB(left, top, right, bottom);
+  var w = right - left;
+  var h = w / aspect;
+  if (h > bottom - top) {
+    h = bottom - top;
+    w = h * aspect;
+  }
+  final cx = (left + right) / 2;
+  return Rect.fromLTRB(cx - w / 2, bottom - h, cx + w / 2, bottom);
 }
 
 /// Instant-print: bright white stock, tight even sides, the classic deep chin.
@@ -53,6 +60,7 @@ List<ComposeLayer> polaroidLayers(Size size, double unit, {PhotoMeta meta = cons
   return [
     // the stock itself has tooth — our call, per frame; users don't touch grain
     const ComposeSurface(ColoredBox(color: Color(0xFFFBFAF6))),
+    const ComposeGrainSheet(GrainSpec.paper),
     ComposePhotoWindow(
       rect: Rect.fromLTRB(m, m * 1.15, size.width - m, size.height - chin),
       shadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 3, offset: Offset(0, 1))],
@@ -71,7 +79,6 @@ List<ComposeLayer> polaroidLayers(Size size, double unit, {PhotoMeta meta = cons
       rotatable: true,
       inkChoices: [Color(0xFF3A362E), Color(0xFF3D4E6B), Color(0xFFB3402B)],
     ),
-    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak, matchPx: grainPxForIso(meta.iso))),
   ];
 }
 
@@ -107,23 +114,25 @@ TextStyle chinStyle(Size size) => TextStyle(
     );
 
 
-/// Film-poster frame: the mid-century one-sheet grid, proportioned after the
+/// Film-poster frame: the mid-century one-sheet, proportioned after the
 /// Interstellar/GET OUT school. Cream stock; a calibration strip cut from the
-/// photo's own palette; the kata mark; credit columns (bold head, italic
-/// value) fed by EXIF; a massive w900 title; the photo on the lower half with
-/// a broad quiet foot. Nothing moves — the grid is the design.
+/// photo's own palette; the kata mark; a tagline; two columns of credits (bold
+/// head, italic value) fed by EXIF; a title set to the sheet rather than to a
+/// point size; the photograph hanging from a fixed foot line; and a billing
+/// block under it. Nothing moves — the grid is the design.
 List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const PhotoMeta(), List<Color>? palette, double? photoAspect}) {
   final m = size.width * 0.095;
   const ink = Color(0xFF1A1916);
-  final headY = size.height * 0.125;
-  final headH = (size.shortestSide * 0.0155).clamp(5.0, 11.0);
-  final photoTop = size.height * 0.415;
-  final photoBottom = size.height * 0.87;
   final usable = size.width - 2 * m;
-  final colW = usable / 5;
+  final headY = size.height * 0.163;
+  final headH = (size.shortestSide * 0.0155).clamp(5.0, 11.0);
+  final rowH = size.height * 0.043;
+  final colX = [m, m + usable * 0.5];
+  final photoTop = size.height * 0.44;
+  final photoBottom = size.height * 0.845;
 
-  TextStyle small({FontWeight w = FontWeight.w400, FontStyle? style}) => TextStyle(
-      fontFamily: 'Inter', package: 'kata_ui', fontSize: (size.shortestSide * 0.0148).clamp(4.5, 10.0), fontWeight: w, fontStyle: style, height: 1.25, color: ink);
+  TextStyle small({FontWeight w = FontWeight.w400, FontStyle? style, double f = 0.0148, Color c = ink}) => TextStyle(
+      fontFamily: 'Inter', package: 'kata_ui', fontSize: (size.shortestSide * f).clamp(4.5, 11.0), fontWeight: w, fontStyle: style, height: 1.25, color: c);
 
   String? exposurePrefill;
   if (meta.iso != null || meta.fNumber != null || meta.exposure != null) {
@@ -140,27 +149,38 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
   }
   final cameraPrefill = [meta.make, meta.model].whereType<String>().join(' ');
 
-  // slots pad their ink 10px for the tap target; regions start 10 early so the
-  // ink itself sits on the column line the headers use
-  ComposeTextSlot credit(String id, int col, String invitation, String? prefill) => ComposeTextSlot(
+  // Two generous columns beat five thin ones: the value gets room to be read,
+  // which is the whole point of a credit. Regions start 10 early so the ink
+  // itself lands on the column line the headers use.
+  ComposeTextSlot credit(String id, int col, int row, String invitation, String? prefill) => ComposeTextSlot(
         id: id,
-        region: Rect.fromLTWH(m + col * colW - 10, headY + headH * 1.45, colW - 4, headH * 3.4),
+        region: Rect.fromLTWH(colX[col] - 10, headY + row * rowH + headH * 1.35, usable * 0.5 - 12, headH * 2.1),
         style: small(style: FontStyle.italic),
         invitation: invitation,
         prefill: prefill,
         align: Alignment.topLeft,
-        maxLines: 2,
-        maxChars: 24,
+        maxLines: 1,
+        maxChars: 30,
         uppercase: false,
       );
 
   return [
     const ComposeSurface(ColoredBox(color: Color(0xFFF0EBDD))),
-    ComposeSurface(_PosterFurniture(margin: m, headY: headY, headStyle: small(w: FontWeight.w700), colW: colW, palette: palette)),
-    ComposePhotoWindow(rect: fitPhotoRect(Rect.fromLTRB(m, photoTop, size.width - m, photoBottom), photoAspect)),
+    const ComposeGrainSheet(GrainSpec.paper),
+    ComposeSurface(_PosterFurniture(margin: m, headY: headY, rowH: rowH, headStyle: small(w: FontWeight.w700), colX: colX, palette: palette)),
+    ComposePhotoWindow(rect: hangPhotoRect(left: m, right: size.width - m, top: photoTop, bottom: photoBottom, aspect: photoAspect)),
+    // the line above the title, spread wide the way a one-sheet quotes a review
+    ComposeTextSlot(
+      id: 'tagline',
+      region: Rect.fromLTRB(m - 10, size.height * 0.105, size.width - m, size.height * 0.145),
+      style: small(w: FontWeight.w500, f: 0.0165).copyWith(letterSpacing: (size.shortestSide * 0.0165).clamp(4.5, 11.0) * 0.22),
+      invitation: 'A QUIET WEEK',
+      align: Alignment.topLeft,
+      maxChars: 42,
+    ),
     ComposeTextSlot(
       id: 'title',
-      region: Rect.fromLTRB(m - 10, size.height * 0.245, size.width - m, photoTop - unit * 0.4),
+      region: Rect.fromLTRB(m - 10, size.height * 0.275, size.width - m, photoTop - unit * 0.5),
       style: TextStyle(
           fontFamily: 'Inter',
           package: 'kata_ui',
@@ -170,56 +190,91 @@ List<ComposeLayer> posterLayers(Size size, double unit, {PhotoMeta meta = const 
           letterSpacing: -1.5,
           color: ink),
       invitation: 'UNTITLED',
-      align: Alignment.topLeft,
+      align: Alignment.bottomLeft,
       maxLines: 2,
-      maxChars: 18,
+      maxChars: 24,
+      // a title is set to the sheet: long ones shrink instead of running into
+      // the photograph, which is what the fixed size used to do
+      fitRegion: true,
       scalable: true,
       minScale: 0.55,
       maxScale: 1.15,
     ),
-    credit('camera', 0, 'camera', cameraPrefill.isEmpty ? null : cameraPrefill),
-    credit('lens', 1, 'lens', meta.focalMm == null ? null : '${meta.focalMm!.round()}mm'),
-    credit('film', 2, 'film', meta.filmMode),
-    credit('exposure', 3, 'exposure', exposurePrefill),
-    credit('date', 4, 'date', datePrefill),
-    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak, matchPx: grainPxForIso(meta.iso))),
+    credit('camera', 0, 0, 'camera', cameraPrefill.isEmpty ? null : cameraPrefill),
+    credit('lens', 0, 1, 'lens', meta.focalMm == null ? null : '${meta.focalMm!.round()}mm'),
+    credit('film', 0, 2, 'film', meta.filmMode),
+    credit('exposure', 1, 0, 'exposure', exposurePrefill),
+    credit('date', 1, 1, 'date', datePrefill),
+    // the billing block: who made the picture, in the squeezed one-sheet manner
+    ComposeTextSlot(
+      id: 'byline',
+      region: Rect.fromLTRB(m, size.height * 0.878, size.width - m, size.height * 0.925),
+      style: small(w: FontWeight.w600, f: 0.021).copyWith(letterSpacing: (size.shortestSide * 0.021).clamp(4.5, 11.0) * 0.06),
+      invitation: 'YOUR NAME',
+      align: Alignment.topCenter,
+      maxChars: 34,
+    ),
   ];
 }
 
-/// The one-sheet's fixed furniture: the photo-palette strip, credit headers,
-/// and the kata mark.
+/// The one-sheet's fixed furniture: the photo-palette strip, the kata mark, the
+/// credit headers, and the billing block's label and rule.
 class _PosterFurniture extends StatelessWidget {
-  const _PosterFurniture({required this.margin, required this.headY, required this.headStyle, required this.colW, this.palette});
+  const _PosterFurniture({required this.margin, required this.headY, required this.rowH, required this.headStyle, required this.colX, this.palette});
   final double margin;
   final double headY;
+  final double rowH;
   final TextStyle headStyle;
-  final double colW;
+  final List<double> colX;
   final List<Color>? palette;
 
   static const _fallbackChips = [Color(0xFF15130F), Color(0xFF2E6E71), Color(0xFF4C7A3F), Color(0xFFD9A62E), Color(0xFFC2482B)];
-  static const _heads = ['CAMERA', 'LENS', 'FILM', 'EXPOSURE', 'DATE'];
+  static const _heads = [
+    [(0, 0, 'CAMERA'), (0, 1, 'LENS'), (0, 2, 'FILM')],
+    [(1, 0, 'EXPOSURE'), (1, 1, 'DATE')],
+  ];
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, box) {
-      final w = box.maxWidth;
+      final w = box.maxWidth, h = box.maxHeight;
       final chips = (palette == null || palette!.isEmpty) ? _fallbackChips : palette!;
       final chipW = (w * 0.030).clamp(4.0, 30.0);
-      final chipH = chipW; // square swatches
       final markSize = (w * 0.085).clamp(12.0, 90.0);
+      final ink = headStyle.color!;
       return Stack(children: [
         Positioned(
           left: margin,
-          top: box.maxHeight * 0.048,
-          child: Row(children: [for (final c in chips) Container(width: chipW, height: chipH, color: c)]),
+          top: h * 0.048,
+          child: Row(children: [for (final c in chips) Container(width: chipW, height: chipW, color: c)]),
         ),
         Positioned(
           right: margin,
-          top: box.maxHeight * 0.038,
-          child: SizedBox(width: markSize, height: markSize, child: CustomPaint(painter: _KataMarkPainter(headStyle.color!))),
+          top: h * 0.038,
+          child: SizedBox(width: markSize, height: markSize, child: CustomPaint(painter: _KataMarkPainter(ink))),
         ),
-        for (var i = 0; i < _heads.length; i++)
-          Positioned(left: margin + i * colW, top: headY, width: colW - 4, child: Text(_heads[i], style: headStyle)),
+        for (final col in _heads)
+          for (final (c, r, label) in col) Positioned(left: colX[c], top: headY + r * rowH, child: Text(label, style: headStyle)),
+        // the billing block's own furniture: a hairline and its tiny label
+        Positioned(
+          left: w * 0.34,
+          right: w * 0.34,
+          top: h * 0.862,
+          child: Container(height: 0.8, color: ink.withValues(alpha: 0.35)),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: h * 0.938,
+          child: Text('PHOTOGRAPHED WITH KATA 型',
+              textAlign: TextAlign.center,
+              style: headStyle.copyWith(
+                fontWeight: FontWeight.w500,
+                fontSize: headStyle.fontSize! * 0.82,
+                color: ink.withValues(alpha: 0.55),
+                letterSpacing: headStyle.fontSize! * 0.14,
+              )),
+        ),
       ]);
     });
   }
@@ -276,6 +331,7 @@ List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const P
 
   return [
     const ComposeSurface(ColoredBox(color: Color(0xFFE7E4DA))),
+    const ComposeGrainSheet(GrainSpec.paper),
     ComposeSurface(_WordsFurniture(photo: photo, ink: ink, year: meta.dateTime?.year.toString(), sim: meta.filmMode)),
     ComposePhotoWindow(rect: photo),
     ComposeTextSlot(
@@ -319,7 +375,6 @@ List<ComposeLayer> wordsLayers(Size size, double unit, {PhotoMeta meta = const P
       uppercase: false,
       maxChars: 48,
     ),
-    ComposeGrainSheet(GrainSpec(strength: GrainStrength.weak, matchPx: grainPxForIso(meta.iso))),
   ];
 }
 

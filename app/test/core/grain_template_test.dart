@@ -67,7 +67,7 @@ void main() {
   test('the tooth keeps its size on the sheet at every export scale', () {
     // the bug this pins: grain used to be locked to output pixels, so a 4x
     // export rendered it 4x finer than the preview the user tuned by eye
-    const spec = GrainSpec(strength: GrainStrength.weak, matchPx: 1.7);
+    const spec = GrainSpec(strength: GrainStrength.weak, clumpPx: 1.7);
     final preview = GrainGeometry.of(spec, dpr: 2, raster: 1);
     for (final raster in [1.0, 2.0, 3.5, 4.0, 9.0]) {
       final g = GrainGeometry.of(spec, dpr: 2, raster: raster);
@@ -77,7 +77,7 @@ void main() {
   });
 
   test('a bigger export buys template resolution, and stops at the cap', () {
-    const spec = GrainSpec(strength: GrainStrength.weak, matchPx: 1.7);
+    const spec = GrainSpec(strength: GrainStrength.weak, clumpPx: 1.7);
     expect(GrainGeometry.of(spec, dpr: 2, raster: 1).templateSize, GrainTemplate.size);
     expect(GrainGeometry.of(spec, dpr: 2, raster: 3.2).templateSize, GrainTemplate.size * 4);
     // past the cap the tile is magnified rather than regenerated — still the
