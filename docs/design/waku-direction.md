@@ -70,7 +70,14 @@ It's where a print tool would go next and it would be entirely wasted here.
 
 ## 4. Order
 
-1. Ratio-responsive layout (A) — everything else compounds on it.
+1. ~~Ratio-responsive layout (A)~~ — **the solver landed 2026-08-25**
+   (`core/compose/sheet_layout.dart`), and the poster is ported onto it. Rows
+   are stacked in fractions of the **width**, so type and margins hold their
+   proportions at every ratio and the photograph absorbs the difference; air
+   compresses before content does, and the picture's floor gives way last. The
+   poster lost its fixed 2:3 sheet — it now takes whatever ratio you're
+   posting. Polaroid keeps its fixed sheet on purpose: it's a physical object.
+   Still to port: words.
 2. Photo slots (B).
 3. Export set with safe zones and the embedded Kata Code (F).
 4. Frames as documents (C), once the schema has proved itself on six or so

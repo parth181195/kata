@@ -1,8 +1,11 @@
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/compose/grain.dart';
 import '../../core/compose/layers.dart';
+import '../../core/compose/sheet_layout.dart';
 import 'waku_exif.dart';
 import 'waku_grain_measure.dart';
 
@@ -11,7 +14,8 @@ import 'waku_grain_measure.dart';
 /// stack; what users may touch is declared per layer, never changed by them.
 enum WakuFrame {
   polaroid('Polaroid', canvasAspect: 88 / 107),
-  poster('Poster', canvasAspect: 2 / 3, photoRatioAdjustable: true),
+  // no fixed sheet: the one-sheet is solved for whatever ratio you're posting
+  poster('Poster'),
   words('Words', canvasAspect: 0.72, photoRatioAdjustable: true),
   custom('Custom');
 
@@ -132,27 +136,41 @@ TextStyle chinStyle(Size size) => TextStyle(
 
 
 /// Film-poster frame: the mid-century one-sheet, proportioned after the
-/// Interstellar/GET OUT school. Cream stock; a calibration strip cut from the
-/// photo's own palette; the kata mark; a tagline; two columns of credits (bold
-/// head, italic value) fed by EXIF; a title set to the sheet rather than to a
-/// point size; the photograph hanging from a fixed foot line; and a billing
-/// block under it. Nothing moves — the grid is the design.
+/// Interstellar/GET OUT school, and solved for whatever shape the sheet is —
+/// a story, a feed post, a square. Every measure is a fraction of the width,
+/// so type and margins hold their size and the photograph absorbs the rest
+/// (see core/compose/sheet_layout.dart).
 List<ComposeLayer> posterLayers(Size size, double unit,
     {PhotoMeta meta = const PhotoMeta(), List<Color>? palette, double? photoAspect, PhotoGrain grain = PhotoGrain.none}) {
-  final m = size.width * 0.095;
   const ink = Color(0xFF1A1916);
-  final usable = size.width - 2 * m;
-  final headY = size.height * 0.163;
-  final headH = (size.shortestSide * 0.0155).clamp(5.0, 11.0);
-  final rowH = size.height * 0.043;
-  final colX = [m, m + usable * 0.5];
-  final photoTop = size.height * 0.44;
-  final photoBottom = size.height * 0.845;
-  final photoRect = hangPhotoRect(left: m, right: size.width - m, top: photoTop, bottom: photoBottom, aspect: photoAspect);
+  final grid = solveSheet(size, const [
+    SheetRow.gap(0.055),
+    SheetRow.band(0.032, id: 'chips'),
+    SheetRow.gap(0.075),
+    SheetRow.band(0.042, id: 'tagline'),
+    SheetRow.gap(0.030),
+    // three rows of label-over-value, each 2.9 line heights, so they can't collide
+    SheetRow.band(0.190, id: 'credits'),
+    SheetRow.gap(0.035),
+    SheetRow.band(0.235, id: 'title'),
+    SheetRow.gap(0.030),
+    SheetRow.flex(id: 'photo', minWidths: 0.34),
+    SheetRow.gap(0.035),
+    SheetRow.band(0.058, id: 'byline'),
+    SheetRow.gap(0.050),
+  ]);
+  final w = size.width;
+  final photoRect = hangInto(grid['photo'], photoAspect);
   final (groundGrain, inkGrain) = sheetGrain(grain, photoRect.width);
+  final credits = grid['credits'];
+  final colW = credits.width / 2;
+  final rowH = credits.height / 3;
+  final headH = math.max(5.0, w * 0.0215);
 
-  TextStyle small({FontWeight w = FontWeight.w400, FontStyle? style, double f = 0.0148, Color c = ink}) => TextStyle(
-      fontFamily: 'Inter', package: 'kata_ui', fontSize: (size.shortestSide * f).clamp(4.5, 11.0), fontWeight: w, fontStyle: style, height: 1.25, color: c);
+  // no upper clamp: type is a fraction of the sheet, so it holds its proportion
+  // at every size and ratio. The floor is only there for a 58px thumbnail.
+  TextStyle small({FontWeight wt = FontWeight.w400, FontStyle? style, double f = 0.0215, Color c = ink}) =>
+      TextStyle(fontFamily: 'Inter', package: 'kata_ui', fontSize: math.max(4.5, w * f), fontWeight: wt, fontStyle: style, height: 1.25, color: c);
 
   String? exposurePrefill;
   if (meta.iso != null || meta.fNumber != null || meta.exposure != null) {
@@ -174,7 +192,7 @@ List<ComposeLayer> posterLayers(Size size, double unit,
   // itself lands on the column line the headers use.
   ComposeTextSlot credit(String id, int col, int row, String invitation, String? prefill) => ComposeTextSlot(
         id: id,
-        region: Rect.fromLTWH(colX[col] - 10, headY + row * rowH + headH * 1.35, usable * 0.5 - 12, headH * 2.1),
+        region: Rect.fromLTWH(credits.left + col * colW - 10, credits.top + row * rowH + headH * 1.3, colW - 12, headH * 2.0),
         style: small(style: FontStyle.italic),
         invitation: invitation,
         prefill: prefill,
@@ -187,24 +205,24 @@ List<ComposeLayer> posterLayers(Size size, double unit,
   return [
     const ComposeSurface(ColoredBox(color: Color(0xFFF0EBDD))),
     ComposeGrainSheet(groundGrain),
-    ComposeSurface(_PosterFurniture(margin: m, headY: headY, rowH: rowH, headStyle: small(w: FontWeight.w700), colX: colX, palette: palette)),
+    ComposeSurface(_PosterFurniture(grid: grid, headStyle: small(wt: FontWeight.w700), rowH: rowH, colW: colW, palette: palette)),
     ComposePhotoWindow(rect: photoRect),
     // the line above the title, spread wide the way a one-sheet quotes a review
     ComposeTextSlot(
       id: 'tagline',
-      region: Rect.fromLTRB(m - 10, size.height * 0.105, size.width - m, size.height * 0.145),
-      style: small(w: FontWeight.w500, f: 0.0165).copyWith(letterSpacing: (size.shortestSide * 0.0165).clamp(4.5, 11.0) * 0.22),
+      region: grid['tagline'].translate(-10, 0),
+      style: small(wt: FontWeight.w500, f: 0.024).copyWith(letterSpacing: math.max(4.5, w * 0.024) * 0.22),
       invitation: 'A QUIET WEEK',
-      align: Alignment.topLeft,
+      align: Alignment.centerLeft,
       maxChars: 42,
     ),
     ComposeTextSlot(
       id: 'title',
-      region: Rect.fromLTRB(m - 10, size.height * 0.275, size.width - m, photoTop - unit * 0.5),
+      region: grid['title'].translate(-10, 0),
       style: TextStyle(
           fontFamily: 'Inter',
           package: 'kata_ui',
-          fontSize: (size.shortestSide * 0.175).clamp(18.0, 220.0),
+          fontSize: math.max(12.0, w * 0.175),
           fontWeight: FontWeight.w900,
           height: 0.9,
           letterSpacing: -1.5,
@@ -214,7 +232,7 @@ List<ComposeLayer> posterLayers(Size size, double unit,
       maxLines: 2,
       maxChars: 24,
       // a title is set to the sheet: long ones shrink instead of running into
-      // the photograph, which is what the fixed size used to do
+      // the photograph, which is what a fixed size did
       fitRegion: true,
       scalable: true,
       minScale: 0.55,
@@ -228,8 +246,8 @@ List<ComposeLayer> posterLayers(Size size, double unit,
     // the billing block: who made the picture, in the squeezed one-sheet manner
     ComposeTextSlot(
       id: 'byline',
-      region: Rect.fromLTRB(m, size.height * 0.878, size.width - m, size.height * 0.925),
-      style: small(w: FontWeight.w600, f: 0.021).copyWith(letterSpacing: (size.shortestSide * 0.021).clamp(4.5, 11.0) * 0.06),
+      region: grid['byline'],
+      style: small(wt: FontWeight.w600, f: 0.030).copyWith(letterSpacing: math.max(4.5, w * 0.030) * 0.06),
       invitation: 'YOUR NAME',
       align: Alignment.topCenter,
       maxChars: 34,
@@ -239,65 +257,62 @@ List<ComposeLayer> posterLayers(Size size, double unit,
 }
 
 /// The one-sheet's fixed furniture: the photo-palette strip, the kata mark, the
-/// credit headers, and the billing block's label and rule.
+/// credit headers, and the billing block's rule and imprint. All of it hangs off
+/// the solved grid, so it travels with the rows.
 class _PosterFurniture extends StatelessWidget {
-  const _PosterFurniture({required this.margin, required this.headY, required this.rowH, required this.headStyle, required this.colX, this.palette});
-  final double margin;
-  final double headY;
-  final double rowH;
+  const _PosterFurniture({required this.grid, required this.headStyle, required this.rowH, required this.colW, this.palette});
+  final SheetGrid grid;
   final TextStyle headStyle;
-  final List<double> colX;
+  final double rowH;
+  final double colW;
   final List<Color>? palette;
 
   static const _fallbackChips = [Color(0xFF15130F), Color(0xFF2E6E71), Color(0xFF4C7A3F), Color(0xFFD9A62E), Color(0xFFC2482B)];
-  static const _heads = [
-    [(0, 0, 'CAMERA'), (0, 1, 'LENS'), (0, 2, 'FILM')],
-    [(1, 0, 'EXPOSURE'), (1, 1, 'DATE')],
-  ];
+  static const _heads = [(0, 0, 'CAMERA'), (0, 1, 'LENS'), (0, 2, 'FILM'), (1, 0, 'EXPOSURE'), (1, 1, 'DATE')];
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, box) {
-      final w = box.maxWidth, h = box.maxHeight;
-      final chips = (palette == null || palette!.isEmpty) ? _fallbackChips : palette!;
-      final chipW = (w * 0.030).clamp(4.0, 30.0);
-      final markSize = (w * 0.085).clamp(12.0, 90.0);
-      final ink = headStyle.color!;
-      return Stack(children: [
-        Positioned(
-          left: margin,
-          top: h * 0.048,
-          child: Row(children: [for (final c in chips) Container(width: chipW, height: chipW, color: c)]),
-        ),
-        Positioned(
-          right: margin,
-          top: h * 0.038,
-          child: SizedBox(width: markSize, height: markSize, child: CustomPaint(painter: _KataMarkPainter(ink))),
-        ),
-        for (final col in _heads)
-          for (final (c, r, label) in col) Positioned(left: colX[c], top: headY + r * rowH, child: Text(label, style: headStyle)),
-        // the billing block's own furniture: a hairline and its tiny label
-        Positioned(
-          left: w * 0.34,
-          right: w * 0.34,
-          top: h * 0.862,
-          child: Container(height: 0.8, color: ink.withValues(alpha: 0.35)),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: h * 0.938,
-          child: Text('PHOTOGRAPHED WITH KATA 型',
-              textAlign: TextAlign.center,
-              style: headStyle.copyWith(
-                fontWeight: FontWeight.w500,
-                fontSize: headStyle.fontSize! * 0.82,
-                color: ink.withValues(alpha: 0.55),
-                letterSpacing: headStyle.fontSize! * 0.14,
-              )),
-        ),
-      ]);
-    });
+    final chipsRow = grid['chips'];
+    final credits = grid['credits'];
+    final byline = grid['byline'];
+    final ink = headStyle.color!;
+    final chips = (palette == null || palette!.isEmpty) ? _fallbackChips : palette!;
+    final chipW = chipsRow.height;
+    final markSize = grid.size.width * 0.085;
+    return Stack(children: [
+      Positioned(
+        left: chipsRow.left,
+        top: chipsRow.top,
+        child: Row(children: [for (final c in chips) Container(width: chipW, height: chipW, color: c)]),
+      ),
+      Positioned(
+        right: grid.margin,
+        top: chipsRow.center.dy - markSize / 2,
+        child: SizedBox(width: markSize, height: markSize, child: CustomPaint(painter: _KataMarkPainter(ink))),
+      ),
+      for (final (c, r, label) in _heads)
+        Positioned(left: credits.left + c * colW, top: credits.top + r * rowH, child: Text(label, style: headStyle)),
+      // the billing block's own furniture: a hairline over it, an imprint under
+      Positioned(
+        left: grid.size.width * 0.34,
+        right: grid.size.width * 0.34,
+        top: byline.top - byline.height * 0.42,
+        child: Container(height: 0.8, color: ink.withValues(alpha: 0.35)),
+      ),
+      Positioned(
+        left: 0,
+        right: 0,
+        top: byline.bottom + byline.height * 0.18,
+        child: Text('PHOTOGRAPHED WITH KATA 型',
+            textAlign: TextAlign.center,
+            style: headStyle.copyWith(
+              fontWeight: FontWeight.w500,
+              fontSize: headStyle.fontSize! * 0.82,
+              color: ink.withValues(alpha: 0.55),
+              letterSpacing: headStyle.fontSize! * 0.14,
+            )),
+      ),
+    ]);
   }
 }
 

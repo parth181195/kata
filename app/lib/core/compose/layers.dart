@@ -162,6 +162,14 @@ class ComposeCanvasView extends StatefulWidget {
   /// preview and switches it on for the one frame it rasterises.
   final bool grain;
 
+  /// A slot's breathing room, from the type it holds — a frame's grid is built
+  /// out of line heights, so a fixed 10px would blow a thumbnail's rows apart
+  /// and pinch a poster's. Capped so a 200pt title doesn't get 70px of air.
+  static EdgeInsets padFor(TextStyle st) {
+    final f = st.fontSize ?? 12;
+    return EdgeInsets.symmetric(horizontal: (f * 0.35).clamp(3.0, 12.0), vertical: (f * 0.18).clamp(2.0, 8.0));
+  }
+
   @override
   State<ComposeCanvasView> createState() => _ComposeCanvasViewState();
 }
@@ -206,7 +214,8 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final base = text.isEmpty ? (slot.prefill?.trim().isNotEmpty == true ? slot.prefill!.trim() : slot.invitation) : text;
     final shown = slot.uppercase ? base.toUpperCase() : base;
     if (shown.isEmpty) return 1;
-    final maxW = slot.region.width - 20, maxH = slot.region.height - 12;
+    final pad = ComposeCanvasView.padFor(st);
+    final maxW = slot.region.width - pad.horizontal, maxH = slot.region.height - pad.vertical;
     bool fits(double f) {
       final tp = TextPainter(
         text: TextSpan(text: shown, style: st.copyWith(fontSize: st.fontSize! * f)),
@@ -274,11 +283,13 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final text = textOf(slot.id).trim();
     final base = text.isEmpty ? (slot.prefill?.trim().isNotEmpty == true ? slot.prefill!.trim() : slot.invitation) : text;
     final shown = slot.uppercase ? base.toUpperCase() : base;
+    final st = _effectiveStyle(slot);
+    final pad = ComposeCanvasView.padFor(st);
     final tp = TextPainter(
-      text: TextSpan(text: shown, style: _effectiveStyle(slot)),
+      text: TextSpan(text: shown, style: st),
       maxLines: slot.maxLines,
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: slot.region.width - 24);
+    )..layout(maxWidth: slot.region.width - pad.horizontal);
     // tp.width includes the trailing letter-spacing after the last glyph, so
     // the painted ink is NOT centred in the layout box — it hangs left. Snap
     // by the ink's actual offsets from the body centre, from selection boxes.
@@ -291,11 +302,11 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
         l = math.min(l, b.left);
         r = math.max(r, b.right);
       }
-      final spacing = _effectiveStyle(slot).letterSpacing ?? 0;
+      final spacing = st.letterSpacing ?? 0;
       inkL = l - tp.width / 2;
       inkR = (r - spacing) - tp.width / 2;
     }
-    return (Size(tp.width + 20, tp.height + 12), inkL, inkR);
+    return (Size(tp.width + pad.horizontal, tp.height + pad.vertical), inkL, inkR);
   }
 
   Size _slotTextSize(ComposeTextSlot slot) => _slotSizes(slot).$1;
@@ -545,7 +556,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
                 angle: widget.angleOf(slot.id),
                 child: _chromed(
                   selected: selected || editing,
-                  child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: body),
+                  child: Padding(padding: ComposeCanvasView.padFor(st), child: body),
                 ),
               ),
             ),

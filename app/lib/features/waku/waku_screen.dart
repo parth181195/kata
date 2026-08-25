@@ -274,7 +274,7 @@ class _WakuScreenState extends State<WakuScreen> {
                 }),
         editorBuilder: (id, slot, effective) => ConstrainedBox(
           // the same measure the label lays out in, so the swap is invisible
-          constraints: BoxConstraints(maxWidth: slot.region.width - 20),
+          constraints: BoxConstraints(maxWidth: slot.region.width - ComposeCanvasView.padFor(effective).horizontal),
           child: IntrinsicWidth(
             child: TextField(
               key: const ValueKey('slot-editor'),
