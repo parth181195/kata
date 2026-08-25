@@ -37,9 +37,13 @@ class GrainSpec {
   /// stocks use, since a printed tooth is finer than any film grain.
   final double? clumpPx;
 
-  /// Trims the strength without inventing a new step in Fuji's Weak/Strong —
-  /// paper tooth is quieter than any film grain.
+  /// Trims the strength without inventing a new step in Fuji's Weak/Strong.
   final double amountScale;
+
+  /// Straight from a measurement, bypassing the Weak/Strong scale entirely —
+  /// what the frames use once they've measured the photograph's own grain.
+  static GrainSpec measured({required double clumpPx, required double amount, int seed = 7}) =>
+      GrainSpec(strength: GrainStrength.strong, clumpPx: clumpPx, amountScale: amount / GrainStrength.strong.amount, seed: seed);
 
   /// Matte stock: quiet, slightly clumped, and nothing to do with the photo's
   /// ISO — paper is paper, and the picture already carries whatever grain the

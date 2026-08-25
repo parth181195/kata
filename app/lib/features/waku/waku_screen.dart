@@ -11,6 +11,7 @@ import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
 import '../../core/compose/stickers.dart';
 import 'waku_frames.dart';
+import 'waku_grain_measure.dart';
 import 'waku_exif.dart';
 import 'waku_import.dart';
 import 'waku_palette.dart';
@@ -61,6 +62,7 @@ class _WakuScreenState extends State<WakuScreen> {
 
   Uint8List? _photo;
   PhotoMeta _meta = const PhotoMeta();
+  PhotoGrain _grain = PhotoGrain.none;
   List<Color>? _palette;
   Uint8List? _frameImage; // the custom frame, when WakuFrame.custom
   WakuFrame _frame = WakuFrame.polaroid;
@@ -112,11 +114,14 @@ class _WakuScreenState extends State<WakuScreen> {
     if (b == null || !mounted) return;
     final meta = await readPhotoMeta(b);
     final palette = await extractPalette(b);
+    // the sheet's texture is the photo's own grain, so it has to be measured
+    final grain = await measurePhotoGrain(b);
     if (!mounted) return;
     setState(() {
       _photo = b;
       _meta = meta;
       _palette = palette;
+      _grain = grain;
       _viewer.value = Matrix4.identity();
     });
   }
@@ -217,9 +222,11 @@ class _WakuScreenState extends State<WakuScreen> {
           frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
     final photoAspect = _frame.photoRatioAdjustable ? _ratio.aspect : null;
-    if (_frame == WakuFrame.poster) return posterLayers(size, size.shortestSide * 0.08, meta: _meta, palette: _palette, photoAspect: photoAspect);
-    if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta, photoAspect: photoAspect);
-    return polaroidLayers(size, size.shortestSide * 0.08, meta: _meta);
+    if (_frame == WakuFrame.poster) {
+      return posterLayers(size, size.shortestSide * 0.08, meta: _meta, palette: _palette, photoAspect: photoAspect, grain: _grain);
+    }
+    if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta, photoAspect: photoAspect, grain: _grain);
+    return polaroidLayers(size, size.shortestSide * 0.08, meta: _meta, grain: _grain);
   }
 
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
@@ -429,9 +436,9 @@ class _WakuScreenState extends State<WakuScreen> {
       thumb = ComposeCanvasView(
         canvasSize: thumbSize,
         layers: switch (f) {
-          WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, palette: _palette),
-          WakuFrame.words => wordsLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
-          _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta),
+          WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, palette: _palette, grain: _grain),
+          WakuFrame.words => wordsLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, grain: _grain),
+          _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, grain: _grain),
         },
         photo: _photoWidget(interactive: false),
         textOf: (_) => '',
