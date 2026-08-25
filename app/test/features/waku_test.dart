@@ -260,6 +260,30 @@ void main() {
     expect(t.getTopLeft(find.text('UNTITLED').first), before);
   });
 
+  testWidgets('a title that sizes itself to the sheet keeps that size while it is typed', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF335544))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    await t.tap(find.text('POSTER'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('UNTITLED').first);
+    await t.pumpAndSettle();
+
+    final editor = find.byKey(const ValueKey('slot-editor'));
+    double editorSize() => t.widget<TextField>(editor).style!.fontSize!;
+    final short = editorSize();
+    // a long title has to shrink; the editor must shrink with it, or you type
+    // at one size and the print shows another
+    await t.enterText(editor, 'A VERY LONG TITLE INDEED');
+    await t.pumpAndSettle();
+    final long = editorSize();
+    expect(long, lessThan(short));
+
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    // and the label picks up exactly where the editor left off
+    expect(t.widget<Text>(find.text('A VERY LONG TITLE INDEED')).style!.fontSize, closeTo(long, 0.01));
+  });
+
   testWidgets('words frame: the dictionary grid with its fixed furniture', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF445566))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));

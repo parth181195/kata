@@ -266,7 +266,8 @@ class _WakuScreenState extends State<WakuScreen> {
                   st.angle = angle;
                 }),
         editorBuilder: (id, slot, effective) => ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: slot.region.width - 24),
+          // the same measure the label lays out in, so the swap is invisible
+          constraints: BoxConstraints(maxWidth: slot.region.width - 20),
           child: IntrinsicWidth(
             child: TextField(
               key: const ValueKey('slot-editor'),
@@ -282,6 +283,9 @@ class _WakuScreenState extends State<WakuScreen> {
               style: effective,
               cursorColor: effective.color,
               decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
+              // a slot that sizes itself to the frame has to re-measure as the
+              // line grows, or the editor shows one size and the label another
+              onChanged: (_) => setState(() {}),
               onSubmitted: (_) => setState(() => _editingSlot = null),
             ),
           ),
