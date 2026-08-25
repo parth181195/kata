@@ -187,3 +187,75 @@ tested for determinism and spec plumbing. The geometry is pinned by a unit test:
 tooth's size and the tile's repeat on the sheet must not move as the export
 scale changes. Grain itself is judged by eye at both preview and export scale —
 those two should now agree, which is the first thing to check on a real export. Sign-off is Parth's: curation, not measurement.
+
+---
+
+## 7. Paper is not film (research round 3, 2026-08-25)
+
+The zoomed export that started this: the sheet's tooth reads as stucco — one
+size of soft blob, everywhere. Tuning `clumpPx` doesn't fix it, because the
+model is wrong for the material. Everything above §6 is **film grain** research
+(Boolean model, AV1, crystal stacks). The frames are **paper**, and paper is a
+different object.
+
+### What paper actually is
+
+Two structures, orders of magnitude apart, present at the same time:
+
+- **Surface roughness** — the fibre tooth. Print-surf figures for offset stock
+  run **0.13–0.44 µm**; on a 30 cm sheet exported at 2048 px (≈7 px/mm) that is
+  **well under one pixel**. It reads as fine noise, not as shapes.
+- **Formation** — the "look-through" cloudiness, fibre flocs distributed
+  unevenly across the sheet. Measured by holding paper to a light; larger flocs
+  read as cloudier stock. This lives at the **millimetre** scale: **7–20 px** in
+  the same export.
+  ([paperindex](https://www.paperindex.com/academy/offset-paper-smoothness-and-formation-what-they-can-mean-for-fine-type-solids-and-image-detail/),
+  [Sci-Direct on multi-scale paper roughness](https://www.sciencedirect.com/science/article/abs/pii/S0169433211000821))
+
+So a sheet's texture spans roughly **0.5 px to 20 px at export scale** — about
+five octaves. Film grain doesn't: its radii are log-normal about a single mean,
+which is exactly why the single band-passed tile we built suits film and fails
+paper.
+
+**Our tile is one octave — the top one.** It has the cloud and none of the
+tooth. Making `clumpPx` smaller just moves the one blob size down; it can't add
+what isn't there.
+
+### What the literature says to build instead
+
+Fractional Brownian motion / Fourier spectral synthesis is the standard model
+for natural surfaces ([procedural texture survey, Sensors
+2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7070409/)): sum octaves with
+frequency ×2 and amplitude ×persistence each step, or synthesise directly
+against a **1/f^β** power spectrum. The survey's rough guide: β 0.5–1.0 reads as
+rock and sand, **1.5–2.0 as cloud and fabric**, 2.0+ as weathered smoothness;
+persistence 0.5–0.6 with 4–6 octaves for cloud-like surfaces.
+
+Paper wants both ends: a **1/f^β backbone with β ≈ 1.6–1.8 over 4–5 octaves**,
+the top octave at the floc scale and the bottom below a pixel.
+
+### And the type is a different mechanism again
+
+Production riso simulators (e.g. [studio-ity](https://studio-ity.com/riso/))
+expose **grain** and **ink spread** as separate controls — "grain simulates
+paper texture and ink absorption, ink spread mimics… bleed". Our 18 % area pass
+over the ink is standing in for what is really an **edge** phenomenon: ink
+wicking into fibres, dot gain, edge raggedness. It looks better than nothing and
+is honest as a stopgap; it is not the mechanism.
+
+### The fork
+
+- **A — procedural fBm.** Rewrite `GrainTemplate` as 4–5 octaves against 1/f^β.
+  Keeps everything else (sheet-space geometry, seamless tiling, export-only
+  application) and stays resolution-free. ~a day.
+- **B — scanned stock.** Real paper scans, tiled. What the industry actually
+  does (True Grit and friends). Highest fidelity, needs Parth at a scanner, and
+  needs seam handling (offset-mirror or Wang tiles) since real scans don't wrap.
+- **C — hybrid.** fBm tooth now; scanned formation as an optional low-frequency
+  multiply once stocks exist, one per named stock.
+
+### Then, separately
+
+Ink spread as a real edge effect, alongside the halftone/riso shader — both are
+"what happens when ink meets paper", and both want the same mask of what's
+printed, which the layer model doesn't produce today.
