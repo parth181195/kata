@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/core/compose/grain.dart';
 import 'package:kata/core/compose/layers.dart';
@@ -11,8 +12,14 @@ import 'package:kata/core/compose/treatment.dart';
 import 'package:kata/core/compose/voice.dart';
 import 'package:kata/features/waku/frames/frame.dart';
 import 'package:kata/features/waku/waku_exif.dart';
+import 'package:kata/data/local_db.dart';
+import 'package:kata/data/recipe.dart';
+import 'package:kata/data/recipe_repository.dart';
 import 'package:kata/features/waku/waku_screen.dart';
 import 'package:kata_ui/kata_ui.dart';
+import 'package:ofr/ofr.dart';
+
+import '../helpers.dart';
 
 /// A tiny in-memory PNG so the screen has a real decodable photo under test.
 /// (toImage/toByteData need real async — hence runAsync at the call sites.)
@@ -25,6 +32,16 @@ Future<Uint8List> _png(Color c, {int size = 8}) async {
   return bytes!.buffer.asUint8List();
 }
 
+/// Two katas to attach, so the screen has a library to offer.
+const _kodachrome = OfrRecipe(
+    name: 'Kodachrome 64', sensors: ['X-Trans V'], filmSimulation: 'Classic Chrome', dRangePriority: 'Off',
+    grainRoughness: 'Weak', whiteBalance: 'Daylight', whiteBalanceRed: 1, whiteBalanceBlue: -2,
+    sharpness: 0, highIsoNr: -2, clarity: 0);
+const _portra = OfrRecipe(
+    name: 'Portra Warm', sensors: ['X-Trans V'], filmSimulation: 'Classic Neg', dRangePriority: 'Off',
+    grainRoughness: 'Strong', whiteBalance: 'Daylight', whiteBalanceRed: 2, whiteBalanceBlue: -1,
+    sharpness: 0, highIsoNr: -2, clarity: 0);
+
 Future<void> _pump(WidgetTester t, Widget child, {Size size = const Size(1280, 900)}) async {
   t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
   addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -32,7 +49,27 @@ Future<void> _pump(WidgetTester t, Widget child, {Size size = const Size(1280, 9
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.resetPhysicalSize);
   addTearDown(t.view.resetDevicePixelRatio);
-  await t.pumpWidget(MaterialApp(theme: KataTheme.dark(), home: child));
+
+  final db = KataDb.memory();
+  addTearDown(db.close);
+  final repo = RecipeRepository(
+    db: db,
+    api: FakeRecipeApi([
+      Recipe(id: 'k1', ofr: _kodachrome),
+      Recipe(id: 'k2', ofr: _portra),
+    ]),
+  );
+  await t.runAsync(() async {
+    await repo.load();
+    await repo.sync();
+  });
+  final c = ProviderContainer(overrides: [recipeRepositoryProvider.overrideWith((_) => repo)]);
+  addTearDown(c.dispose);
+
+  await t.pumpWidget(UncontrolledProviderScope(
+    container: c,
+    child: MaterialApp(theme: KataTheme.dark(), home: child),
+  ));
   await t.pumpAndSettle();
 }
 
@@ -315,13 +352,38 @@ void main() {
 
   testWidgets('a slot the camera filled seeds the field with what it filled', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF556677))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo, initialMeta: const PhotoMeta(model: 'X-S20', iso: 400, filmMode: 'CLASSIC CHROME')));
+    // ACROS, so no kata in the library matches and the raw film simulation is
+    // what fills the slot — the attached-kata case is covered further down
+    await _pump(t, WakuScreen(initialPhoto: photo, initialMeta: const PhotoMeta(model: 'X-S20', iso: 400, filmMode: 'ACROS')));
     // the country line comes from the film simulation, in full ink, not as an
     // invitation — and it is on the print before anything is typed
-    expect(_onPrint('CLASSIC CHROME'), findsOneWidget);
-    await t.tap(_onPrint('CLASSIC CHROME'));
+    expect(_onPrint('ACROS'), findsOneWidget);
+    await t.tap(_onPrint('ACROS'));
     await t.pumpAndSettle();
-    expect(t.widget<TextField>(_field).controller!.text, 'CLASSIC CHROME');
+    expect(t.widget<TextField>(_field).controller!.text, 'ACROS');
+  });
+
+  testWidgets('a kata can be attached, and its name becomes the object\'s content', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF667788))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    final attach = find.text('ATTACH A KATA');
+    await t.ensureVisible(attach);
+    await t.pumpAndSettle();
+    await t.tap(attach);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Kodachrome 64').first);
+    await t.pumpAndSettle();
+
+    final state = t.state<WakuScreenState>(find.byType(WakuScreen));
+    expect(state.kataName, 'Kodachrome 64');
+    // the stamp's country line is the issuing authority, and that is the kata
+    expect(_onPrint('KODACHROME 64'), findsOneWidget);
+  });
+
+  testWidgets('a photo whose film simulation matches a kata arrives with it attached', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF556677))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo, initialMeta: const PhotoMeta(model: 'X-S20', iso: 400, filmMode: 'CLASSIC CHROME')));
+    expect(t.state<WakuScreenState>(find.byType(WakuScreen)).kataName, 'Kodachrome 64');
   });
 
   testWidgets('stickers: added within allowance, selectable, removable', // kit shelved until the drawings match real references

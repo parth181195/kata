@@ -7,6 +7,7 @@ import '../../../core/compose/layers.dart';
 import '../../../core/compose/roll.dart';
 import '../../../core/compose/treatment.dart';
 import '../../../core/compose/voice.dart';
+import '../../share/kata_code_qr.dart';
 import 'frame.dart';
 
 /// A postage stamp, mounted on a card. Its identity — the perforated edge, the
@@ -101,6 +102,18 @@ class StampObject extends WakuObject {
       ),
       // the postmark is a second pass, so it slips and it laps onto the mount
       ComposeSurface(CustomPaint(painter: PostmarkPainter(roll, stamp, ctx.meta.model, ctx.meta.dateTime))),
+      // modern definitives carry a matrix code in the corner of the face; ours
+      // carries the recipe, so a scan of a posted picture loads it
+      if (ctx.kataCode != null)
+        ComposeSurface(Padding(
+          padding: EdgeInsets.fromLTRB(
+            face.right - stampW * 0.19,
+            stamp.bottom - stampH * 0.185,
+            s.width - face.right,
+            s.height - stamp.bottom + stampH * 0.03,
+          ),
+          child: LayoutBuilder(builder: (c, b) => KataCodeQr(payload: ctx.kataCode!, size: b.biggest.shortestSide)),
+        )),
       ComposeSurface(CustomPaint(painter: SpecklePainter(roll.treatment, roll.seed))),
       ComposeGrainSheet(GrainSpec.measured(clumpPx: clump, amount: amount * 0.33, seed: roll.seed), overInk: true),
     ];

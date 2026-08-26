@@ -5,7 +5,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
+import 'package:ofr/ofr.dart';
+
+import '../../data/recipe.dart';
+import '../../data/recipe_repository.dart';
 
 import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
@@ -28,7 +33,7 @@ import 'waku_palette.dart';
 /// offers — pan/pinch the photo, select a text slot and type into the panel,
 /// drag the draggable ones. Accepts JPEG/PNG/WebP and camera RAW (the embedded
 /// preview is used).
-class WakuScreen extends StatefulWidget {
+class WakuScreen extends ConsumerStatefulWidget {
   const WakuScreen({super.key, this.initialPhoto, this.initialObject, this.initialMeta});
   /// Test seam: the picker can't run under widget tests.
   final Uint8List? initialPhoto;
@@ -42,7 +47,7 @@ class WakuScreen extends StatefulWidget {
   final WakuObject? initialObject;
 
   @override
-  State<WakuScreen> createState() => WakuScreenState();
+  ConsumerState<WakuScreen> createState() => WakuScreenState();
 }
 
 /// The sheet you're posting to. Objects have no fixed sheet of their own — a
@@ -58,7 +63,7 @@ enum WakuRatio {
   final double aspect;
 }
 
-class WakuScreenState extends State<WakuScreen> {
+class WakuScreenState extends ConsumerState<WakuScreen> {
   final _boundary = GlobalKey();
   final _viewer = TransformationController();
   final Map<String, TextEditingController> _slotText = {};
@@ -79,6 +84,11 @@ class WakuScreenState extends State<WakuScreen> {
   PhotoMeta _meta = const PhotoMeta();
   PhotoGrain _grain = PhotoGrain.none;
   List<Color>? _palette;
+  /// The recipe riding along: it becomes the object's content, and its Kata
+  /// Code becomes the object's code.
+  Recipe? _kata;
+  String? get kataName => _kata?.name;
+
   WakuObject _object = kObjects.first;
   Roll _roll = Roll.draw(seed: 1, allowances: kObjects.first.allowances, palette: const []);
   final Set<RollAxis> _pins = {};
@@ -96,6 +106,15 @@ class WakuScreenState extends State<WakuScreen> {
       _pins.add(RollAxis.object);
     }
     _roll = Roll.draw(seed: _seed, allowances: _object.allowances, palette: const []);
+    // a photo handed straight to the screen never went through the picker, so
+    // its matching kata has to be found here instead
+    if (_meta.filmMode != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _kata != null) return;
+        final m = _matching(_meta);
+        if (m != null) setState(() => _kata = m);
+      });
+    }
   }
 
   @override
@@ -151,6 +170,33 @@ class WakuScreenState extends State<WakuScreen> {
     return usable;
   }
 
+  /// The kata whose film simulation this shot was taken on, if the library
+  /// already has one. A guess, and always replaceable — but the common case is
+  /// that you shot the recipe you're about to frame.
+  Recipe? _matching(PhotoMeta meta) {
+    final sim = meta.filmMode?.toUpperCase();
+    if (sim == null) return null;
+    return ref.read(recipeRepositoryProvider).all.where((r) => r.ofr.filmSimulation.toUpperCase() == sim).firstOrNull;
+  }
+
+  Future<void> _attachKata() async {
+    final repo = ref.read(recipeRepositoryProvider);
+    final picked = await showKataSheet<Recipe>(
+      context,
+      builder: (c) => KataSheet(
+        eyebrow: 'Waku',
+        title: 'Attach a kata',
+        children: [
+          if (_kata != null) KataListRow(title: 'None', value: 'DETACH', onTap: () => Navigator.of(c).pop(_none)),
+          for (final r in repo.all.take(60))
+            KataListRow(title: r.name, value: r.ofr.filmSimulation, onTap: () => Navigator.of(c).pop(r)),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _kata = identical(picked, _none) ? null : picked);
+  }
+
   Future<void> _pickPhoto() async {
     final b = await _pickImage('Choose a photo');
     if (b == null || !mounted) return;
@@ -164,6 +210,7 @@ class WakuScreenState extends State<WakuScreen> {
       _meta = meta;
       _palette = palette;
       _grain = grain;
+      _kata = _matching(meta);
       _viewer.value = Matrix4.identity();
     });
     // a new photo is a new shot: it lands on something composed for it, not on
@@ -258,6 +305,8 @@ class WakuScreenState extends State<WakuScreen> {
       grain: _grain,
       palette: _palette ?? const [],
       roll: _roll,
+      kataName: _kata?.name,
+      kataCode: _kata == null ? null : KataCode.encode(_kata!.ofr),
     ));
   }
 
@@ -431,6 +480,20 @@ class WakuScreenState extends State<WakuScreen> {
         if (_photo == null)
           Text('Pick a photo first — it lands on something already composed.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4))
         else ...[
+          KataPillButton(
+            label: _kata == null ? 'Attach a kata' : _kata!.name,
+            kind: KataButtonKind.secondary,
+            height: 38,
+            onPressed: _attachKata,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _kata == null
+                ? 'The recipe becomes the object\u2019s content, and its code rides along.'
+                : 'Its code rides on the object, so a scan puts it in someone\u2019s camera.',
+            style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4),
+          ),
+          const SizedBox(height: 12),
           KataPillButton(label: 'Shuffle', height: 46, onPressed: _reroll),
           const SizedBox(height: 12),
           KataSectionHeader('Keep'),
@@ -633,6 +696,9 @@ class WakuScreenState extends State<WakuScreen> {
       ];
 }
 
+
+/// Sentinel for "detach", so the sheet can return a deliberate null.
+final _none = Recipe(id: '', ofr: const OfrRecipe(filmSimulation: '', dRangePriority: 'Off', grainRoughness: 'Off', whiteBalance: 'Auto', whiteBalanceRed: 0, whiteBalanceBlue: 0, sharpness: 0, highIsoNr: 0, clarity: 0));
 
 /// Rule-of-thirds aid shown only while placing the photo; never exported.
 class _ThirdsPainter extends CustomPainter {

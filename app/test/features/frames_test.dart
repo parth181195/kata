@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/core/compose/ink.dart';
 import 'package:kata/core/compose/layers.dart';
 import 'package:kata/core/compose/roll.dart';
+import 'package:kata/features/share/kata_code_qr.dart';
 import 'package:kata/features/waku/frames/frame.dart';
 import 'package:kata/features/waku/waku_exif.dart';
 import 'package:kata/features/waku/waku_grain_measure.dart';
@@ -175,6 +176,52 @@ void main() {
       expect(differing, 0,
           reason: '${obj.id} changed by $differing pixels when another object was placed beside it — '
               'something it draws is escaping its own sheet');
+    }
+  });
+
+  testWidgets('an attached recipe rides every object exactly once, and never when absent', (t) async {
+    const cell = Size(600, 750);
+    t.view.physicalSize = cell;
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+
+    Future<int> codesOn(WakuObject obj, {String? code}) async {
+      await t.pumpWidget(MaterialApp(
+        home: Material(
+          child: SizedBox(
+            width: cell.width,
+            height: cell.height,
+            child: ComposeCanvasView(
+              canvasSize: cell,
+              grain: false,
+              layers: obj.build(ObjectContext(
+                size: cell,
+                meta: _meta,
+                grain: PhotoGrain.none,
+                palette: _palette,
+                roll: Roll.draw(seed: 4, allowances: obj.allowances, palette: _palette),
+                kataName: code == null ? null : 'KODACHROME 64',
+                kataCode: code,
+              )),
+              photo: const ColoredBox(color: Color(0xFF667788)),
+              textOf: (_) => '',
+              dragOf: (_) => Offset.zero,
+              hideInvitations: true,
+              onTapText: (_) {},
+              onDragText: (_, _) {},
+            ),
+          ),
+        ),
+      ));
+      await t.pumpAndSettle();
+      return find.byType(KataCodeQr).evaluate().length;
+    }
+
+    for (final obj in kObjects) {
+      expect(await codesOn(obj, code: 'kata1:AAAA'), 1,
+          reason: '${obj.id} should carry the attached code exactly once');
+      expect(await codesOn(obj), 0, reason: '${obj.id} drew a code with no recipe attached');
     }
   });
 

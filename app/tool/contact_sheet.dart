@@ -27,6 +27,8 @@ const _seeds = int.fromEnvironment('seeds', defaultValue: 6);
 /// Show the empty slots' invitations, so a card whose maker and title are the
 /// user's to write can still be judged as a finished object.
 const _invite = bool.fromEnvironment('invite');
+/// Attach a recipe, so the object's code furniture is drawn.
+const _kata = String.fromEnvironment('kata');
 
 const _ratios = {'1x1': Size(760, 760), '4x5': Size(760, 950), '3x2': Size(950, 633), '9x16': Size(600, 1067)};
 
@@ -68,7 +70,15 @@ void main() {
               child: ComposeCanvasView(
                 canvasSize: size,
                 grain: true,
-                layers: obj.build(ObjectContext(size: size, meta: meta, grain: grain, palette: palette, roll: roll)),
+                layers: obj.build(ObjectContext(
+                  size: size,
+                  meta: meta,
+                  grain: grain,
+                  palette: palette,
+                  roll: roll,
+                  kataName: _kata.isEmpty ? null : _kata,
+                  kataCode: _kata.isEmpty ? null : 'kata1:CC.DR200.HL+1.SD-1.CO+2.SH0.NR-2.CL0.WBd.R+1.B-2.GRw',
+                )),
                 photo: Image.memory(bytes, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                 textOf: (_) => '',
                 dragOf: (_) => Offset.zero,

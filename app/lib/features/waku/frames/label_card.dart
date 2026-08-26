@@ -6,6 +6,7 @@ import '../../../core/compose/roll.dart';
 import '../../../core/compose/treatment.dart';
 import '../../../core/compose/voice.dart';
 import 'barcode.dart';
+import '../../share/kata_code_qr.dart';
 import 'frame.dart';
 
 /// A print on a board with a tombstone card beside it: maker, title, date,
@@ -127,15 +128,24 @@ class LabelCardObject extends WakuObject {
         maxChars: 44,
         fitRegion: true,
       ),
-      // the accession number, and the barcode that carries it
+      // The accession number's code. Code 39 when the object is only itself; the
+      // Kata Code when a recipe is attached, because a museum label carries one
+      // code, not two — and this one is worth scanning.
       ComposeSurface(Padding(
         padding: EdgeInsets.fromLTRB(
           card.left + card.width * 0.06,
-          card.top + card.height * 0.74,
-          s.width - (card.left + card.width * 0.52),
-          s.height - (card.top + card.height * 0.87),
+          card.top + card.height * 0.72,
+          s.width - (card.left + card.width * (ctx.kataCode == null ? 0.52 : 0.26)),
+          s.height - (card.top + card.height * 0.90),
         ),
-        child: CustomPaint(painter: BarcodePainter(accession, roll.ink.withValues(alpha: 0.85))),
+        child: ctx.kataCode == null
+            ? CustomPaint(painter: BarcodePainter(accession, roll.ink.withValues(alpha: 0.85)))
+            : LayoutBuilder(
+                builder: (c, b) => Align(
+                  alignment: Alignment.centerLeft,
+                  child: KataCodeQr(payload: ctx.kataCode!, size: b.biggest.shortestSide),
+                ),
+              ),
       )),
       ComposeTextSlot(
         id: 'accession',

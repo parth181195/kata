@@ -7,6 +7,7 @@ import '../../../core/compose/layers.dart';
 import '../../../core/compose/roll.dart';
 import '../../../core/compose/treatment.dart';
 import '../../../core/compose/voice.dart';
+import '../../share/kata_code_qr.dart';
 import 'frame.dart';
 
 /// A 35mm negative strip on a light table. Its identity is measured, because
@@ -113,6 +114,20 @@ class NegativeStripObject extends WakuObject {
       // punched last: a perforation goes through the edge print too, which is
       // exactly how the stock's name reads on a real strip — interrupted
       ComposeSurface(CustomPaint(painter: SprocketPainter(strip: strip, mm: mm, roll: roll))),
+      // The recipe's code. It cannot go in the margin — that band is 1.6 mm,
+      // which is a smear at any print size, and the perforations would punch
+      // through it. So it goes where a lab prints one: the corner of the frame
+      // itself, after the perforations, small enough to read past.
+      if (ctx.kataCode != null)
+        ComposeSurface(Padding(
+          padding: EdgeInsets.fromLTRB(
+            photoRect.right - _frameH * mm * 0.19 - _gutter * mm,
+            photoRect.bottom - _frameH * mm * 0.19 - _gutter * mm,
+            s.width - photoRect.right + _gutter * mm,
+            s.height - photoRect.bottom + _gutter * mm,
+          ),
+          child: LayoutBuilder(builder: (c, b) => KataCodeQr(payload: ctx.kataCode!, size: b.biggest.shortestSide)),
+        )),
       ComposeSurface(CustomPaint(painter: SpecklePainter(roll.treatment, roll.seed))),
       ComposeGrainSheet(GrainSpec.measured(clumpPx: clump, amount: amount * 0.33, seed: roll.seed), overInk: true),
     ];
