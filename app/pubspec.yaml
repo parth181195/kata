@@ -38,6 +38,7 @@ dependencies:
   crypto: ^3.0.7
   package_info_plus: ^9.0.1
   exif: ^3.3.0
+  google_fonts: ^8.2.1
 
 dependency_overrides:
   ofr:
