@@ -52,6 +52,11 @@ class LabelCardObject extends WakuObject {
     // A code is only worth printing if it can be read. The Code 39 is a strip
     // and fits in a line; a matrix code needs a square with real height, so a
     // card carrying one is deeper and gives it a column of its own.
+    //
+    // This is the one place in the set where attaching content reflows the
+    // composition rather than just filling a slot — the print moves up, the
+    // card widens. That is deliberate: a code too small to scan is worse than
+    // a layout that shifts once when you attach a kata.
     final hasCode = ctx.kataCode != null;
 
     // Beside the work on a wide sheet, beneath it on an upright one. Either

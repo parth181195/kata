@@ -1572,6 +1572,17 @@ Tasks 1–7 are done. Three things changed that the later tasks' snippets predat
   asserts contrast against it for every registered object.
 - **Bringing your own image as the frame is gone**, along with `waku_frames.dart`
   and `custom_frame.dart`. `kObjects` is the whole menu.
+- **Judge output with `app/tool/contact_sheet.dart`, not the dev grid.** The grid
+  renders nine canvases into one layer, which the app never does, and it renders
+  differently when they do — it hid a real overdraw bug and invented a fake one
+  (Flutter's missing-`Material` yellow underline). The tool rasterises each seed
+  on its own:
+
+  ```bash
+  cd app && fvm flutter test tool/contact_sheet.dart \
+    --dart-define=obj=negative --dart-define=ratio=9x16 \
+    --dart-define=invite=true --dart-define="kata=Kodachrome 64"
+  ```
 
 ### Task 8: The 35mm negative strip
 
