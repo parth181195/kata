@@ -8,11 +8,23 @@ import 'package:google_fonts/google_fonts.dart';
 enum VoiceId { postOffice, bureau, deco, civic }
 
 class Voice {
-  const Voice(this.id, this.display, this.text, this.data, {this.displayWeight = FontWeight.w700, this.displayTracking = 0});
+  const Voice(this.id, this.display, this.text, this.data,
+      {this.displayWeight = FontWeight.w700,
+      this.textWeight = FontWeight.w500,
+      this.dataWeight = FontWeight.w500,
+      this.displayTracking = 0});
 
   final VoiceId id;
   final String display, text, data;
+
+  /// The weights are not a design choice so much as an inventory: the app
+  /// bundles one file per family (see assets/google_fonts, and the test that
+  /// checks every weight named here has one), and asking for a weight with no
+  /// asset silently drops to a fallback face. Archivo Black and Bebas Neue
+  /// only ship at 400 — they are already heavy.
   final FontWeight displayWeight;
+  final FontWeight textWeight;
+  final FontWeight dataWeight;
 
   /// Fraction of the font size, applied as letter spacing on display type.
   final double displayTracking;
@@ -20,18 +32,20 @@ class Voice {
   TextStyle displayStyle(double size, Color c) => GoogleFonts.getFont(display,
       fontSize: size, fontWeight: displayWeight, color: c, height: 1, letterSpacing: size * displayTracking);
 
-  TextStyle textStyle(double size, Color c, {FontWeight weight = FontWeight.w500, double tracking = 0.12}) =>
-      GoogleFonts.getFont(text, fontSize: size, fontWeight: weight, color: c, height: 1.1, letterSpacing: size * tracking);
+  TextStyle textStyle(double size, Color c, {double tracking = 0.12}) =>
+      GoogleFonts.getFont(text, fontSize: size, fontWeight: textWeight, color: c, height: 1.1, letterSpacing: size * tracking);
 
   TextStyle dataStyle(double size, Color c) =>
-      GoogleFonts.getFont(data, fontSize: size, fontWeight: FontWeight.w500, color: c, height: 1);
+      GoogleFonts.getFont(data, fontSize: size, fontWeight: dataWeight, color: c, height: 1);
 }
 
 const kVoices = <VoiceId, Voice>{
-  VoiceId.postOffice: Voice(VoiceId.postOffice, 'Oswald', 'Barlow Condensed', 'Space Mono', displayTracking: -0.03),
-  VoiceId.bureau: Voice(VoiceId.bureau, 'Archivo Black', 'IBM Plex Sans', 'IBM Plex Mono'),
-  VoiceId.deco: Voice(VoiceId.deco, 'Playfair Display', 'Cormorant Garamond', 'Courier Prime', displayWeight: FontWeight.w900),
-  VoiceId.civic: Voice(VoiceId.civic, 'Bebas Neue', 'Work Sans', 'Roboto Mono'),
+  VoiceId.postOffice: Voice(VoiceId.postOffice, 'Oswald', 'Barlow Condensed', 'Space Mono',
+      dataWeight: FontWeight.w400, displayTracking: -0.03),
+  VoiceId.bureau: Voice(VoiceId.bureau, 'Archivo Black', 'IBM Plex Sans', 'IBM Plex Mono', displayWeight: FontWeight.w400),
+  VoiceId.deco: Voice(VoiceId.deco, 'Playfair Display', 'Cormorant Garamond', 'Courier Prime',
+      displayWeight: FontWeight.w900, dataWeight: FontWeight.w400),
+  VoiceId.civic: Voice(VoiceId.civic, 'Bebas Neue', 'Work Sans', 'Roboto Mono', displayWeight: FontWeight.w400),
 };
 
 /// How likely each allowed voice is for this shot. Weighting, never forcing:

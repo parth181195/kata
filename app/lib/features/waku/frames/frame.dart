@@ -4,6 +4,7 @@ import '../../../core/compose/layers.dart';
 import '../../../core/compose/roll.dart';
 import '../waku_exif.dart';
 import '../waku_grain_measure.dart';
+import 'label_card.dart';
 import 'negative_strip.dart';
 import 'stamp.dart';
 
@@ -53,6 +54,6 @@ abstract class WakuObject {
 }
 
 /// Every object the app can produce.
-const List<WakuObject> kObjects = [StampObject(), NegativeStripObject()];
+const List<WakuObject> kObjects = [StampObject(), NegativeStripObject(), LabelCardObject()];
 
 WakuObject objectById(String id) => kObjects.firstWhere((o) => o.id == id, orElse: () => kObjects.first);

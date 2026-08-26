@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/core/compose/voice.dart';
 
@@ -28,5 +30,30 @@ void main() {
   test('only allowed voices are weighted', () {
     final w = voiceWeights(filmSim: null, iso: null, allowed: {VoiceId.civic});
     expect(w.keys.single, VoiceId.civic);
+  });
+
+  test('every weight a voice names has a bundled font file', () {
+    // google_fonts resolves Family + weight to an asset called
+    // <Family>-<Variant>.ttf. The app bundles one file per family and turns
+    // runtime fetching off, so a weight with no file does not fall back to a
+    // near neighbour — it drops to the platform default, and in a test to the
+    // box font, which is how a label card came to render YOUR NAME as two grey
+    // rectangles.
+    const variants = {400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black'};
+    final dir = Directory('assets/google_fonts');
+    expect(dir.existsSync(), isTrue, reason: 'run this from app/');
+    final have = dir.listSync().map((f) => f.uri.pathSegments.last).toSet();
+
+    for (final v in kVoices.values) {
+      for (final (family, weight) in [
+        (v.display, v.displayWeight),
+        (v.text, v.textWeight),
+        (v.data, v.dataWeight),
+      ]) {
+        final file = '${family.replaceAll(' ', '')}-${variants[weight.value]}.ttf';
+        expect(have, contains(file),
+            reason: '${v.id.name} asks for $family ${variants[weight.value]}, and assets/google_fonts has no $file');
+      }
+    }
   });
 }

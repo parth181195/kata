@@ -24,6 +24,9 @@ const _photoPath = String.fromEnvironment('photo', defaultValue: '/home/parth/We
 const _outDir = String.fromEnvironment('out', defaultValue: '/home/parth/.claude/jobs/787ed077/tmp/sheet');
 const _ratio = String.fromEnvironment('ratio', defaultValue: '4x5');
 const _seeds = int.fromEnvironment('seeds', defaultValue: 6);
+/// Show the empty slots' invitations, so a card whose maker and title are the
+/// user's to write can still be judged as a finished object.
+const _invite = bool.fromEnvironment('invite');
 
 const _ratios = {'1x1': Size(760, 760), '4x5': Size(760, 950), '3x2': Size(950, 633), '9x16': Size(600, 1067)};
 
@@ -69,7 +72,7 @@ void main() {
                 photo: Image.memory(bytes, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                 textOf: (_) => '',
                 dragOf: (_) => Offset.zero,
-                hideInvitations: true,
+                hideInvitations: !_invite,
                 onTapText: (_) {},
                 onDragText: (_, _) {},
                 ),
