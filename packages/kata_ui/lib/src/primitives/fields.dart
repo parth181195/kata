@@ -21,6 +21,7 @@ class KataTextField extends StatelessWidget {
     this.autofocus = false,
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
+    this.focusNode,
   });
   final String label;
   final TextEditingController? controller;
@@ -37,6 +38,7 @@ class KataTextField extends StatelessWidget {
   /// it holds, and says so while you type rather than after.
   final List<TextInputFormatter>? inputFormatters;
   final TextCapitalization textCapitalization;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class KataTextField extends StatelessWidget {
               autofocus: autofocus,
               inputFormatters: inputFormatters,
               textCapitalization: textCapitalization,
+              focusNode: focusNode,
               cursorColor: p.fg,
               style: mono ? KataType.monoStyle(size: 12.5, color: p.fg, height: 1.4) : KataType.bodyStyle(size: 13, color: p.fg, height: 1.2),
               decoration: InputDecoration(

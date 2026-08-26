@@ -29,9 +29,13 @@ import 'waku_palette.dart';
 /// drag the draggable ones. Accepts JPEG/PNG/WebP and camera RAW (the embedded
 /// preview is used).
 class WakuScreen extends StatefulWidget {
-  const WakuScreen({super.key, this.initialPhoto, this.initialObject});
+  const WakuScreen({super.key, this.initialPhoto, this.initialObject, this.initialMeta});
   /// Test seam: the picker can't run under widget tests.
   final Uint8List? initialPhoto;
+
+  /// Test seam: a generated PNG carries no EXIF, so the prefilled path would
+  /// otherwise never run.
+  final PhotoMeta? initialMeta;
 
   /// Test seam: pins the object so a test can target one whose slots grant the
   /// handles it means to exercise.
@@ -66,6 +70,7 @@ class WakuScreenState extends State<WakuScreen> {
   int _stickerSeq = 0;
   String? _selected; // 'photo' or a slot id — chrome + contextual controls
   final _keys = FocusNode(debugLabel: 'waku-keys');
+  final _slotField = FocusNode(debugLabel: 'waku-slot-field');
   double _photoAngle = 0; // straighten, degrees (placement freedom, not look)
   bool _photoFlip = false;
   bool _placing = false; // pan/zoom/straighten in progress → thirds grid
@@ -85,6 +90,7 @@ class WakuScreenState extends State<WakuScreen> {
   void initState() {
     super.initState();
     _photo = widget.initialPhoto;
+    if (widget.initialMeta != null) _meta = widget.initialMeta!;
     if (widget.initialObject != null) {
       _object = widget.initialObject!;
       _pins.add(RollAxis.object);
@@ -95,6 +101,7 @@ class WakuScreenState extends State<WakuScreen> {
   @override
   void dispose() {
     _keys.dispose();
+    _slotField.dispose();
     _viewer.dispose();
     for (final c in _slotText.values) {
       c.dispose();
@@ -114,7 +121,12 @@ class WakuScreenState extends State<WakuScreen> {
     setState(() {
       _seed = seed ?? _seed + 1;
       if (!_pins.contains(RollAxis.object) && kObjects.length > 1) {
-        _object = kObjects[math.Random(_seed * 17).nextInt(kObjects.length)];
+        final next = kObjects[math.Random(_seed * 17).nextInt(kObjects.length)];
+        // a slot id belongs to the object that declared it: carrying a
+        // selection across would leave the panel editing something that is no
+        // longer on the print
+        if (next.id != _object.id) _selected = null;
+        _object = next;
       }
       _roll = Roll.draw(
         seed: _seed,
@@ -252,11 +264,19 @@ class WakuScreenState extends State<WakuScreen> {
   /// Selecting a slot is the edit gesture: the panel's field takes over from
   /// there. A slot the camera filled in seeds the field with what it filled,
   /// so typing starts from the prefill rather than wiping it.
-  void _selectSlot(String id) => setState(() {
-        final prefill = _slotSpec(id)?.prefill?.trim() ?? '';
-        if ((_slotText[id]?.text ?? '').trim().isEmpty && prefill.isNotEmpty) _ctl(id).text = prefill;
-        _selected = id;
-      });
+  void _selectSlot(String id) {
+    setState(() {
+      final prefill = _slotSpec(id)?.prefill?.trim() ?? '';
+      if ((_slotText[id]?.text ?? '').trim().isEmpty && prefill.isNotEmpty) _ctl(id).text = prefill;
+      _selected = id;
+    });
+    // on a phone the panel sits below the preview, so the field you just asked
+    // for starts off the bottom of the screen. Focusing it scrolls it into
+    // view — without that, tapping the text does nothing you can see.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _selected == id) _slotField.requestFocus();
+    });
+  }
 
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
         canvasSize: size,
@@ -440,6 +460,7 @@ class WakuScreenState extends State<WakuScreen> {
                 label: o.label,
                 selected: _object.id == o.id,
                 onTap: () => setState(() {
+                  if (o.id != _object.id) _selected = null;
                   _object = o;
                   _pins.add(RollAxis.object); // choosing one is keeping it
                   _reroll();
@@ -490,6 +511,7 @@ class WakuScreenState extends State<WakuScreen> {
             key: const ValueKey('slot-text'),
             label: 'Line',
             controller: _ctl(_selected!),
+            focusNode: _slotField,
             hint: _slotSpec(_selected!)?.invitation,
             maxLines: _slotSpec(_selected!)?.maxLines ?? 1,
             inputFormatters: [

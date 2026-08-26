@@ -1558,6 +1558,21 @@ for objects, and retrofitting would have carried the compromise forward."
 
 ---
 
+## Amendments made while executing (read before Task 8)
+
+Tasks 1–7 are done. Three things changed that the later tasks' snippets predate:
+
+- **`ComposeCanvasView` no longer takes `editingId` or `editorBuilder`.** Text is
+  typed into a field in the side panel, not into an editor sitting on the print.
+  Any snippet below that passes those arguments is stale — drop them.
+- **`Allowances` gained `inkOn`**: the surface the ink is *printed on*, which is
+  what legibility is measured against, as distinct from `grounds` (the mount
+  behind the object, which is decorative). Every new object must declare it —
+  the negative strip's is its film base, not the light table. `frames_test.dart`
+  asserts contrast against it for every registered object.
+- **Bringing your own image as the frame is gone**, along with `waku_frames.dart`
+  and `custom_frame.dart`. `kObjects` is the whole menu.
+
 ### Task 8: The 35mm negative strip
 
 **Files:**

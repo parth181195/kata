@@ -10,6 +10,7 @@ import 'package:kata/core/compose/roll.dart';
 import 'package:kata/core/compose/treatment.dart';
 import 'package:kata/core/compose/voice.dart';
 import 'package:kata/features/waku/frames/frame.dart';
+import 'package:kata/features/waku/waku_exif.dart';
 import 'package:kata/features/waku/waku_screen.dart';
 import 'package:kata_ui/kata_ui.dart';
 
@@ -24,10 +25,10 @@ Future<Uint8List> _png(Color c, {int size = 8}) async {
   return bytes!.buffer.asUint8List();
 }
 
-Future<void> _pump(WidgetTester t, Widget child) async {
+Future<void> _pump(WidgetTester t, Widget child, {Size size = const Size(1280, 900)}) async {
   t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
   addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
-  t.view.physicalSize = const Size(1280, 900);
+  t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.resetPhysicalSize);
   addTearDown(t.view.resetDevicePixelRatio);
@@ -292,6 +293,35 @@ void main() {
     await t.drag(_onPrint('GOLDEN HOUR'), const Offset(40, 0));
     await t.pumpAndSettle();
     expect(translationOf().dx, greaterThan(before.dx));
+  });
+
+  testWidgets('on a phone the panel field comes to you when you tap the text', (t) async {
+    const phone = Size(360, 640); // a small phone, where the fold actually bites
+    final photo = (await t.runAsync(() => _png(const Color(0xFF446655))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()), size: phone);
+    await t.tap(find.text('ADD A LINE'));
+    await t.pumpAndSettle();
+    // the controls sit below a half-height preview here: if the field stays
+    // below the fold, tapping the text looks like it did nothing
+    final r = t.getRect(_field);
+    expect(r.top, greaterThanOrEqualTo(0.0), reason: 'the field scrolled off the top');
+    expect(r.bottom, lessThanOrEqualTo(phone.height), reason: 'the field is below the fold');
+    // and the caret is already in it, so you can just type
+    expect(t.widget<TextField>(_field).focusNode?.hasFocus, isTrue);
+    await t.enterText(_field, 'sea wall');
+    await t.pumpAndSettle();
+    expect(_onPrint('SEA WALL'), findsOneWidget);
+  });
+
+  testWidgets('a slot the camera filled seeds the field with what it filled', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF556677))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo, initialMeta: const PhotoMeta(model: 'X-S20', iso: 400, filmMode: 'CLASSIC CHROME')));
+    // the country line comes from the film simulation, in full ink, not as an
+    // invitation — and it is on the print before anything is typed
+    expect(_onPrint('CLASSIC CHROME'), findsOneWidget);
+    await t.tap(_onPrint('CLASSIC CHROME'));
+    await t.pumpAndSettle();
+    expect(t.widget<TextField>(_field).controller!.text, 'CLASSIC CHROME');
   });
 
   testWidgets('stickers: added within allowance, selectable, removable', // kit shelved until the drawings match real references
