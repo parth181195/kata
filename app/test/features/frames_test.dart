@@ -1,5 +1,8 @@
-import 'dart:ui';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/core/compose/ink.dart';
 import 'package:kata/core/compose/layers.dart';
@@ -102,6 +105,76 @@ void main() {
         expect(contrastRatio(roll.ink, obj.allowances.inkOn), greaterThanOrEqualTo(3.0),
             reason: '${obj.id} at seed $seed is unreadable on its own surface');
       }
+    }
+  });
+
+  // A CustomPainter that draws past the size it was given paints over whatever
+  // was drawn before it. On one canvas the screen hides that; put two canvases
+  // in one layer — an object drawer, a row of thumbnails — and an object erases
+  // its neighbour. The negative strip did exactly this, and it took a bisect to
+  // find, because every layer rect involved was correct.
+  //
+  // The invariant, stated without guessing what an object may draw on itself:
+  // an object rendered beside another must come out pixel-for-pixel identical
+  // to the same object rendered alone.
+  testWidgets('no object paints outside its own sheet', (t) async {
+    const cell = Size(300, 375);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+
+    Widget canvas(WakuObject obj, int seed) => SizedBox(
+          width: cell.width,
+          height: cell.height,
+          child: ComposeCanvasView(
+            canvasSize: cell,
+            grain: false,
+            layers: obj.build(ObjectContext(
+              size: cell,
+              meta: _meta,
+              grain: PhotoGrain.none,
+              palette: _palette,
+              roll: Roll.draw(seed: seed, allowances: obj.allowances, palette: _palette),
+            )),
+            photo: const ColoredBox(color: Color(0xFFFF00FF)),
+            textOf: (_) => '',
+            dragOf: (_) => Offset.zero,
+            hideInvitations: true,
+            onTapText: (_) {},
+            onDragText: (_, _) {},
+          ),
+        );
+
+    Future<ByteData> shoot(WidgetTester t, GlobalKey key, Widget child, Size view) async {
+      t.view.physicalSize = view;
+      await t.pumpWidget(MaterialApp(home: Material(child: RepaintBoundary(key: key, child: child))));
+      await t.pumpAndSettle();
+      late ByteData out;
+      await t.runAsync(() async {
+        final b = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final img = await b.toImage();
+        out = (await img.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        img.dispose();
+      });
+      return out;
+    }
+
+    for (final obj in kObjects) {
+      final alone = await shoot(t, GlobalKey(), canvas(obj, 1), cell);
+      final paired = await shoot(t, GlobalKey(),
+          Row(children: [canvas(obj, 1), canvas(obj, 2)]), Size(cell.width * 2, cell.height));
+
+      var differing = 0;
+      for (var y = 0; y < cell.height.round(); y++) {
+        for (var x = 0; x < cell.width.round(); x++) {
+          final a = (y * cell.width.round() + x) * 4;
+          final b = (y * cell.width.round() * 2 + x) * 4;
+          if (alone.getUint32(a) != paired.getUint32(b)) differing++;
+        }
+      }
+      expect(differing, 0,
+          reason: '${obj.id} changed by $differing pixels when another object was placed beside it — '
+              'something it draws is escaping its own sheet');
     }
   });
 

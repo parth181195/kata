@@ -61,6 +61,9 @@ class SpecklePainter extends CustomPainter {
 
   @override
   void paint(Canvas c, Size s) {
+    // dust wanders; it does not wander off the sheet and onto whatever is
+    // drawn beside it (see frames_test: 'no object paints outside its own sheet')
+    c.clipRect(Offset.zero & s);
     final r = math.Random(seed ^ 0x9E3);
     final p = Paint();
     for (var i = 0; i < treatment.speckles; i++) {
@@ -99,6 +102,9 @@ class PressurePainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
     if (treatment.pressure <= 0) return;
+    // these are wide soft circles — up to three quarters of the sheet's width —
+    // dropped anywhere on it, so unclipped they reach well past its edges
+    c.clipRect(Offset.zero & s);
     final r = math.Random(seed ^ 0x51);
     for (var i = 0; i < 5; i++) {
       final centre = Offset(r.nextDouble() * s.width, r.nextDouble() * s.height);

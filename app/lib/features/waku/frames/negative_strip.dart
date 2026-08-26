@@ -128,11 +128,17 @@ class FilmBasePainter extends CustomPainter {
 
   @override
   void paint(Canvas c, Size s) {
+    // A painter that draws past its own size paints over whatever was drawn
+    // before it — on one canvas the screen hides that, but put two canvases in
+    // one layer and the strip erases its neighbour's photograph.
+    c.clipRect(Offset.zero & s);
     c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF23201C));
-    // neighbours, stepping outward from ours by one frame + gutter each time
+    // neighbours, stepping outward from ours by one frame + gutter each time,
+    // only as far as the sheet can actually show
     final dense = Paint()..color = const Color(0xFF1B1814);
     final top = margin, bottom = s.height - margin;
-    for (var i = 1; i <= 3; i++) {
+    final reach = ((s.width / 2 + frameW / 2) / (frameW + gutter)).ceil();
+    for (var i = 1; i <= reach; i++) {
       final off = i * (frameW + gutter);
       for (final left in [s.width / 2 - frameW / 2 - off, s.width / 2 - frameW / 2 + off]) {
         c.drawRect(Rect.fromLTWH(left, top, frameW, bottom - top), dense);
@@ -162,6 +168,7 @@ class SprocketPainter extends CustomPainter {
     // a perforation is a hole: what shows through it is whatever the strip is
     // lying on, which is the one place the ground reaches inside the film
     final hole = Paint()..color = roll.ground;
+    c.clipRect(Offset.zero & s);
     // the strip runs off both edges, so the row is laid from the centre out
     final n = (s.width / pitch).ceil() + 2;
     for (var i = -n; i <= n; i++) {
