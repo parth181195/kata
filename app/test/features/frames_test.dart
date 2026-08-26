@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kata/core/compose/ink.dart';
 import 'package:kata/core/compose/layers.dart';
 import 'package:kata/core/compose/roll.dart';
 import 'package:kata/features/waku/frames/frame.dart';
@@ -53,6 +54,16 @@ void main() {
             }
           }
         }
+      }
+    }
+  });
+
+  test('every object prints ink you can read on the surface it prints on', () {
+    for (final obj in kObjects) {
+      for (var seed = 0; seed < 60; seed++) {
+        final roll = Roll.draw(seed: seed, allowances: obj.allowances, palette: _palette, filmSim: _meta.filmMode, iso: _meta.iso);
+        expect(contrastRatio(roll.ink, obj.allowances.inkOn), greaterThanOrEqualTo(3.0),
+            reason: '${obj.id} at seed $seed is unreadable on its own surface');
       }
     }
   });

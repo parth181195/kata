@@ -63,7 +63,7 @@ class StampObject extends WakuObject {
         padding: EdgeInsets.fromLTRB(stamp.left, stamp.top, s.width - stamp.right, s.height - stamp.bottom),
         child: ClipPath(
           clipper: PerforationClipper(roll.treatment, roll.seed),
-          child: const ColoredBox(color: Color(0xFFF4EFE3)),
+          child: ColoredBox(color: allowances.inkOn),
         ),
       )),
       ComposePhotoWindow(rect: photoRect),
