@@ -35,6 +35,13 @@ Future<void> _pump(WidgetTester t, Widget child) async {
   await t.pumpAndSettle();
 }
 
+/// The panel's field for the selected slot.
+final _field = find.descendant(of: find.byKey(const ValueKey('slot-text')), matching: find.byType(TextField));
+
+/// [text] as it appears on the print — the panel's field holds the same string,
+/// so a bare find.text would match twice.
+Finder _onPrint(String text) => find.descendant(of: find.byType(ComposeCanvasView), matching: find.text(text));
+
 /// An object that grants every optional handle, so the panel controls that a
 /// rigid object like the stamp never offers still have something to act on.
 class _LooseObject extends WakuObject {
@@ -153,10 +160,8 @@ void main() {
                   photo: const SizedBox.shrink(),
                   textOf: (_) => '',
                   dragOf: (_) => Offset.zero,
-                  editingId: null,
                   onTapText: (_) {},
                   onDragText: (_, _) {},
-                  editorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
             ),
@@ -170,32 +175,26 @@ void main() {
     expect(find.byType(GrainOverlay), findsOneWidget);
   });
 
-  testWidgets('selection: filled text needs two taps to edit; photo select shows placement controls', (t) async {
+  testWidgets('selecting a slot opens the panel field; the print is never typed on', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF884422))))!;
     await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
-    // empty slot: first tap goes straight to the editor
+    // nothing selected: no field
+    expect(_field, findsNothing);
+    // one tap on the slot selects it and the panel takes over
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'monsoon');
-    await t.testTextInput.receiveAction(TextInputAction.done);
-    await t.pumpAndSettle();
-    // tap the ground to deselect (the slot stays selected right after editing)
-    await t.tapAt(t.getBottomLeft(find.byType(InteractiveViewer)) + const Offset(4, 12));
-    await t.pumpAndSettle();
-    // filled slot: first tap selects (context panel appears, no editor)
-    await t.tap(find.text('MONSOON'));
-    await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('slot-editor')), findsNothing);
+    expect(_field, findsOneWidget);
     expect(find.text('CLEAR LINE'), findsOneWidget);
-    // second tap edits
-    await t.tap(find.text('MONSOON'));
+    await t.enterText(_field, 'monsoon');
     await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('slot-editor')), findsOneWidget);
-    await t.testTextInput.receiveAction(TextInputAction.done);
-    await t.pumpAndSettle();
+    // it lands on the print as you type — no editor sitting on the sheet
+    expect(_onPrint('MONSOON'), findsOneWidget);
+    expect(find.byKey(const ValueKey('slot-editor')), findsNothing);
+
     // select the photo: placement-only controls, no look controls
     await t.tap(find.byType(InteractiveViewer));
     await t.pumpAndSettle();
+    expect(_field, findsNothing);
     expect(find.text('STRAIGHTEN'), findsOneWidget);
     expect(find.text('FLIP'), findsOneWidget);
     expect(find.text('RESET'), findsOneWidget);
@@ -207,8 +206,8 @@ void main() {
     await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'x' * 200);
-    final field = t.widget<TextField>(find.byKey(const ValueKey('slot-editor')));
+    await t.enterText(_field, 'x' * 200);
+    final field = t.widget<TextField>(_field);
     expect(field.controller!.text.length, 56);
     expect(field.maxLines, 2);
   });
@@ -216,13 +215,12 @@ void main() {
   testWidgets('a rigid object grants no handles: the stamp cannot be restyled', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF665544))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
-    // the stamp's country line is set by whoever issued the stamp
+    // the stamp's country line is still yours to write
     await t.tap(find.text('KATA'));
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'bombay');
-    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.enterText(_field, 'bombay');
     await t.pumpAndSettle();
-    expect(find.text('BOMBAY'), findsOneWidget);
+    expect(_onPrint('BOMBAY'), findsOneWidget);
     // ...but nothing about how it is set is the user's to move
     expect(find.byKey(const ValueKey('slot-size')), findsNothing);
     expect(find.byKey(const ValueKey('slot-tilt')), findsNothing);
@@ -232,18 +230,17 @@ void main() {
   testWidgets('size and tilt are panel controls, not handles on the print', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF775533))))!;
     await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
-    // type a line, close the editor, slot stays selected
+    // type a line into the panel; the slot stays selected
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'chai break');
-    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.enterText(_field, 'chai break');
     await t.pumpAndSettle();
 
     // nothing to grab on the sheet itself beyond the grip that places the line
     expect(find.byKey(const ValueKey('slot-scale')), findsNothing);
     expect(find.byKey(const ValueKey('slot-rotate')), findsNothing);
 
-    double fontSize() => t.widget<Text>(find.text('CHAI BREAK')).style!.fontSize!;
+    double fontSize() => t.widget<Text>(_onPrint('CHAI BREAK')).style!.fontSize!;
     final before = fontSize();
     final size = find.byKey(const ValueKey('slot-size'));
     await t.ensureVisible(size);
@@ -263,7 +260,7 @@ void main() {
     // ink: pick the red pen
     await t.tap(find.byKey(const ValueKey('ink-ffb3402b')));
     await t.pumpAndSettle();
-    expect(t.widget<Text>(find.text('CHAI BREAK')).style!.color, const Color(0xFFB3402B));
+    expect(t.widget<Text>(_onPrint('CHAI BREAK')).style!.color, const Color(0xFFB3402B));
     expect(find.text('RESET STYLE'), findsOneWidget);
   });
 
@@ -272,20 +269,18 @@ void main() {
     await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'golden hour');
-    // while editing, the chrome stays and the grip still moves the slot
+    await t.enterText(_field, 'golden hour');
+    await t.pumpAndSettle();
+    expect(_onPrint('GOLDEN HOUR'), findsOneWidget);
+    // a selected draggable slot carries its grip
     expect(find.byKey(const ValueKey('slot-grip')), findsOneWidget);
     await t.drag(find.byKey(const ValueKey('slot-grip')), const Offset(25, 0));
     await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('slot-editor')), findsOneWidget); // drag didn't kill the editor
-    await t.testTextInput.receiveAction(TextInputAction.done);
-    await t.pumpAndSettle();
-    expect(find.text('GOLDEN HOUR'), findsOneWidget);
 
     Offset translationOf() {
       // the slot renders rotate-inside-translate; sum every ancestor Transform
       var dx = 0.0, dy = 0.0;
-      for (final tr in t.widgetList<Transform>(find.ancestor(of: find.text('GOLDEN HOUR'), matching: find.byType(Transform)))) {
+      for (final tr in t.widgetList<Transform>(find.ancestor(of: _onPrint('GOLDEN HOUR'), matching: find.byType(Transform)))) {
         final v = tr.transform.getTranslation();
         dx += v.x;
         dy += v.y;
@@ -294,7 +289,7 @@ void main() {
     }
 
     final before = translationOf();
-    await t.drag(find.text('GOLDEN HOUR'), const Offset(40, 0));
+    await t.drag(_onPrint('GOLDEN HOUR'), const Offset(40, 0));
     await t.pumpAndSettle();
     expect(translationOf().dx, greaterThan(before.dx));
   });
@@ -317,18 +312,4 @@ void main() {
     expect(find.text('TAPE 1/2'), findsOneWidget);
   });
 
-  testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {
-    final photo = (await t.runAsync(() => _png(const Color(0xFF2255AA))))!;
-    final frame = (await t.runAsync(() => _png(const Color(0xFF111111))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo, initialFrame: frame));
-    expect(find.text('Frame on top'), findsOneWidget);
-    expect(find.byType(Slider), findsOneWidget); // surround mode insets the photo
-    // the row is what takes the tap; the label inside it is not hit-testable
-    final row = find.ancestor(of: find.text('Frame on top'), matching: find.byType(KataListRow));
-    await t.ensureVisible(row);
-    await t.pumpAndSettle();
-    await t.tap(row);
-    await t.pumpAndSettle();
-    expect(find.byType(Slider), findsNothing); // overlay mode: photo fills, no surround
-  });
 }

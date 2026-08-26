@@ -73,11 +73,9 @@ class _DevRollGridState extends State<DevRollGrid> {
                     photo: Image.memory(widget.photo, fit: BoxFit.cover),
                     textOf: (_) => '',
                     dragOf: (_) => Offset.zero,
-                    editingId: null,
                     hideInvitations: true,
                     onTapText: (_) {},
                     onDragText: (_, _) {},
-                    editorBuilder: (_, _, _) => const SizedBox.shrink(),
                   );
                 }),
             ],

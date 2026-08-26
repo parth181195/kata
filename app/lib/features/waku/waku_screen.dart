@@ -11,7 +11,6 @@ import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
 import '../../core/compose/roll.dart';
 import '../../core/compose/stickers.dart';
-import 'custom_frame.dart';
 import 'frames/frame.dart';
 import 'waku_grain_measure.dart';
 import 'waku_exif.dart';
@@ -26,13 +25,13 @@ import 'waku_palette.dart';
 /// image of your own as the frame.
 ///
 /// Objects are layer stacks inside; users get exactly the handles each layer
-/// offers — pan/pinch the photo, tap a text slot to edit it, drag the draggable
-/// ones. Accepts JPEG/PNG/WebP and camera RAW (the embedded preview is used).
+/// offers — pan/pinch the photo, select a text slot and type into the panel,
+/// drag the draggable ones. Accepts JPEG/PNG/WebP and camera RAW (the embedded
+/// preview is used).
 class WakuScreen extends StatefulWidget {
-  const WakuScreen({super.key, this.initialPhoto, this.initialFrame, this.initialObject});
-  /// Test seams: the pickers can't run under widget tests.
+  const WakuScreen({super.key, this.initialPhoto, this.initialObject});
+  /// Test seam: the picker can't run under widget tests.
   final Uint8List? initialPhoto;
-  final Uint8List? initialFrame;
 
   /// Test seam: pins the object so a test can target one whose slots grant the
   /// handles it means to exercise.
@@ -58,7 +57,6 @@ enum WakuRatio {
 class WakuScreenState extends State<WakuScreen> {
   final _boundary = GlobalKey();
   final _viewer = TransformationController();
-  final _slotFocus = FocusNode();
   final Map<String, TextEditingController> _slotText = {};
   final Map<String, Offset> _slotDrag = {}; // fractions of the slot's region
   final Map<String, double> _slotScale = {};
@@ -66,7 +64,6 @@ class WakuScreenState extends State<WakuScreen> {
   final Map<String, Color> _slotInk = {};
   final List<StickerInstance> _stickers = [];
   int _stickerSeq = 0;
-  String? _editingSlot;
   String? _selected; // 'photo' or a slot id — chrome + contextual controls
   final _keys = FocusNode(debugLabel: 'waku-keys');
   double _photoAngle = 0; // straighten, degrees (placement freedom, not look)
@@ -77,15 +74,11 @@ class WakuScreenState extends State<WakuScreen> {
   PhotoMeta _meta = const PhotoMeta();
   PhotoGrain _grain = PhotoGrain.none;
   List<Color>? _palette;
-  Uint8List? _frameImage; // an image of the user's own, used instead of an object
-  bool _ownFrame = false; // that image is what we're composing on
   WakuObject _object = kObjects.first;
   Roll _roll = Roll.draw(seed: 1, allowances: kObjects.first.allowances, palette: const []);
   final Set<RollAxis> _pins = {};
   int _seed = 1;
   WakuRatio _ratio = WakuRatio.r4x5;
-  double _matScale = 0.08; // custom surround inset, fraction of the short side
-  bool _frameOnTop = false; // custom PNGs with a transparent window
   bool _busy = false;
 
   @override
@@ -96,21 +89,13 @@ class WakuScreenState extends State<WakuScreen> {
       _object = widget.initialObject!;
       _pins.add(RollAxis.object);
     }
-    if (widget.initialFrame != null) {
-      _frameImage = widget.initialFrame;
-      _ownFrame = true;
-    }
     _roll = Roll.draw(seed: _seed, allowances: _object.allowances, palette: const []);
-    _slotFocus.addListener(() {
-      if (!_slotFocus.hasFocus && _editingSlot != null) setState(() => _editingSlot = null);
-    });
   }
 
   @override
   void dispose() {
     _keys.dispose();
     _viewer.dispose();
-    _slotFocus.dispose();
     for (final c in _slotText.values) {
       c.dispose();
     }
@@ -118,7 +103,6 @@ class WakuScreenState extends State<WakuScreen> {
   }
 
   bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
-  bool get _overlayMode => _ownFrame && _frameImage != null && _frameOnTop;
 
   TextEditingController _ctl(String id) => _slotText.putIfAbsent(id, TextEditingController.new);
 
@@ -175,20 +159,10 @@ class WakuScreenState extends State<WakuScreen> {
     _reroll(seed: DateTime.now().millisecondsSinceEpoch % 100000);
   }
 
-  Future<void> _pickFrame() async {
-    final b = await _pickImage('Choose a frame image');
-    if (b == null || !mounted) return;
-    setState(() {
-      _frameImage = b;
-      _ownFrame = true;
-    });
-  }
-
   Future<void> _export() async {
     if (_photo == null || _busy) return;
-    _slotFocus.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
-      _editingSlot = null;
       _selected = null; // chrome must never rasterise
       _busy = true; // hides empty-slot invitations and brings the grain in
     });
@@ -266,10 +240,6 @@ class WakuScreenState extends State<WakuScreen> {
   }
 
   List<ComposeLayer> _layers(Size size) {
-    if (_ownFrame && _frameImage != null) {
-      return customLayers(size, size.shortestSide * _matScale,
-          frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
-    }
     return _object.build(ObjectContext(
       size: size,
       meta: _meta,
@@ -279,34 +249,28 @@ class WakuScreenState extends State<WakuScreen> {
     ));
   }
 
+  /// Selecting a slot is the edit gesture: the panel's field takes over from
+  /// there. A slot the camera filled in seeds the field with what it filled,
+  /// so typing starts from the prefill rather than wiping it.
+  void _selectSlot(String id) => setState(() {
+        final prefill = _slotSpec(id)?.prefill?.trim() ?? '';
+        if ((_slotText[id]?.text ?? '').trim().isEmpty && prefill.isNotEmpty) _ctl(id).text = prefill;
+        _selected = id;
+      });
+
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
         canvasSize: size,
         layers: _layers(size),
         photo: _photoWidget(interactive: interactive),
         textOf: (id) => _slotText[id]?.text ?? '',
         dragOf: (id) => _slotDrag[id] ?? Offset.zero,
-        editingId: interactive ? _editingSlot : null,
         selectedId: interactive && !_busy ? _selected : null,
         onSelect: !interactive ? null : (id) => setState(() => _selected = id),
         hideInvitations: _busy || !interactive,
         // the sheet's tooth is a print's texture, not a placement aid: it goes
         // on for the frame we rasterise and stays off while the canvas is live
         grain: _busy,
-        onTapText: !interactive
-            ? (_) {}
-            : (id) => setState(() {
-                  // select first; an empty slot means "I want to type" — edit at once,
-                  // a filled one edits on the second tap. EXIF-prefilled slots count
-                  // as filled, and editing them starts from the prefill.
-                  final spec = _slotSpec(id);
-                  final prefill = spec?.prefill?.trim() ?? '';
-                  final empty = (_slotText[id]?.text ?? '').trim().isEmpty && prefill.isEmpty;
-                  if (_selected == id || empty) {
-                    if ((_slotText[id]?.text ?? '').trim().isEmpty && prefill.isNotEmpty) _ctl(id).text = prefill;
-                    _editingSlot = id;
-                  }
-                  _selected = id;
-                }),
+        onTapText: !interactive ? (_) {} : _selectSlot,
         onDragText: !interactive
             ? (_, _) {}
             // absolute, already snapped and frame-clamped by the canvas
@@ -322,42 +286,10 @@ class WakuScreenState extends State<WakuScreen> {
                   st.pos = pos;
                   st.angle = angle;
                 }),
-        editorBuilder: (id, slot, effective) => ConstrainedBox(
-          // the same measure the label lays out in, so the swap is invisible
-          constraints: BoxConstraints(maxWidth: slot.region.width - ComposeCanvasView.padFor(effective).horizontal),
-          child: IntrinsicWidth(
-            child: TextField(
-              key: const ValueKey('slot-editor'),
-              controller: _ctl(id),
-              focusNode: _slotFocus,
-              autofocus: true,
-              minLines: 1,
-              maxLines: slot.maxLines,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [LengthLimitingTextInputFormatter(slot.maxChars), if (slot.uppercase) _UpperCaseFormatter()],
-              textAlign: slot.align.x < 0 ? TextAlign.left : (slot.align.x > 0 ? TextAlign.right : TextAlign.center),
-              textCapitalization: slot.uppercase ? TextCapitalization.characters : TextCapitalization.sentences,
-              style: effective,
-              cursorColor: effective.color,
-              decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero, constraints: BoxConstraints(minWidth: 60)),
-              // a slot that sizes itself to the frame has to re-measure as the
-              // line grows, or the editor shows one size and the label another
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => setState(() => _editingSlot = null),
-            ),
-          ),
-        ),
       );
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
-    if (_editingSlot != null) {
-      if (e.logicalKey == LogicalKeyboardKey.escape) {
-        setState(() => _editingSlot = null);
-        return KeyEventResult.handled;
-      }
-      return KeyEventResult.ignored; // the TextField owns the rest
-    }
     final sel = _selected;
     if (sel == null) return KeyEventResult.ignored;
     if (e.logicalKey == LogicalKeyboardKey.escape) {
@@ -397,10 +329,6 @@ class WakuScreenState extends State<WakuScreen> {
           final o = (_slotDrag[sel] ?? Offset.zero) + d!;
           _slotDrag[sel] = Offset(o.dx.clamp(-0.5, 0.5), o.dy.clamp(-0.4, 0.4));
         });
-        return KeyEventResult.handled;
-      }
-      if (e.logicalKey == LogicalKeyboardKey.enter) {
-        setState(() => _editingSlot = sel);
         return KeyEventResult.handled;
       }
       if (e.logicalKey == LogicalKeyboardKey.delete || e.logicalKey == LogicalKeyboardKey.backspace) {
@@ -510,25 +438,14 @@ class WakuScreenState extends State<WakuScreen> {
             for (final o in kObjects)
               KataChip(
                 label: o.label,
-                selected: !_ownFrame && _object.id == o.id,
+                selected: _object.id == o.id,
                 onTap: () => setState(() {
-                  _ownFrame = false;
                   _object = o;
                   _pins.add(RollAxis.object); // choosing one is keeping it
                   _reroll();
                 }),
               ),
-            KataChip(
-              label: _frameImage == null ? 'Your own image' : 'Your own',
-              selected: _ownFrame,
-              onTap: () => _frameImage == null ? _pickFrame() : setState(() => _ownFrame = true),
-            ),
           ]),
-        ],
-        if (_ownFrame && _frameImage != null) ...[
-          const SizedBox(height: 10),
-          KataListRow(title: 'Frame on top', value: _frameOnTop ? 'ON' : 'OFF', onTap: () => setState(() => _frameOnTop = !_frameOnTop)),
-          Text('For PNG frames with a transparent window. Off uses the image as the surround behind your photo.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
         ],
         if (_selected == 'photo' && _photo != null) ...[
           const SizedBox(height: 16),
@@ -566,8 +483,24 @@ class WakuScreenState extends State<WakuScreen> {
         if (_selected != null && _selected != 'photo') ...[
           const SizedBox(height: 16),
           KataSectionHeader('Text'),
-          Text('Drag to place it. Tap again or press Enter to edit; Delete clears.',
-              style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          const SizedBox(height: 8),
+          // the line is typed here, not on the print: an editor sitting on the
+          // sheet has to imitate the type it replaces, and never quite does
+          KataTextField(
+            key: const ValueKey('slot-text'),
+            label: 'Line',
+            controller: _ctl(_selected!),
+            hint: _slotSpec(_selected!)?.invitation,
+            maxLines: _slotSpec(_selected!)?.maxLines ?? 1,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(_slotSpec(_selected!)?.maxChars ?? 40),
+              if (_slotSpec(_selected!)?.uppercase ?? true) _UpperCaseFormatter(),
+            ],
+            textCapitalization: (_slotSpec(_selected!)?.uppercase ?? true) ? TextCapitalization.characters : TextCapitalization.sentences,
+            onChanged: (_) => setState(() {}),
+            onClear: () => setState(() => _slotText[_selected]?.clear()),
+          ),
+          const SizedBox(height: 8),
           // size and tilt are set here, not by handles on the print: a slider
           // says what it is doing and doesn't fight the drag that places the line
           if (_slotSpec(_selected!)?.scalable ?? false) ...[
@@ -628,6 +561,9 @@ class WakuScreenState extends State<WakuScreen> {
             ]),
           ],
           const SizedBox(height: 10),
+          if (_slotSpec(_selected!)?.draggable ?? false)
+            Text('Drag the line on the print to place it.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          const SizedBox(height: 8),
           Wrap(spacing: 7, children: [
             KataChip(label: 'Clear line', onTap: () => setState(() => _slotText[_selected]?.clear())),
             if ((_slotScale[_selected] ?? 1) != 1 || (_slotAngle[_selected] ?? 0) != 0 || _slotInk[_selected] != null)
@@ -666,11 +602,6 @@ class WakuScreenState extends State<WakuScreen> {
         Wrap(spacing: 7, runSpacing: 7, children: [
           for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
         ]),
-        if (_ownFrame && _frameImage != null && !_overlayMode) ...[
-          const SizedBox(height: 16),
-          KataSectionHeader('Surround width'),
-          Slider(value: _matScale, min: 0.03, max: 0.16, onChanged: (v) => setState(() => _matScale = v)),
-        ],
         const SizedBox(height: 20),
         KataPillButton(label: _isDesktop ? 'Save PNG' : 'Share', height: 46, loading: _busy, onPressed: _photo == null ? null : _export),
         const SizedBox(height: 8),

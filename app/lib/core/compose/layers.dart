@@ -107,10 +107,8 @@ class ComposeCanvasView extends StatefulWidget {
     required this.photo,
     required this.textOf,
     required this.dragOf,
-    required this.editingId,
     required this.onTapText,
     required this.onDragText,
-    required this.editorBuilder,
     required this.canvasSize,
     this.stickers = const [],
     this.onStickerChanged,
@@ -142,12 +140,10 @@ class ComposeCanvasView extends StatefulWidget {
   final String Function(String id) textOf;
   /// Drag offset for a slot, as fractions of its region (so it survives resize).
   final Offset Function(String id) dragOf;
-  final String? editingId;
   final void Function(String id) onTapText;
   /// Reports the slot's new ABSOLUTE offset, as fractions of its region —
   /// snapping and frame-edge clamping have already been applied.
   final void Function(String id, Offset fraction) onDragText;
-  final Widget Function(String id, ComposeTextSlot slot, TextStyle effective) editorBuilder;
   /// The selected element ('photo' or a slot id). Chrome renders only while
   /// set — exports pass null and rasterise clean.
   final String? selectedId;
@@ -189,9 +185,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
   Widget get photo => widget.photo;
   String Function(String id) get textOf => widget.textOf;
   Offset Function(String id) get dragOf => widget.dragOf;
-  String? get editingId => widget.editingId;
   void Function(String id) get onTapText => widget.onTapText;
-  Widget Function(String id, ComposeTextSlot slot, TextStyle effective) get editorBuilder => widget.editorBuilder;
   double _rawAngle = 0;
   String? _angleId;
 
@@ -452,7 +446,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     ];
   }
 
-  /// The move grip for the active text slot, positioned in canvas space so it
+  /// The move grip for the selected text slot, positioned in canvas space so it
   /// stays hit-testable outside the slot's own box. Size and tilt are not here:
   /// handles on a print fight the drag that places the line, and a panel
   /// control can say what it is doing. The frame still decides whether a slot
@@ -461,16 +455,15 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     if (hideInvitations) return const [];
     ComposeTextSlot? slot;
     for (final l in layers) {
-      if (l is ComposeTextSlot && (selectedId == l.id || editingId == l.id)) slot = l;
+      if (l is ComposeTextSlot && selectedId == l.id) slot = l;
     }
     if (slot == null) return const [];
-    final editing = editingId == slot.id;
     final drag = dragOf(slot.id);
     final size = _slotTextSize(slot);
     final center = slot.region.center + Offset(drag.dx * slot.region.width, drag.dy * slot.region.height);
     final box = Rect.fromCenter(center: center, width: size.width, height: size.height);
     return [
-      if (editing && slot.draggable)
+      if (slot.draggable)
         Positioned(
           left: center.dx - 20,
           top: box.top - 22,
@@ -520,16 +513,13 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     final drag = dragOf(slot.id);
     final dx = drag.dx * slot.region.width;
     final dy = drag.dy * slot.region.height;
-    final editing = editingId == slot.id;
     final selected = selectedId == slot.id;
     final text = textOf(slot.id).trim();
     final st = _effectiveStyle(slot);
     final prefill = slot.prefill?.trim() ?? '';
     final ta = slot.align.x < 0 ? TextAlign.left : (slot.align.x > 0 ? TextAlign.right : TextAlign.center);
     final Widget body;
-    if (editing) {
-      body = editorBuilder(slot.id, slot, st);
-    } else if (text.isEmpty && prefill.isNotEmpty) {
+    if (text.isEmpty && prefill.isNotEmpty) {
       body = Text(slot.uppercase ? prefill.toUpperCase() : prefill, maxLines: slot.maxLines, overflow: TextOverflow.ellipsis, textAlign: ta, style: st);
     } else if (text.isEmpty) {
       body = hideInvitations
@@ -541,7 +531,7 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
     return Positioned.fromRect(
       rect: slot.region,
       child: ClipRect(
-        clipBehavior: selected || editing ? Clip.none : Clip.hardEdge,
+        clipBehavior: selected ? Clip.none : Clip.hardEdge,
         child: Align(
           alignment: slot.align,
           child: Transform.translate(
@@ -549,13 +539,13 @@ class _ComposeCanvasViewState extends State<ComposeCanvasView> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => onTapText(slot.id),
-              onPanUpdate: slot.draggable && !editing ? (d) => _dragSlot(slot, d.delta) : null,
-              onPanEnd: slot.draggable && !editing ? (_) => _endDrag() : null,
-              onPanCancel: slot.draggable && !editing ? _endDrag : null,
+              onPanUpdate: slot.draggable ? (d) => _dragSlot(slot, d.delta) : null,
+              onPanEnd: slot.draggable ? (_) => _endDrag() : null,
+              onPanCancel: slot.draggable ? _endDrag : null,
               child: Transform.rotate(
                 angle: widget.angleOf(slot.id),
                 child: _chromed(
-                  selected: selected || editing,
+                  selected: selected,
                   child: Padding(padding: ComposeCanvasView.padFor(st), child: body),
                 ),
               ),

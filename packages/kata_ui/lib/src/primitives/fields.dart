@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme.dart';
 import '../tokens.dart';
@@ -18,6 +19,8 @@ class KataTextField extends StatelessWidget {
     this.maxLines = 1,
     this.mono = false,
     this.autofocus = false,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
   });
   final String label;
   final TextEditingController? controller;
@@ -30,6 +33,10 @@ class KataTextField extends StatelessWidget {
   final int maxLines;
   final bool mono;
   final bool autofocus;
+  /// Capacity and case are the caller's to impose — a frame's slot holds what
+  /// it holds, and says so while you type rather than after.
+  final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +57,8 @@ class KataTextField extends StatelessWidget {
               keyboardType: keyboardType,
               maxLines: maxLines,
               autofocus: autofocus,
+              inputFormatters: inputFormatters,
+              textCapitalization: textCapitalization,
               cursorColor: p.fg,
               style: mono ? KataType.monoStyle(size: 12.5, color: p.fg, height: 1.4) : KataType.bodyStyle(size: 13, color: p.fg, height: 1.2),
               decoration: InputDecoration(
