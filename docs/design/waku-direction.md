@@ -32,6 +32,16 @@ ride the top edge" — not fractions of one canvas. One frame then renders at 4:
 1:1 and 9:16 instead of needing three. This is the difference between shipping
 three frames and shipping thirty.
 
+> **Landed (2026-08-26):** A, C, D and E are built — see `waku-spec.md` and
+> `waku-plan.md`. Layout is solved per ratio (`core/compose/sheet_layout.dart`,
+> and each object sizes itself from its own measurements); objects are
+> documents in `features/waku/frames/`; palette, EXIF and film simulation bias
+> the draw; Shuffle re-rolls with per-axis pins. **B is still open**, and so is
+> one thing this section named that nothing has answered yet: story safe zones.
+> At 9:16 all three objects put their type near the middle or the foot, and a
+> story covers the bottom ~20 %. Worth checking against a real phone before
+> anyone posts one.
+
 **B. Photo slots, plural.** Grids, contact sheets, diptychs and timestamp
 sheets are half the reference board and all need 2–12 photos. The model has one
 photo today; that's the single biggest missing capability.

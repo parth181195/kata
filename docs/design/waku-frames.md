@@ -1,5 +1,10 @@
 # Waku — curated frame gallery: research & roadmap
 
+> **Status (2026-08-26):** the frames described here — polaroid, poster, words —
+> were retired. This file survives as the reference inventory that fed
+> `waku-spec.md`; the built objects are the stamp, the 35mm negative strip and
+> the archive label card, each an authored object with a rolled surface.
+
 Mood source: Parth's Pinterest board ("kata") — analog print ephemera on paper.
 Palette law: cream/black + ONE hard red (occasionally mustard); matte paper grain
 everywhere; mono/typewriter for data, script for emotion, condensed display for

@@ -49,19 +49,24 @@ class LabelCardObject extends WakuObject {
     final inner = Rect.fromLTRB(m, m, s.width - m, s.height - m);
     final air = s.width * 0.045;
 
+    // A code is only worth printing if it can be read. The Code 39 is a strip
+    // and fits in a line; a matrix code needs a square with real height, so a
+    // card carrying one is deeper and gives it a column of its own.
+    final hasCode = ctx.kataCode != null;
+
     // Beside the work on a wide sheet, beneath it on an upright one. Either
     // way the card is sized from its own width, so its type never scales with
     // the sheet — a wall label is the same object in every room.
     final beside = s.width / s.height > 1.15;
     final Rect print, card;
     if (beside) {
-      final cardW = inner.width * 0.30;
+      final cardW = inner.width * (hasCode ? 0.34 : 0.30);
       print = Rect.fromLTRB(inner.left, inner.top, inner.right - cardW - air, inner.bottom);
-      final cardH = cardW * 0.78;
+      final cardH = cardW * (hasCode ? 0.72 : 0.78);
       card = Rect.fromLTWH(inner.right - cardW, inner.center.dy - cardH * 0.15, cardW, cardH);
     } else {
-      final cardW = inner.width * 0.60;
-      final cardH = cardW * 0.46;
+      final cardW = inner.width * (hasCode ? 0.68 : 0.60);
+      final cardH = cardW * (hasCode ? 0.40 : 0.46);
       print = Rect.fromLTRB(inner.left, inner.top, inner.right, inner.bottom - cardH - air);
       card = Rect.fromLTWH(inner.left, inner.bottom - cardH, cardW, cardH);
     }
@@ -71,10 +76,11 @@ class LabelCardObject extends WakuObject {
     final medium = [ctx.meta.model, ctx.kataName ?? ctx.meta.filmMode].whereType<String>().join(' · ');
 
     // rows inside the card, as fractions of its height
-    Rect row(double top, double height, {double left = 0.06, double right = 0.94}) => Rect.fromLTRB(
+    final textRight = hasCode ? 0.68 : 0.94;
+    Rect row(double top, double height, {double left = 0.06, double? right}) => Rect.fromLTRB(
           card.left + card.width * left,
           card.top + card.height * top,
-          card.left + card.width * right,
+          card.left + card.width * (right ?? textRight),
           card.top + card.height * (top + height),
         );
 
@@ -128,32 +134,42 @@ class LabelCardObject extends WakuObject {
         maxChars: 44,
         fitRegion: true,
       ),
-      // The accession number's code. Code 39 when the object is only itself; the
-      // Kata Code when a recipe is attached, because a museum label carries one
-      // code, not two — and this one is worth scanning.
-      ComposeSurface(Padding(
-        padding: EdgeInsets.fromLTRB(
-          card.left + card.width * 0.06,
-          card.top + card.height * 0.72,
-          s.width - (card.left + card.width * (ctx.kataCode == null ? 0.52 : 0.26)),
-          s.height - (card.top + card.height * 0.90),
-        ),
-        child: ctx.kataCode == null
-            ? CustomPaint(painter: BarcodePainter(accession, roll.ink.withValues(alpha: 0.85)))
-            : LayoutBuilder(
-                builder: (c, b) => Align(
-                  alignment: Alignment.centerLeft,
-                  child: KataCodeQr(payload: ctx.kataCode!, size: b.biggest.shortestSide),
-                ),
-              ),
-      )),
+      // The accession number's code. Code 39 along the foot when the object is
+      // only itself; the Kata Code in its own column when a recipe is attached,
+      // because a museum label carries one code and not two — and this one is
+      // meant to be scanned off someone's screen.
+      if (!hasCode)
+        ComposeSurface(Padding(
+          padding: EdgeInsets.fromLTRB(
+            card.left + card.width * 0.06,
+            card.top + card.height * 0.72,
+            s.width - (card.left + card.width * 0.52),
+            s.height - (card.top + card.height * 0.90),
+          ),
+          child: CustomPaint(painter: BarcodePainter(accession, roll.ink.withValues(alpha: 0.85))),
+        ))
+      else
+        ComposeSurface(Padding(
+          padding: EdgeInsets.fromLTRB(
+            card.left + card.width * 0.72,
+            card.top + card.height * 0.10,
+            s.width - (card.right - card.width * 0.06),
+            s.height - (card.bottom - card.height * 0.10),
+          ),
+          child: LayoutBuilder(
+            builder: (c, b) => Align(
+              alignment: Alignment.centerRight,
+              child: KataCodeQr(payload: ctx.kataCode!, size: b.biggest.shortestSide),
+            ),
+          ),
+        )),
       ComposeTextSlot(
         id: 'accession',
-        region: row(0.75, 0.12, left: 0.56),
+        region: row(0.75, 0.12, left: hasCode ? 0.06 : 0.56, right: textRight),
         style: roll.voice.dataStyle(card.width * 0.042, roll.ink.withValues(alpha: 0.72)),
         invitation: 'KATA 000',
         prefill: accession,
-        align: Alignment.centerRight,
+        align: hasCode ? Alignment.centerLeft : Alignment.centerRight,
         maxChars: 18,
         fitRegion: true,
       ),
