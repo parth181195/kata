@@ -168,7 +168,9 @@ class PostmarkPainter extends CustomPainter {
     c.drawCircle(Offset.zero, radius * 0.80, stroke..strokeWidth = radius * 0.028);
 
     _arc(c, (place ?? 'FUJIFILM').toUpperCase(), radius * 0.90, -math.pi * 0.72, roll.voice.dataStyle(radius * 0.22, ink), true);
-    final d = when ?? DateTime(2026);
+    // a cancel is applied the day it's posted, so a photo that carries no
+    // date gets today's rather than an invented one
+    final d = when ?? DateTime.now();
     final date = '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year % 100}';
     final tp = TextPainter(text: TextSpan(text: date, style: roll.voice.dataStyle(radius * 0.26, ink)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, Offset(-tp.width / 2, -tp.height / 2));

@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/core/compose/grain.dart';
 import 'package:kata/core/compose/layers.dart';
+import 'package:kata/core/compose/roll.dart';
+import 'package:kata/core/compose/treatment.dart';
+import 'package:kata/core/compose/voice.dart';
+import 'package:kata/features/waku/frames/frame.dart';
 import 'package:kata/features/waku/waku_screen.dart';
 import 'package:kata_ui/kata_ui.dart';
 
@@ -31,55 +35,85 @@ Future<void> _pump(WidgetTester t, Widget child) async {
   await t.pumpAndSettle();
 }
 
+/// An object that grants every optional handle, so the panel controls that a
+/// rigid object like the stamp never offers still have something to act on.
+class _LooseObject extends WakuObject {
+  const _LooseObject();
+
+  @override
+  String get id => 'loose';
+
+  @override
+  String get label => 'Loose';
+
+  @override
+  Allowances get allowances => const Allowances(
+        voices: {VoiceId.bureau},
+        inkFamily: 'postmark',
+        treatment: TreatmentBounds(),
+        grounds: [Color(0xFF222222)],
+      );
+
+  @override
+  List<ComposeLayer> build(ObjectContext ctx) => [
+        const ComposeSurface(ColoredBox(color: Color(0xFFF4EFE3))),
+        ComposePhotoWindow(rect: Rect.fromLTWH(0, 0, ctx.size.width, ctx.size.height * 0.7)),
+        ComposeTextSlot(
+          id: 'line',
+          region: Rect.fromLTWH(ctx.size.width * 0.1, ctx.size.height * 0.75, ctx.size.width * 0.8, ctx.size.height * 0.12),
+          style: ctx.roll.voice.textStyle(ctx.size.width * 0.05, ctx.roll.ink),
+          draggable: true,
+          scalable: true,
+          rotatable: true,
+          maxChars: 56,
+          maxLines: 2,
+          inkChoices: const [Color(0xFF3A362E), Color(0xFF3D4E6B), Color(0xFFB3402B)],
+        ),
+      ];
+}
+
 void main() {
   testWidgets('without a photo: the empty state invites choosing one', (t) async {
     await _pump(t, const WakuScreen());
     expect(find.text('Choose photo'), findsOneWidget);
-    expect(find.text('Pick a photo first — the frames preview with it.'), findsOneWidget);
+    expect(find.text('Pick a photo first — it lands on something already composed.'), findsOneWidget);
   });
 
-  testWidgets('the chin text is edited in place and dragged along the chin', (t) async {
-    final photo = (await t.runAsync(() => _png(const Color(0xFFAA5522))))!;
+  testWidgets('a photo lands on a finished object, not a gallery', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF667788))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
-    // curated gallery: just the instant print and the bring-your-own slot
-    expect(find.text('POLAROID'), findsOneWidget);
-    expect(find.text('CUSTOM'), findsOneWidget);
+    // no "pick a frame" step: something is already composed
+    expect(find.byType(ComposeCanvasView), findsWidgets);
+    expect(find.text('SHUFFLE'), findsOneWidget);
+    // and there is no gallery of thumbnails to choose from first
+    expect(find.byKey(const ValueKey('waku-frames')), findsNothing);
+  });
 
-    // tap the invitation → inline editor on the frame itself
-    await t.tap(find.text('ADD A LINE'));
-    await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'golden hour');
-    // while editing, the chrome stays and the grip still moves the slot
-    expect(find.byKey(const ValueKey('slot-grip')), findsOneWidget);
-    await t.drag(find.byKey(const ValueKey('slot-grip')), const Offset(25, 0));
-    await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('slot-editor')), findsOneWidget); // drag didn't kill the editor
-    await t.testTextInput.receiveAction(TextInputAction.done);
-    await t.pumpAndSettle();
-    expect(find.text('GOLDEN HOUR'), findsOneWidget);
+  testWidgets('shuffle changes the output; a pinned axis holds', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF667788))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
 
-    // the slot is draggable: a pan moves it via its Transform
-    Offset translationOf() {
-      // the slot renders rotate-inside-translate; sum every ancestor Transform
-      var dx = 0.0, dy = 0.0;
-      for (final tr in t.widgetList<Transform>(find.ancestor(of: find.text('GOLDEN HOUR'), matching: find.byType(Transform)))) {
-        final v = tr.transform.getTranslation();
-        dx += v.x;
-        dy += v.y;
-      }
-      return Offset(dx, dy);
+    Roll rollOf() => t.state<WakuScreenState>(find.byType(WakuScreen)).roll;
+    final before = rollOf().seed;
+    await t.tap(find.text('SHUFFLE'));
+    await t.pumpAndSettle();
+    expect(rollOf().seed, isNot(before));
+
+    // pin the voice, then shuffle: the voice must not move
+    final voiceBefore = rollOf().voiceId;
+    await t.tap(find.byKey(const ValueKey('pin-voice')));
+    await t.pumpAndSettle();
+    for (var i = 0; i < 5; i++) {
+      await t.tap(find.text('SHUFFLE'));
+      await t.pumpAndSettle();
     }
-
-    final before = translationOf();
-    await t.drag(find.text('GOLDEN HOUR'), const Offset(40, 0));
-    await t.pumpAndSettle();
-    expect(translationOf().dx, greaterThan(before.dx));
+    expect(rollOf().voiceId, voiceBefore);
   });
 
   testWidgets('grain is the frame\'s own — no user controls for it anywhere', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF667788))))!;
     await _pump(t, WakuScreen(initialPhoto: photo));
-    // curated frames bake their surface grain in; nothing to toggle
+    // objects bake their surface grain in; nothing to toggle
     expect(find.text('GRAIN'), findsNothing);
     expect(find.text('WEAK'), findsNothing);
     expect(find.text('STRONG'), findsNothing);
@@ -138,15 +172,15 @@ void main() {
 
   testWidgets('selection: filled text needs two taps to edit; photo select shows placement controls', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF884422))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo));
+    await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
     // empty slot: first tap goes straight to the editor
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const ValueKey('slot-editor')), 'monsoon');
     await t.testTextInput.receiveAction(TextInputAction.done);
     await t.pumpAndSettle();
-    // tap the mat to deselect (the slot stays selected right after editing)
-    await t.tapAt(t.getTopLeft(find.byType(InteractiveViewer)) + const Offset(4, -12));
+    // tap the ground to deselect (the slot stays selected right after editing)
+    await t.tapAt(t.getBottomLeft(find.byType(InteractiveViewer)) + const Offset(4, 12));
     await t.pumpAndSettle();
     // filled slot: first tap selects (context panel appears, no editor)
     await t.tap(find.text('MONSOON'));
@@ -170,18 +204,34 @@ void main() {
 
   testWidgets('text capacity is the slot\'s: input clamps at maxChars', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF446688))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo));
+    await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const ValueKey('slot-editor')), 'x' * 200);
     final field = t.widget<TextField>(find.byKey(const ValueKey('slot-editor')));
-    expect(field.controller!.text.length, 56); // polaroid chin capacity
+    expect(field.controller!.text.length, 56);
     expect(field.maxLines, 2);
+  });
+
+  testWidgets('a rigid object grants no handles: the stamp cannot be restyled', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF665544))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo));
+    // the stamp's country line is set by whoever issued the stamp
+    await t.tap(find.text('KATA'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'bombay');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(find.text('BOMBAY'), findsOneWidget);
+    // ...but nothing about how it is set is the user's to move
+    expect(find.byKey(const ValueKey('slot-size')), findsNothing);
+    expect(find.byKey(const ValueKey('slot-tilt')), findsNothing);
+    expect(find.byKey(const ValueKey('slot-grip')), findsNothing);
   });
 
   testWidgets('size and tilt are panel controls, not handles on the print', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF775533))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo));
+    await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
     // type a line, close the editor, slot stays selected
     await t.tap(find.text('ADD A LINE'));
     await t.pumpAndSettle();
@@ -217,6 +267,38 @@ void main() {
     expect(find.text('RESET STYLE'), findsOneWidget);
   });
 
+  testWidgets('a draggable slot moves with a pan', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFFAA5522))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo, initialObject: const _LooseObject()));
+    await t.tap(find.text('ADD A LINE'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'golden hour');
+    // while editing, the chrome stays and the grip still moves the slot
+    expect(find.byKey(const ValueKey('slot-grip')), findsOneWidget);
+    await t.drag(find.byKey(const ValueKey('slot-grip')), const Offset(25, 0));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('slot-editor')), findsOneWidget); // drag didn't kill the editor
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(find.text('GOLDEN HOUR'), findsOneWidget);
+
+    Offset translationOf() {
+      // the slot renders rotate-inside-translate; sum every ancestor Transform
+      var dx = 0.0, dy = 0.0;
+      for (final tr in t.widgetList<Transform>(find.ancestor(of: find.text('GOLDEN HOUR'), matching: find.byType(Transform)))) {
+        final v = tr.transform.getTranslation();
+        dx += v.x;
+        dy += v.y;
+      }
+      return Offset(dx, dy);
+    }
+
+    final before = translationOf();
+    await t.drag(find.text('GOLDEN HOUR'), const Offset(40, 0));
+    await t.pumpAndSettle();
+    expect(translationOf().dx, greaterThan(before.dx));
+  });
+
   testWidgets('stickers: added within allowance, selectable, removable', // kit shelved until the drawings match real references
       skip: true, (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF335544))))!;
@@ -235,82 +317,17 @@ void main() {
     expect(find.text('TAPE 1/2'), findsOneWidget);
   });
 
-  testWidgets('poster frame: fixed credit grid, huge title, nothing draggable', (t) async {
-    final photo = (await t.runAsync(() => _png(const Color(0xFF554433))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo));
-    await t.tap(find.text('POSTER'));
-    await t.pumpAndSettle();
-    // credit headers are furniture; slots show invitations (no EXIF in test PNG)
-    for (final head in ['CAMERA', 'LENS', 'FILM', 'EXPOSURE', 'DATE']) {
-      expect(find.text(head), findsWidgets);
-    }
-    expect(find.text('UNTITLED'), findsWidgets);
-    // the one-sheet's own furniture: a tagline over the title, a billing block
-    // under the photograph
-    expect(find.text('A QUIET WEEK'), findsWidgets);
-    expect(find.text('YOUR NAME'), findsWidgets);
-    expect(find.text('PHOTOGRAPHED WITH KATA 型'), findsWidgets); // the thumbnail draws it too
-    // the grid is the design: dragging the title does not move it
-    await t.tap(find.text('UNTITLED').first); // empty slot → editor opens
-    await t.pumpAndSettle();
-    await t.testTextInput.receiveAction(TextInputAction.done); // close, keep empty
-    await t.pumpAndSettle();
-    final before = t.getTopLeft(find.text('UNTITLED').first);
-    await t.drag(find.text('UNTITLED').first, const Offset(60, 30));
-    await t.pumpAndSettle();
-    expect(t.getTopLeft(find.text('UNTITLED').first), before);
-  });
-
-  testWidgets('a title that sizes itself to the sheet keeps that size while it is typed', (t) async {
-    final photo = (await t.runAsync(() => _png(const Color(0xFF335544))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo));
-    await t.tap(find.text('POSTER'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('UNTITLED').first);
-    await t.pumpAndSettle();
-
-    final editor = find.byKey(const ValueKey('slot-editor'));
-    double editorSize() => t.widget<TextField>(editor).style!.fontSize!;
-    final short = editorSize();
-    // a long title has to shrink; the editor must shrink with it, or you type
-    // at one size and the print shows another
-    await t.enterText(editor, 'A VERY LONG TITLE INDEED');
-    await t.pumpAndSettle();
-    final long = editorSize();
-    expect(long, lessThan(short));
-
-    await t.testTextInput.receiveAction(TextInputAction.done);
-    await t.pumpAndSettle();
-    // and the label picks up exactly where the editor left off
-    expect(t.widget<Text>(find.text('A VERY LONG TITLE INDEED')).style!.fontSize, closeTo(long, 0.01));
-  });
-
-  testWidgets('words frame: the dictionary grid with its fixed furniture', (t) async {
-    final photo = (await t.runAsync(() => _png(const Color(0xFF445566))))!;
-    await _pump(t, WakuScreen(initialPhoto: photo));
-    await t.tap(find.text('WORDS'));
-    await t.pumpAndSettle();
-    expect(find.text('Untitled.'), findsWidgets); // lowercase word, case kept
-    expect(find.text('[noun]'), findsWidgets);
-    expect(find.text('ka\nta.'), findsWidgets); // the boxed mark
-    expect(find.text('001'), findsWidgets);
-    // title edits keep case
-    await t.tap(find.text('Untitled.').first);
-    await t.pumpAndSettle();
-    await t.enterText(find.byKey(const ValueKey('slot-editor')), 'Monsoon.');
-    await t.testTextInput.receiveAction(TextInputAction.done);
-    await t.pumpAndSettle();
-    expect(find.text('Monsoon.'), findsWidgets);
-    expect(find.text('MONSOON.'), findsNothing);
-  });
-
   testWidgets('a custom frame image offers frame-on-top, which hides the surround slider', (t) async {
     final photo = (await t.runAsync(() => _png(const Color(0xFF2255AA))))!;
     final frame = (await t.runAsync(() => _png(const Color(0xFF111111))))!;
     await _pump(t, WakuScreen(initialPhoto: photo, initialFrame: frame));
     expect(find.text('Frame on top'), findsOneWidget);
     expect(find.byType(Slider), findsOneWidget); // surround mode insets the photo
-    await t.tap(find.text('Frame on top'));
+    // the row is what takes the tap; the label inside it is not hit-testable
+    final row = find.ancestor(of: find.text('Frame on top'), matching: find.byType(KataListRow));
+    await t.ensureVisible(row);
+    await t.pumpAndSettle();
+    await t.tap(row);
     await t.pumpAndSettle();
     expect(find.byType(Slider), findsNothing); // overlay mode: photo fills, no surround
   });

@@ -9,28 +9,41 @@ import 'package:kata_ui/kata_ui.dart';
 
 import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
+import '../../core/compose/roll.dart';
 import '../../core/compose/stickers.dart';
-import 'waku_frames.dart';
+import 'custom_frame.dart';
+import 'frames/frame.dart';
 import 'waku_grain_measure.dart';
 import 'waku_exif.dart';
 import 'waku_import.dart';
 import 'waku_palette.dart';
 
-/// 枠 Waku — put a photo in a frame from a curated gallery (one for now: the
-/// instant print), or bring any image of your own as the frame. Frames are
-/// layer stacks inside; users get exactly the handles each layer offers —
-/// pan/pinch the photo, tap a text slot to edit it, drag the draggable ones.
-/// Accepts JPEG/PNG/WebP and camera RAW (the embedded preview is used).
+/// 枠 Waku — a photo lands on a printed object: a stamp, a negative strip, a
+/// label. You don't choose the object out of a gallery and then wonder what it
+/// would look like; something is already composed, and Shuffle re-rolls it.
+/// Each axis — object, type, colour, wear — can be kept while the rest move,
+/// so you converge on one instead of gambling for it. You can also bring any
+/// image of your own as the frame.
+///
+/// Objects are layer stacks inside; users get exactly the handles each layer
+/// offers — pan/pinch the photo, tap a text slot to edit it, drag the draggable
+/// ones. Accepts JPEG/PNG/WebP and camera RAW (the embedded preview is used).
 class WakuScreen extends StatefulWidget {
-  const WakuScreen({super.key, this.initialPhoto, this.initialFrame});
+  const WakuScreen({super.key, this.initialPhoto, this.initialFrame, this.initialObject});
   /// Test seams: the pickers can't run under widget tests.
   final Uint8List? initialPhoto;
   final Uint8List? initialFrame;
 
+  /// Test seam: pins the object so a test can target one whose slots grant the
+  /// handles it means to exercise.
+  final WakuObject? initialObject;
+
   @override
-  State<WakuScreen> createState() => _WakuScreenState();
+  State<WakuScreen> createState() => WakuScreenState();
 }
 
+/// The sheet you're posting to. Objects have no fixed sheet of their own — a
+/// stamp is a stamp on a square or on a story — so this is the user's call.
 enum WakuRatio {
   square('1:1', 1),
   r4x5('4:5', 4 / 5),
@@ -42,7 +55,7 @@ enum WakuRatio {
   final double aspect;
 }
 
-class _WakuScreenState extends State<WakuScreen> {
+class WakuScreenState extends State<WakuScreen> {
   final _boundary = GlobalKey();
   final _viewer = TransformationController();
   final _slotFocus = FocusNode();
@@ -64,8 +77,12 @@ class _WakuScreenState extends State<WakuScreen> {
   PhotoMeta _meta = const PhotoMeta();
   PhotoGrain _grain = PhotoGrain.none;
   List<Color>? _palette;
-  Uint8List? _frameImage; // the custom frame, when WakuFrame.custom
-  WakuFrame _frame = WakuFrame.polaroid;
+  Uint8List? _frameImage; // an image of the user's own, used instead of an object
+  bool _ownFrame = false; // that image is what we're composing on
+  WakuObject _object = kObjects.first;
+  Roll _roll = Roll.draw(seed: 1, allowances: kObjects.first.allowances, palette: const []);
+  final Set<RollAxis> _pins = {};
+  int _seed = 1;
   WakuRatio _ratio = WakuRatio.r4x5;
   double _matScale = 0.08; // custom surround inset, fraction of the short side
   bool _frameOnTop = false; // custom PNGs with a transparent window
@@ -75,10 +92,15 @@ class _WakuScreenState extends State<WakuScreen> {
   void initState() {
     super.initState();
     _photo = widget.initialPhoto;
+    if (widget.initialObject != null) {
+      _object = widget.initialObject!;
+      _pins.add(RollAxis.object);
+    }
     if (widget.initialFrame != null) {
       _frameImage = widget.initialFrame;
-      _frame = WakuFrame.custom;
+      _ownFrame = true;
     }
+    _roll = Roll.draw(seed: _seed, allowances: _object.allowances, palette: const []);
     _slotFocus.addListener(() {
       if (!_slotFocus.hasFocus && _editingSlot != null) setState(() => _editingSlot = null);
     });
@@ -96,9 +118,33 @@ class _WakuScreenState extends State<WakuScreen> {
   }
 
   bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
-  bool get _overlayMode => _frame == WakuFrame.custom && _frameImage != null && _frameOnTop;
+  bool get _overlayMode => _ownFrame && _frameImage != null && _frameOnTop;
 
   TextEditingController _ctl(String id) => _slotText.putIfAbsent(id, TextEditingController.new);
+
+  /// The current draw. Public because the object it produced is the whole
+  /// output — a test that can't read it can only assert on pixels.
+  Roll get roll => _roll;
+
+  void _reroll({int? seed}) {
+    setState(() {
+      _seed = seed ?? _seed + 1;
+      if (!_pins.contains(RollAxis.object) && kObjects.length > 1) {
+        _object = kObjects[math.Random(_seed * 17).nextInt(kObjects.length)];
+      }
+      _roll = Roll.draw(
+        seed: _seed,
+        allowances: _object.allowances,
+        palette: _palette ?? const [],
+        filmSim: _meta.filmMode,
+        iso: _meta.iso,
+        pinnedFrom: _roll,
+        pins: _pins,
+      );
+    });
+  }
+
+  void _togglePin(RollAxis axis) => setState(() => _pins.contains(axis) ? _pins.remove(axis) : _pins.add(axis));
 
   Future<Uint8List?> _pickImage(String title) async {
     final res = await FilePicker.platform.pickFiles(dialogTitle: title, type: FileType.custom, allowedExtensions: wakuImportExtensions, withData: true);
@@ -124,6 +170,9 @@ class _WakuScreenState extends State<WakuScreen> {
       _grain = grain;
       _viewer.value = Matrix4.identity();
     });
+    // a new photo is a new shot: it lands on something composed for it, not on
+    // whatever the last one happened to roll
+    _reroll(seed: DateTime.now().millisecondsSinceEpoch % 100000);
   }
 
   Future<void> _pickFrame() async {
@@ -131,7 +180,7 @@ class _WakuScreenState extends State<WakuScreen> {
     if (b == null || !mounted) return;
     setState(() {
       _frameImage = b;
-      _frame = WakuFrame.custom;
+      _ownFrame = true;
     });
   }
 
@@ -217,16 +266,17 @@ class _WakuScreenState extends State<WakuScreen> {
   }
 
   List<ComposeLayer> _layers(Size size) {
-    if (_frame == WakuFrame.custom && _frameImage != null) {
+    if (_ownFrame && _frameImage != null) {
       return customLayers(size, size.shortestSide * _matScale,
           frameImage: Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true), overlay: _frameOnTop);
     }
-    final photoAspect = _frame.photoRatioAdjustable ? _ratio.aspect : null;
-    if (_frame == WakuFrame.poster) {
-      return posterLayers(size, size.shortestSide * 0.08, meta: _meta, palette: _palette, photoAspect: photoAspect, grain: _grain);
-    }
-    if (_frame == WakuFrame.words) return wordsLayers(size, size.shortestSide * 0.08, meta: _meta, photoAspect: photoAspect, grain: _grain);
-    return polaroidLayers(size, size.shortestSide * 0.08, meta: _meta, grain: _grain);
+    return _object.build(ObjectContext(
+      size: size,
+      meta: _meta,
+      grain: _grain,
+      palette: _palette ?? const [],
+      roll: _roll,
+    ));
   }
 
   Widget _canvas(Size size, {bool interactive = true}) => ComposeCanvasView(
@@ -403,7 +453,7 @@ class _WakuScreenState extends State<WakuScreen> {
       return KataEmptyState(
           glyph: '枠',
           title: 'Waku',
-          body: 'Put a photo in a frame worth the print — or bring your own frame.\nJPEG · PNG · WebP · camera RAW',
+          body: 'A photo lands on something already made — a stamp, a print, a label.\nJPEG · PNG · WebP · camera RAW',
           actionLabel: 'Choose photo',
           onAction: _pickPhoto);
     }
@@ -414,7 +464,7 @@ class _WakuScreenState extends State<WakuScreen> {
         behavior: HitTestBehavior.translucent,
         onTapDown: (_) => _keys.requestFocus(),
         child: AspectRatio(
-          aspectRatio: _frame.canvasAspect ?? _ratio.aspect,
+          aspectRatio: _ratio.aspect,
           child: RepaintBoundary(
             key: _boundary,
             child: LayoutBuilder(builder: (context, box) => _canvas(box.biggest)),
@@ -424,71 +474,58 @@ class _WakuScreenState extends State<WakuScreen> {
     );
   }
 
-  Widget _frameThumb(KataPalette p, WakuFrame f) {
-    final on = _frame == f;
-    const thumbSize = Size(58, 72);
-    final Widget thumb;
-    if (f == WakuFrame.custom) {
-      thumb = _frameImage == null
-          ? Container(color: p.surface, child: Center(child: Text('+', style: KataType.displayStyle(size: 20, color: p.dim))))
-          : Image.memory(_frameImage!, fit: BoxFit.cover, gaplessPlayback: true);
-    } else {
-      thumb = ComposeCanvasView(
-        canvasSize: thumbSize,
-        layers: switch (f) {
-          WakuFrame.poster => posterLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, palette: _palette, grain: _grain),
-          WakuFrame.words => wordsLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, grain: _grain),
-          _ => polaroidLayers(thumbSize, thumbSize.shortestSide * 0.08, meta: _meta, grain: _grain),
-        },
-        photo: _photoWidget(interactive: false),
-        textOf: (_) => '',
-        dragOf: (_) => Offset.zero,
-        editingId: null,
-        hideInvitations: true,
-        grain: false, // three 58px overlay blends buy nothing you can see
-        onTapText: (_) {},
-        onDragText: (_, _) {},
-        editorBuilder: (_, _, _) => const SizedBox.shrink(),
-      );
-    }
-    return InkWell(
-      onTap: () => f == WakuFrame.custom && _frameImage == null ? _pickFrame() : setState(() => _frame = f),
-      onDoubleTap: f == WakuFrame.custom ? _pickFrame : null,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: thumbSize.width,
-          height: thumbSize.height,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: on ? p.fg : p.hairline, width: on ? 1.5 : 1)),
-          child: IgnorePointer(child: thumb),
-        ),
-        const SizedBox(height: 5),
-        Text(f.label.toUpperCase(), style: KataType.monoStyle(size: 7.5, weight: FontWeight.w500, color: on ? p.fg : p.muted, letterSpacing: 0.12)),
-      ]),
-    );
-  }
-
   List<Widget> _controls(KataPalette p) => [
         Row(children: [
           Expanded(child: Text('WAKU 枠', style: KataType.displayStyle(size: 18, color: p.fg))),
           KataPillButton(label: _photo == null ? 'Photo' : 'Replace', kind: KataButtonKind.secondary, display: false, expand: false, height: 34, onPressed: _pickPhoto),
         ]),
         const SizedBox(height: 16),
-        KataSectionHeader('Frame'),
         if (_photo == null)
-          Text('Pick a photo first — the frames preview with it.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4))
-        else
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              key: const ValueKey('waku-frames'),
-              scrollDirection: Axis.horizontal,
-              itemCount: WakuFrame.values.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 9),
-              itemBuilder: (_, i) => _frameThumb(p, WakuFrame.values[i]),
+          Text('Pick a photo first — it lands on something already composed.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4))
+        else ...[
+          KataPillButton(label: 'Shuffle', height: 46, onPressed: _reroll),
+          const SizedBox(height: 12),
+          KataSectionHeader('Keep'),
+          const SizedBox(height: 8),
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            for (final (axis, label) in const [
+              (RollAxis.object, 'Object'),
+              (RollAxis.voice, 'Type'),
+              (RollAxis.ink, 'Colour'),
+              (RollAxis.treatment, 'Wear'),
+            ])
+              KataChip(
+                key: ValueKey('pin-${axis.name}'),
+                label: label,
+                selected: _pins.contains(axis),
+                onTap: () => _togglePin(axis),
+              ),
+          ]),
+          const SizedBox(height: 6),
+          Text('Shuffle re-rolls everything you haven\u2019t kept.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+          const SizedBox(height: 16),
+          KataSectionHeader('Object'),
+          const SizedBox(height: 8),
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            for (final o in kObjects)
+              KataChip(
+                label: o.label,
+                selected: !_ownFrame && _object.id == o.id,
+                onTap: () => setState(() {
+                  _ownFrame = false;
+                  _object = o;
+                  _pins.add(RollAxis.object); // choosing one is keeping it
+                  _reroll();
+                }),
+              ),
+            KataChip(
+              label: _frameImage == null ? 'Your own image' : 'Your own',
+              selected: _ownFrame,
+              onTap: () => _frameImage == null ? _pickFrame() : setState(() => _ownFrame = true),
             ),
-          ),
-        if (_frame == WakuFrame.custom && _frameImage != null) ...[
+          ]),
+        ],
+        if (_ownFrame && _frameImage != null) ...[
           const SizedBox(height: 10),
           KataListRow(title: 'Frame on top', value: _frameOnTop ? 'ON' : 'OFF', onTap: () => setState(() => _frameOnTop = !_frameOnTop)),
           Text('For PNG frames with a transparent window. Off uses the image as the surround behind your photo.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
@@ -622,15 +659,14 @@ class _WakuScreenState extends State<WakuScreen> {
               ),
           ]),
         ],
-        if (_frame.canvasAspect == null || _frame.photoRatioAdjustable) ...[
-          const SizedBox(height: 16),
-          // a fixed sheet keeps its shape; the chips then crop the photo window
-          KataSectionHeader(_frame.canvasAspect == null ? 'Ratio' : 'Photo ratio'),
-          Wrap(spacing: 7, runSpacing: 7, children: [
-            for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
-          ]),
-        ],
-        if (_frame == WakuFrame.custom && _frameImage != null && !_overlayMode) ...[
+        const SizedBox(height: 16),
+        // an object has no sheet of its own — it sits on whatever you're posting
+        // to, and the layout is solved for that ratio
+        KataSectionHeader('Ratio'),
+        Wrap(spacing: 7, runSpacing: 7, children: [
+          for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
+        ]),
+        if (_ownFrame && _frameImage != null && !_overlayMode) ...[
           const SizedBox(height: 16),
           KataSectionHeader('Surround width'),
           Slider(value: _matScale, min: 0.03, max: 0.16, onChanged: (v) => setState(() => _matScale = v)),
@@ -638,7 +674,7 @@ class _WakuScreenState extends State<WakuScreen> {
         const SizedBox(height: 20),
         KataPillButton(label: _isDesktop ? 'Save PNG' : 'Share', height: 46, loading: _busy, onPressed: _photo == null ? null : _export),
         const SizedBox(height: 8),
-        Text('Drag and pinch the photo to place it. Tap the frame’s text to edit; drag it to move it.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
+        Text('Drag and pinch the photo to place it. Tap the object’s text to edit it.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
         const SizedBox(height: 6),
         Text('The paper grain goes on when you save.', textAlign: TextAlign.center, style: KataType.monoStyle(size: 9.5, color: p.muted, letterSpacing: 0.1)),
       ];
