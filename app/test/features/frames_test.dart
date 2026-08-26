@@ -58,6 +58,43 @@ void main() {
     }
   });
 
+  test('the negative strip is registered and carries the recipe on its edge', () {
+    final obj = kObjects.firstWhere((o) => o.id == 'negative');
+    final layers = obj.build(ObjectContext(
+      size: const Size(600, 750),
+      meta: _meta,
+      grain: PhotoGrain.none,
+      palette: _palette,
+      roll: Roll.draw(seed: 3, allowances: obj.allowances, palette: _palette),
+      kataName: 'KODACHROME 64',
+    ));
+    final edge = layers.whereType<ComposeTextSlot>().firstWhere((s) => s.id == 'stock');
+    expect(edge.prefill, contains('KODACHROME 64'));
+  });
+
+  test('a 35mm frame is 3:2 at every sheet ratio — that is what makes it 35mm', () {
+    final obj = kObjects.firstWhere((o) => o.id == 'negative');
+    for (final (w, h) in _ratios) {
+      final roll = Roll.draw(seed: 5, allowances: obj.allowances, palette: _palette);
+      final layers = obj.build(ObjectContext(size: Size(w, h), meta: _meta, grain: PhotoGrain.none, palette: _palette, roll: roll));
+      final win = layers.whereType<ComposePhotoWindow>().first.rect;
+      expect(win.width / win.height, closeTo(1.5, 0.02), reason: 'the frame is not 3:2 at ${w}x$h');
+    }
+  });
+
+  test('the edge print is the roll\'s ink, or the colour axis does nothing here', () {
+    final obj = kObjects.firstWhere((o) => o.id == 'negative');
+    final inks = <Color>{};
+    for (var seed = 0; seed < 20; seed++) {
+      final roll = Roll.draw(seed: seed, allowances: obj.allowances, palette: _palette);
+      final layers = obj.build(ObjectContext(size: const Size(600, 750), meta: _meta, grain: PhotoGrain.none, palette: _palette, roll: roll));
+      final edge = layers.whereType<ComposeTextSlot>().firstWhere((s) => s.id == 'stock');
+      expect(edge.style.color, roll.ink, reason: 'seed $seed printed the edge in something the roll did not choose');
+      inks.add(roll.ink);
+    }
+    expect(inks.length, greaterThan(1));
+  });
+
   test('every object prints ink you can read on the surface it prints on', () {
     for (final obj in kObjects) {
       for (var seed = 0; seed < 60; seed++) {
