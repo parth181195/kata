@@ -24,9 +24,10 @@ class StampObject extends WakuObject {
 
   @override
   Allowances get allowances => const Allowances(
-        voices: {VoiceId.postOffice, VoiceId.bureau, VoiceId.civic},
+        voices: {VoiceId.postOffice, VoiceId.bureau, VoiceId.civic, VoiceId.deco},
         inkFamily: 'postmark',
         treatment: TreatmentBounds(slip: 0.014, bleed: 1.3, pressure: 0.26, speckles: 40, wear: 1),
+        inkOn: Color(0xFFF4EFE3), // the stamp's own paper
         grounds: [Color(0xFF7E2418), Color(0xFF1F3D34), Color(0xFF23324D), Color(0xFF4A3C22), Color(0xFF12100E)],
       );
 
@@ -46,7 +47,9 @@ class StampObject extends WakuObject {
       stampH = maxH;
       stampW = stampH / 1.26;
     }
-    final stamp = Rect.fromLTWH((s.width - stampW) / 2, s.height * 0.46 - stampH / 2, stampW, stampH);
+    // centred, riding a touch high: a mounted specimen leaves more card below
+    // it than above, the way an album page is laid out
+    final stamp = Rect.fromLTWH((s.width - stampW) / 2, (s.height - stampH) * 0.42, stampW, stampH);
     final face = stamp.deflate(stampW * 0.085);
     final photoRect = Rect.fromLTRB(face.left, stamp.top + stampH * 0.13, face.right, stamp.bottom - stampH * 0.155);
     final (clump, amount) = ctx.grain.onSheet(photoRect.width);
@@ -78,8 +81,8 @@ class StampObject extends WakuObject {
       // denomination: what the shot cost in light
       ComposeTextSlot(
         id: 'denomination',
-        region: Rect.fromLTRB(face.left, stamp.bottom - stampH * 0.15, face.left + face.width * 0.5, stamp.bottom - stampH * 0.02),
-        style: roll.voice.displayStyle(stampW * 0.20, roll.ink),
+        region: Rect.fromLTRB(face.left, stamp.bottom - stampH * 0.165, face.left + face.width * 0.52, stamp.bottom - stampH * 0.015),
+        style: roll.voice.displayStyle(stampW * 0.26, roll.ink),
         invitation: '400',
         prefill: ctx.meta.iso == null ? null : '${ctx.meta.iso}',
         align: Alignment.bottomLeft,
@@ -151,7 +154,7 @@ class PostmarkPainter extends CustomPainter {
     final ink = roll.ink;
     final t = roll.treatment;
     final radius = stamp.width * 0.21;
-    final centre = stamp.topLeft + Offset(stamp.width * (0.13 + t.slip.dx * 8), stamp.height * (0.14 + t.slip.dy * 8));
+    final centre = stamp.topLeft + Offset(stamp.width * (0.27 + t.slip.dx * 8), stamp.height * (0.34 + t.slip.dy * 8));
 
     c.save();
     c.translate(centre.dx, centre.dy);
@@ -181,7 +184,9 @@ class PostmarkPainter extends CustomPainter {
       final path = Path();
       final y0 = centre.dy - radius * 0.5 + i * gap;
       for (var x = 0.0; x <= stamp.width * 0.72; x += 4) {
-        final y = y0 + math.sin((x / stamp.width) * math.pi * 3 + i) * radius * 0.045;
+        // one phase for every bar: a wavy-line cancel is a single die, so
+        // the lines run parallel rather than wandering apart
+        final y = y0 + math.sin((x / stamp.width) * math.pi * 3) * radius * 0.045;
         final p = Offset(centre.dx + x - radius * 0.2, y);
         if (x == 0) {
           path.moveTo(p.dx, p.dy);

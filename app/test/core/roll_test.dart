@@ -39,7 +39,8 @@ void main() {
       final r = _roll(seed);
       expect(_allowances.voices.contains(r.voiceId), isTrue, reason: 'seed $seed drew a forbidden voice');
       expect(_allowances.grounds.contains(r.ground), isTrue, reason: 'seed $seed drew a forbidden ground');
-      expect(contrastRatio(r.ink, r.ground), greaterThanOrEqualTo(3.0), reason: 'seed $seed is unreadable');
+      expect(contrastRatio(r.ink, _allowances.inkOn), greaterThanOrEqualTo(3.0),
+          reason: 'seed $seed is unreadable on the surface it prints on');
     }
   });
 
