@@ -57,5 +57,6 @@ flutter:
   assets:
     - assets/cameras/
     - assets/frames/
+    - assets/google_fonts/
   shaders:
     - shaders/grain_overlay.frag
