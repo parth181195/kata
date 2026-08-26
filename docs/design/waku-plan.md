@@ -2077,7 +2077,7 @@ In `stamp.dart`, after the postmark layer, add the Kata Code as the cancellation
       if (ctx.kataCode != null)
         ComposeSurface(Padding(
           padding: EdgeInsets.fromLTRB(face.right - stampW * 0.20, stamp.bottom - stampH * 0.20, s.width - face.right, s.height - stamp.bottom + stampH * 0.04),
-          child: KataCodeMark(payload: ctx.kataCode!, color: roll.ink),
+          child: LayoutBuilder(builder: (c, b) => KataCodeQr(payload: ctx.kataCode!, size: b.biggest.shortestSide)),
         )),
 ```
 
