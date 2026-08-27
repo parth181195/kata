@@ -47,7 +47,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
 
   Future<void> _share() async {
     setState(() => _busy = true);
-    final name = '${widget.recipe.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').toLowerCase()}-${_template.code.toLowerCase()}.png';
+    final name = shareFileName(widget.recipe, _template);
     Uint8List png;
     try {
       png = await CardRenderer(_boundary).toPng(pixelRatio: kCardPixelRatio);

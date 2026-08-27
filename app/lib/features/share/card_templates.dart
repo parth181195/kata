@@ -37,6 +37,25 @@ class ShareSpec {
 
 const kCardWidth = 390.0;
 
+/// The file the card is saved or shared as.
+///
+/// A name is not guaranteed to survive `[^A-Za-z0-9]` — '夏の海辺' and '...' both
+/// reduce to nothing, and every such recipe used to save as the same `--s1.png`,
+/// quietly overwriting the last one in someone's Downloads. So the name is used
+/// when it leaves something, the film simulation when it doesn't, and the id is
+/// appended in that case to keep two of them apart.
+String shareFileName(Recipe r, ShareTemplate template) {
+  String slug(String? v) => (v ?? '').replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '').toLowerCase();
+  var stem = slug(r.ofr.name);
+  if (stem.isEmpty) {
+    final sim = slug(r.ofr.filmSimulation);
+    final tail = slug(r.id);
+    stem = [if (sim.isNotEmpty) sim, if (tail.isNotEmpty) tail.substring(0, tail.length < 6 ? tail.length : 6)].join('-');
+  }
+  if (stem.isEmpty) stem = 'kata';
+  return '$stem-${template.code.toLowerCase()}.png';
+}
+
 /// Export scale. 4× puts the card at 1560px wide — about what WhatsApp and Instagram
 /// downscale to, so the QR arrives with whole pixels per module instead of mush.
 const kCardPixelRatio = 4.0;
@@ -149,16 +168,33 @@ class _S1 extends StatelessWidget {
         const SizedBox(height: 11),
         Container(height: 1, decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.rule, style: BorderStyle.solid)))),
         const SizedBox(height: 10),
+        // Every setting, in as many rows as it takes. A fixed childAspectRatio
+        // with a fixed take(12) dropped the last row off every colour recipe —
+        // Clarity, silently — and simply removing the cap would have clipped it
+        // instead, since the grid can't scroll. So the rows are sized from the
+        // space that is actually there.
         Expanded(
           flex: 4,
-          child: GridView.count(
-            crossAxisCount: 2,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 6.2,
-            mainAxisSpacing: 2,
-            crossAxisSpacing: 18,
-            children: [for (final it in items.take(12)) Row(children: [Expanded(child: Text(it.label.toUpperCase(), style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))), Text(it.value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1))])],
-          ),
+          child: LayoutBuilder(builder: (context, box) {
+            const cols = 2, gapX = 18.0, gapY = 2.0;
+            final rows = (items.length / cols).ceil();
+            final colW = (box.maxWidth - gapX * (cols - 1)) / cols;
+            final rowH = (box.maxHeight - gapY * (rows - 1)) / rows;
+            return GridView.count(
+              crossAxisCount: cols,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: rowH <= 0 ? 6.2 : colW / rowH,
+              mainAxisSpacing: gapY,
+              crossAxisSpacing: gapX,
+              children: [
+                for (final it in items)
+                  Row(children: [
+                    Expanded(child: Text(it.label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))),
+                    Text(it.value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)),
+                  ]),
+              ],
+            );
+          }),
         ),
         Container(height: 1, color: ink.fg),
         const SizedBox(height: 10),

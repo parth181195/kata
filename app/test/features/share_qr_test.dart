@@ -25,12 +25,19 @@ void main() {
   });
 }
 
-/// Module count for the smallest QR version that holds [bytes] at error-correction level M.
-/// Version n is (4n + 17) modules square; byte capacities from the QR spec.
+/// Module count for the smallest QR version that holds [bytes] at error-correction
+/// level M. Version n is (4n + 17) modules square; byte capacities from the QR spec.
+///
+/// The table used to stop at version 12 and return version 12 for anything larger,
+/// which meant a payload too big to fit was reported as *less* dense than it is —
+/// the one case the assertion exists to catch. It now throws instead.
 int _modulesFor(int bytes) {
-  const capacityM = {1: 14, 2: 26, 3: 42, 4: 62, 5: 84, 6: 106, 7: 122, 8: 152, 9: 180, 10: 213, 11: 251, 12: 287};
+  const capacityM = {
+    1: 14, 2: 26, 3: 42, 4: 62, 5: 84, 6: 106, 7: 122, 8: 152, 9: 180, 10: 213,
+    11: 251, 12: 287, 13: 331, 14: 362, 15: 412, 16: 450, 17: 504, 18: 560, 19: 624, 20: 666,
+  };
   for (final e in capacityM.entries) {
     if (bytes <= e.value) return 4 * e.key + 17;
   }
-  return 4 * 12 + 17;
+  throw StateError('$bytes bytes needs a QR past version 20 — extend the table');
 }
