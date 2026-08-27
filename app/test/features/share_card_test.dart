@@ -73,13 +73,16 @@ void main() {
     addTearDown(t.view.resetDevicePixelRatio);
   });
 
-  // On a 390px square the fixed rows — name, swatch, every setting, credit,
-  // code — come to ~403px with a two-line name, so a sample frame can never
-  // have meaningful height there: with a one-line name it got 18px, a sliver
-  // of photo above a name that had lost its last word. Neither is worth
-  // having. The square card is a settings card: no frame, the name whole.
-  testWidgets('the square recipe card drops the sample frame and keeps the whole name', (t) async {
-    final long = Recipe(id: 'l1', ofr: _colour.copyWith(name: 'Kodak T-Max 100 Hard Tone'), imageUrls: const ['gated://x']);
+  // On a 390px square a frame above the name can never have meaningful height
+  // — it got 18px, a sliver bought with the last word of the name. The code's
+  // row is 128px tall with air beside it, so that is where the pictures go:
+  // two of them, and the name stays whole.
+  testWidgets('the square recipe card carries two frames beside the code, and the whole name', (t) async {
+    final long = Recipe(
+      id: 'l1',
+      ofr: _colour.copyWith(name: 'Kodak T-Max 100 Hard Tone'),
+      imageUrls: const ['gated://a', 'gated://b', 'gated://c'],
+    );
     Future<void> pump(ShareRatio ratio) async {
       final h = kCardWidth / ratio.aspect;
       t.view.physicalSize = Size(kCardWidth, h);
@@ -108,11 +111,16 @@ void main() {
     final nameText = find.text('KODAK T-MAX 100 HARD TONE');
 
     await pump(ShareRatio.r1x1);
-    expect(find.byType(Image), findsNothing, reason: 'a square card must not carry a sliver of a frame');
-    expect(t.widget<Text>(nameText).maxLines, 2, reason: 'without the frame the name gets its second line back');
+    expect(find.byType(Image), findsNWidgets(2), reason: 'the square card shows two frames');
+    expect(t.widget<Text>(nameText).maxLines, 2, reason: 'and the name keeps its second line');
+    for (final img in find.byType(Image).evaluate()) {
+      final r = t.getRect(find.byWidget(img.widget));
+      expect(r.height, greaterThan(80), reason: 'a frame on the square is a picture, not a sliver: ${r.height}px');
+      expect(r.width, greaterThan(80));
+    }
 
     await pump(ShareRatio.r4x5);
-    expect(find.byType(Image), findsOneWidget, reason: 'a 4:5 card has room for the frame and must keep it');
+    expect(find.byType(Image), findsOneWidget, reason: 'a 4:5 card keeps its single frame above the name');
     expect(t.widget<Text>(nameText).maxLines, 2);
   });
 

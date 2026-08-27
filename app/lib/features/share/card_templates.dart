@@ -179,10 +179,12 @@ class _S1 extends StatelessWidget {
     final r = spec.recipe;
     final items = RecipeSpecs.items(r.ofr, rulers: false);
     // On a 390px square the fixed rows — name, swatch, every setting, credit,
-    // code — come to ~403px with a two-line name, so the frame can never have
-    // meaningful height: with a one-line name it got 18px, a sliver of photo
-    // above a name that had lost its last word. The square card is a settings
-    // card. It has no frame, and the name is whole.
+    // code — come to ~403px with a two-line name, so a frame above the name
+    // can never have meaningful height: it got 18px, a sliver of photo bought
+    // with the last word of the name. But the code's row is 128px tall and the
+    // credit beside it is two short lines in 200px of air. So on the square
+    // the pictures go there — two of them, beside the code, credit beneath —
+    // and nothing else on the card moves.
     final square = spec.ratio == ShareRatio.r1x1;
     return Padding(
       padding: const EdgeInsets.all(22),
@@ -216,16 +218,36 @@ class _S1 extends StatelessWidget {
         _SettingsGrid(items: items, ink: ink),
         Container(height: 1, color: ink.fg),
         const SizedBox(height: 10),
-        Row(children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(spec.credit, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1)),
-              const SizedBox(height: 4),
-              Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
-            ]),
-          ),
-          _qrBlock(spec, ink, kQrSlot),
-        ]),
+        SizedBox(
+          height: kQrSlot,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Expanded(
+              child: square
+                  ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Expanded(
+                        child: Row(children: [
+                          Expanded(child: _frame(ink, spec, index: 0)),
+                          const SizedBox(width: 6),
+                          Expanded(child: _frame(ink, spec, index: 1)),
+                        ]),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Expanded(child: Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
+                        const SizedBox(width: 8),
+                        Text('${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+                      ]),
+                    ])
+                  : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text(spec.credit, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1)),
+                      const SizedBox(height: 4),
+                      Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+                    ]),
+            ),
+            const SizedBox(width: 12),
+            _qrBlock(spec, ink, kQrSlot),
+          ]),
+        ),
       ]),
     );
   }
