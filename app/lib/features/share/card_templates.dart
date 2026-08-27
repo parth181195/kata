@@ -60,6 +60,22 @@ String shareFileName(Recipe r, ShareTemplate template) {
 /// downscale to, so the QR arrives with whole pixels per module instead of mush.
 const kCardPixelRatio = 4.0;
 
+/// Pixels per QR module in the exported PNG, below which a recompressed
+/// screenshot stops scanning reliably.
+const kMinQrPxPerModule = 5.0;
+
+/// The side of the QR on the templates that give it a fixed slot.
+///
+/// Sized from the payload, not from taste. A Kata Code carries the settings plus
+/// the name, the attribution and the source URL, and none of those three are
+/// bounded — a Japanese name with a Japanese attribution percent-encodes to about
+/// 384 bytes, which is a 77-module code and needs 115px to stay scannable. The
+/// old slots were 104–124 and that recipe came out unscannable on two of the four
+/// templates. 128 covers a 120-character name *and* a 120-character attribution
+/// *and* a long URL; share_qr_test.dart measures the rendered code and fails if a
+/// payload ever outgrows it again.
+const kQrSlot = 128.0;
+
 /// Palette for a card: white card / black ink by default; inverted flips.
 class _Ink {
   _Ink(bool inv) : bg = inv ? Colors.black : Colors.white, fg = inv ? Colors.white : Colors.black, mid = inv ? KataColors.grey300 : KataColors.grey700, mute = KataColors.grey500, rule = inv ? KataColors.grey700 : KataColors.grey300, frame = inv ? const Color(0xFF141414) : const Color(0xFFF2F2F2);
@@ -147,19 +163,24 @@ class _S1 extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = spec.recipe;
     final items = RecipeSpecs.items(r.ofr, rulers: false);
+    // On a square card the fixed rows — name, swatch, every setting, credit,
+    // code — add up to more than the card even after the frame has given up
+    // all its height. The name is the only row that can lose a line without
+    // losing a fact, so on a short card it gets one.
+    final square = spec.ratio == ShareRatio.r1x1;
     return Padding(
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _wordmark(ink, right: 'S1 · RECIPE CARD'),
         const SizedBox(height: 14),
-        Expanded(flex: 5, child: _frame(ink, r)),
+        Expanded(child: _frame(ink, r)),
         const SizedBox(height: 14),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(r.name.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 22, color: ink.fg, letterSpacing: 0, height: 1.02)),
+              Text(r.name.toUpperCase(), maxLines: square ? 1 : 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 22, color: ink.fg, letterSpacing: 0, height: 1.02)),
               const SizedBox(height: 5),
-              Text('${r.ofr.filmSimulation} · ${r.ofr.sensors.isEmpty ? 'ANY SENSOR' : r.ofr.sensors.join('/')}'.toUpperCase(), style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
+              Text('${r.ofr.filmSimulation} · ${r.ofr.sensors.isEmpty ? 'ANY SENSOR' : r.ofr.sensors.join('/')}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
             ]),
           ),
           const SizedBox(width: 12),
@@ -170,32 +191,11 @@ class _S1 extends StatelessWidget {
         const SizedBox(height: 10),
         // Every setting, in as many rows as it takes. A fixed childAspectRatio
         // with a fixed take(12) dropped the last row off every colour recipe —
-        // Clarity, silently — and simply removing the cap would have clipped it
-        // instead, since the grid can't scroll. So the rows are sized from the
-        // space that is actually there.
-        Expanded(
-          flex: 4,
-          child: LayoutBuilder(builder: (context, box) {
-            const cols = 2, gapX = 18.0, gapY = 2.0;
-            final rows = (items.length / cols).ceil();
-            final colW = (box.maxWidth - gapX * (cols - 1)) / cols;
-            final rowH = (box.maxHeight - gapY * (rows - 1)) / rows;
-            return GridView.count(
-              crossAxisCount: cols,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: rowH <= 0 ? 6.2 : colW / rowH,
-              mainAxisSpacing: gapY,
-              crossAxisSpacing: gapX,
-              children: [
-                for (final it in items)
-                  Row(children: [
-                    Expanded(child: Text(it.label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))),
-                    Text(it.value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)),
-                  ]),
-              ],
-            );
-          }),
-        ),
+        // Clarity, silently. And sizing the rows from whatever height was left
+        // clipped the type on a square card instead, where the frame:grid flex
+        // split drawn for 4:5 leaves the grid 43px for seven rows. So the grid
+        // takes the height its rows need, and the frame above is what yields.
+        _SettingsGrid(items: items, ink: ink),
         Container(height: 1, color: ink.fg),
         const SizedBox(height: 10),
         Row(children: [
@@ -206,10 +206,45 @@ class _S1 extends StatelessWidget {
               Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
             ]),
           ),
-          _qrBlock(spec, ink, 112),
+          _qrBlock(spec, ink, kQrSlot),
         ]),
       ]),
     );
+  }
+}
+
+/// The settings, two columns, every row the height its type needs. Not a
+/// GridView: a grid divides the height it is given, and a card is not a place
+/// where the height is negotiable — the rows are, and the picture above them.
+class _SettingsGrid extends StatelessWidget {
+  const _SettingsGrid({required this.items, required this.ink});
+  final List<SpecItem> items;
+  final _Ink ink;
+
+  static const _rowH = 12.5, _gapX = 18.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = (items.length / 2).ceil();
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      for (var i = 0; i < rows; i++)
+        SizedBox(
+          height: _rowH,
+          child: Row(children: [
+            for (var c = 0; c < 2; c++) ...[
+              if (c > 0) const SizedBox(width: _gapX),
+              Expanded(
+                child: i * 2 + c < items.length
+                    ? Row(children: [
+                        Expanded(child: Text(items[i * 2 + c].label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))),
+                        Text(items[i * 2 + c].value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)),
+                      ])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ]),
+        ),
+    ]);
   }
 }
 
@@ -250,7 +285,7 @@ class _S2 extends StatelessWidget {
             ]),
           ),
           const SizedBox(width: 10),
-          _qrBlock(spec, ink, 104),
+          _qrBlock(spec, ink, kQrSlot),
         ]),
         ),
       ]),
@@ -267,27 +302,35 @@ class _S3 extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = spec.recipe;
     final items = RecipeSpecs.compact(r.ofr).take(4).toList();
+    // The story is drawn for 9:16, but the ratio chips let it be posted square,
+    // and on a square card the fixed rows below the frame add up to more than
+    // the card is tall: it overflowed by ~20px in release, silently clipped.
+    // So the frame yields first, and if that isn't enough the title does — a
+    // story with no picture is still a story; one with its code cut off isn't.
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _wordmark(ink, right: 'S3 · STORY'),
-        const SizedBox(height: 16),
-        Expanded(flex: 5, child: _frame(ink, r, radius: 8)),
-        const SizedBox(height: 22),
-        Text(r.name.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 34, color: ink.fg, letterSpacing: 0, height: 1)),
-        const SizedBox(height: 8),
-        Text(RecipeSpecs.summary(r.ofr).toUpperCase(), style: KataType.monoStyle(size: 10.5, color: ink.mid, letterSpacing: 0.08)),
-        const SizedBox(height: 18),
-        Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
-        const SizedBox(height: 22),
-        Row(children: [
-          _qrBlock(spec, ink, 124),
-          const SizedBox(width: 14),
-          Expanded(child: Text('SCAN TO LOAD INTO\nYOUR OWN C-SLOT', style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25))),
-        ]),
-        const SizedBox(height: 8),
-        Text(spec.credit, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
-      ]),
+      child: LayoutBuilder(builder: (context, box) {
+        final tight = box.maxHeight < 560;
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _wordmark(ink, right: 'S3 · STORY'),
+          SizedBox(height: tight ? 10 : 16),
+          Expanded(flex: 5, child: _frame(ink, r, radius: 8)),
+          SizedBox(height: tight ? 14 : 22),
+          Text(r.name.toUpperCase(), maxLines: tight ? 1 : 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: tight ? 26 : 34, color: ink.fg, letterSpacing: 0, height: 1)),
+          const SizedBox(height: 8),
+          Text(RecipeSpecs.summary(r.ofr).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 10.5, color: ink.mid, letterSpacing: 0.08)),
+          SizedBox(height: tight ? 12 : 18),
+          Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
+          SizedBox(height: tight ? 14 : 22),
+          Row(children: [
+            _qrBlock(spec, ink, kQrSlot),
+            const SizedBox(width: 14),
+            Expanded(child: Text('SCAN TO LOAD INTO\nYOUR OWN C-SLOT', style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25))),
+          ]),
+          const SizedBox(height: 8),
+          Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
+        ]);
+      }),
     );
   }
 }

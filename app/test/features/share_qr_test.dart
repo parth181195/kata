@@ -1,6 +1,23 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kata/data/recipe.dart';
 import 'package:kata/features/share/card_templates.dart';
+import 'package:kata/features/share/kata_code_qr.dart';
+import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
+
+/// The worst payload a real user plausibly produces: a Japanese name, a Japanese
+/// attribution and a source URL, all percent-encoded, on top of a recipe with
+/// every optional field set. This is not a synthetic worst case — Kata is a Fuji
+/// app, and this is what a recipe from a Japanese blog looks like.
+const _worst = OfrRecipe(
+    name: '夏の海辺の富士フイルムレシピ', sensors: ['X-Trans V', 'X-Trans IV'],
+    sourceAttribution: '富士フイルム写真家協会', sourceUrl: 'https://example.jp/recipes/natsu-no-umibe',
+    filmSimulation: 'Classic Negative', dynamicRange: 'DR400', dRangePriority: 'Strong',
+    grainRoughness: 'Strong', grainSize: 'Large', colorChromeEffect: 'Strong', colorChromeFxBlue: 'Strong',
+    whiteBalance: 'Kelvin', wbKelvin: 7500, whiteBalanceRed: 9, whiteBalanceBlue: -9,
+    highlight: 4, shadow: 4, color: 4, sharpness: 4, highIsoNr: 4, clarity: 5,
+    monochromaticColorWarmCool: 9, monochromaticColorMagentaGreen: -9);
 
 const _long = OfrRecipe(
     name: 'Kodak T-Max 100 Hard Tone', sensors: ['X-Trans V'], filmSimulation: 'Acros Red', dynamicRange: 'DR400',
@@ -22,6 +39,49 @@ void main() {
     expect(pxPerModule, greaterThanOrEqualTo(5.0),
         reason: 'payload of ${payload.length} bytes → $modules modules at ${pxPerModule.toStringAsFixed(1)}px each');
     expect(kCardWidth * kCardPixelRatio, closeTo(1560, 1), reason: 'about what messengers downscale to');
+  });
+
+  // The constant above only checks the number we think the slot is. This checks
+  // the code that actually gets painted, on every template, for a payload a real
+  // user can produce — which is how the 104px slot shipped a Japanese recipe with
+  // an unscannable code.
+  testWidgets('every template paints a code that survives a messenger', (t) async {
+    final payload = KataCode.encode(_worst, credit: _worst.sourceAttribution);
+    final modules = _modulesFor(payload.length);
+
+    for (final template in ShareTemplate.values) {
+      for (final ratio in ShareRatio.values) {
+        final h = kCardWidth / ratio.aspect;
+        t.view.physicalSize = Size(kCardWidth, h);
+        t.view.devicePixelRatio = 1;
+        await t.pumpWidget(MaterialApp(
+          theme: KataTheme.light(),
+          home: Material(
+            child: SizedBox(
+              width: kCardWidth,
+              height: h,
+              child: ShareCard(ShareSpec(
+                recipe: Recipe(id: 'w1', ofr: _worst),
+                template: template,
+                ratio: ratio,
+                credit: _worst.sourceAttribution!,
+              )),
+            ),
+          ),
+        ));
+        await t.pumpAndSettle();
+
+        // the painted rect, not the requested size — S4 scales its code down to fit
+        final rect = t.getRect(find.byType(KataCodeQr));
+        final quiet = rect.width * 0.08 * 2;
+        final pxPerModule = (rect.width - quiet) * kCardPixelRatio / modules;
+        expect(pxPerModule, greaterThanOrEqualTo(kMinQrPxPerModule),
+            reason: '${template.code} at ${ratio.label}: ${payload.length}B → $modules modules in '
+                '${rect.width.toStringAsFixed(0)}px = ${pxPerModule.toStringAsFixed(2)}px per module');
+      }
+    }
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
   });
 }
 
