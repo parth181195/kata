@@ -24,8 +24,22 @@ extension ShareRatioX on ShareRatio {
 /// Everything a template needs. Cards are laid out at a logical width of [kCardWidth] and
 /// rendered at [kCardPixelRatio]×.
 class ShareSpec {
-  const ShareSpec({required this.recipe, required this.template, required this.ratio, this.inverted = false, this.embedCode = true, required this.credit});
+  const ShareSpec({
+    required this.recipe,
+    required this.template,
+    required this.ratio,
+    this.inverted = false,
+    this.embedCode = true,
+    required this.credit,
+    this.imageFor = _network,
+  });
   final Recipe recipe;
+
+  /// How a sample-frame URL becomes an image. The network by default; a test
+  /// hands in a provider it controls, so the export's wait for the photo can be
+  /// exercised without one.
+  final ImageProvider Function(String url) imageFor;
+  static ImageProvider _network(String url) => CachedNetworkImageProvider(url);
   final ShareTemplate template;
   final ShareRatio ratio;
   final bool inverted;
@@ -113,7 +127,8 @@ Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
   if (right != null) Text(right, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
 ]);
 
-Widget _frame(_Ink ink, Recipe r, {double? height, int index = 0, double radius = 4}) {
+Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = 4}) {
+  final r = spec.recipe;
   final url = r.imageUrls.length > index ? r.imageUrls[index] : null;
   return ClipRRect(
     borderRadius: BorderRadius.circular(radius),
@@ -122,7 +137,7 @@ Widget _frame(_Ink ink, Recipe r, {double? height, int index = 0, double radius 
       color: ink.frame,
       child: url == null
           ? CustomPaint(painter: _Dots(ink.rule), child: Center(child: Text('SAMPLE FRAME', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.12))))
-          : Image(image: CachedNetworkImageProvider(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+          : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
     ),
   );
 }
@@ -173,7 +188,7 @@ class _S1 extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _wordmark(ink, right: 'S1 · RECIPE CARD'),
         const SizedBox(height: 14),
-        Expanded(child: _frame(ink, r)),
+        Expanded(child: _frame(ink, spec)),
         const SizedBox(height: 14),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
@@ -266,9 +281,9 @@ class _S2 extends StatelessWidget {
         Expanded(
           flex: 3,
           child: Row(children: [
-            Expanded(flex: 3, child: _frame(ink, r, index: 0)),
+            Expanded(flex: 3, child: _frame(ink, spec, index: 0)),
             const SizedBox(width: 6),
-            Expanded(flex: 2, child: Column(children: [Expanded(child: _frame(ink, r, index: 1)), const SizedBox(height: 6), Expanded(child: _frame(ink, r, index: 2))])),
+            Expanded(flex: 2, child: Column(children: [Expanded(child: _frame(ink, spec, index: 1)), const SizedBox(height: 6), Expanded(child: _frame(ink, spec, index: 2))])),
           ]),
         ),
         const SizedBox(height: 12),
@@ -314,7 +329,7 @@ class _S3 extends StatelessWidget {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _wordmark(ink, right: 'S3 · STORY'),
           SizedBox(height: tight ? 10 : 16),
-          Expanded(flex: 5, child: _frame(ink, r, radius: 8)),
+          Expanded(flex: 5, child: _frame(ink, spec, radius: 8)),
           SizedBox(height: tight ? 14 : 22),
           Text(r.name.toUpperCase(), maxLines: tight ? 1 : 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: tight ? 26 : 34, color: ink.fg, letterSpacing: 0, height: 1)),
           const SizedBox(height: 8),

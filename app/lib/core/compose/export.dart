@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -17,7 +18,13 @@ import 'grain.dart';
 /// Renders [boundaryKey]'s RepaintBoundary to PNG. Pass [pixelRatio] to fix the
 /// scale (the share cards do), or [targetShortSide] to hit a resolution
 /// regardless of preview size (Waku does).
-Future<Uint8List> rasterizePng(GlobalKey boundaryKey, {double? pixelRatio, double targetShortSide = 2048, bool settle = true}) async {
+Future<Uint8List> rasterizePng(
+  GlobalKey boundaryKey, {
+  double? pixelRatio,
+  double targetShortSide = 2048,
+  bool settle = true,
+  Duration imageWait = const Duration(seconds: 8),
+}) async {
   final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final ratio = pixelRatio ?? (targetShortSide / boundary.size.shortestSide).clamp(1.0, 6.0);
   try {
@@ -26,7 +33,13 @@ Future<Uint8List> rasterizePng(GlobalKey boundaryKey, {double? pixelRatio, doubl
     GrainOverlay.rasterScale.value = ratio;
     await GrainOverlay.ready();
     if (settle) {
-      // wait a couple of frames so images and the re-scaled grain have painted
+      // Every image under the boundary has to have decoded, or the first share
+      // of a recipe ships a card with a grey box where its sample frame goes —
+      // two frames of settling is a race against the network, and the network
+      // usually wins. Bounded, so an offline device still gets its card, with
+      // the placeholder it can actually see.
+      await _imagesUnder(boundaryKey.currentContext!).timeout(imageWait, onTimeout: () {});
+      // and a couple of frames so what arrived, and the re-scaled grain, have painted
       await WidgetsBinding.instance.endOfFrame;
       await WidgetsBinding.instance.endOfFrame;
     }
@@ -37,6 +50,41 @@ Future<Uint8List> rasterizePng(GlobalKey boundaryKey, {double? pixelRatio, doubl
   } finally {
     GrainOverlay.rasterScale.value = 1;
   }
+}
+
+/// Completes when every [Image] in [root]'s subtree has a decoded frame.
+Future<void> _imagesUnder(BuildContext root) async {
+  final providers = <ImageProvider>[];
+  void walk(Element e) {
+    final w = e.widget;
+    if (w is Image) providers.add(w.image);
+    e.visitChildren(walk);
+  }
+
+  root.visitChildElements(walk);
+  if (providers.isEmpty) return;
+
+  await Future.wait([
+    for (final p in providers)
+      () {
+        final done = Completer<void>();
+        final stream = p.resolve(createLocalImageConfiguration(root));
+        late final ImageStreamListener l;
+        l = ImageStreamListener(
+          (_, _) {
+            if (!done.isCompleted) done.complete();
+            stream.removeListener(l);
+          },
+          onError: (_, _) {
+            // a broken image is still a decided image: the card shows its fallback
+            if (!done.isCompleted) done.complete();
+            stream.removeListener(l);
+          },
+        );
+        stream.addListener(l);
+        return done.future;
+      }(),
+  ]);
 }
 
 bool get _isDesktop => !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
