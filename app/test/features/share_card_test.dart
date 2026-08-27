@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/data/recipe.dart';
@@ -21,6 +23,16 @@ const _worst = OfrRecipe(
     whiteBalance: 'Kelvin', wbKelvin: 7500, whiteBalanceRed: 9, whiteBalanceBlue: -9,
     highlight: 4, shadow: 4, color: 4, sharpness: 4, highIsoNr: 4, clarity: 5,
     monochromaticColorWarmCool: 9, monochromaticColorMagentaGreen: -9);
+
+/// An image that never resolves — enough to prove the card built an Image.
+class _NeverImage extends ImageProvider<_NeverImage> {
+  const _NeverImage();
+  @override
+  Future<_NeverImage> obtainKey(ImageConfiguration configuration) => Future.value(this);
+  @override
+  ImageStreamCompleter loadImage(_NeverImage key, ImageDecoderCallback decode) =>
+      OneFrameImageStreamCompleter(Completer<ImageInfo>().future);
+}
 
 void main() {
   // A card is a fixed box; a Column that outgrows it overflows, which in a
@@ -59,6 +71,49 @@ void main() {
     }
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
+  });
+
+  // On a 390px square the fixed rows — name, swatch, every setting, credit,
+  // code — come to ~403px with a two-line name, so a sample frame can never
+  // have meaningful height there: with a one-line name it got 18px, a sliver
+  // of photo above a name that had lost its last word. Neither is worth
+  // having. The square card is a settings card: no frame, the name whole.
+  testWidgets('the square recipe card drops the sample frame and keeps the whole name', (t) async {
+    final long = Recipe(id: 'l1', ofr: _colour.copyWith(name: 'Kodak T-Max 100 Hard Tone'), imageUrls: const ['gated://x']);
+    Future<void> pump(ShareRatio ratio) async {
+      final h = kCardWidth / ratio.aspect;
+      t.view.physicalSize = Size(kCardWidth, h);
+      t.view.devicePixelRatio = 1;
+      await t.pumpWidget(MaterialApp(
+        theme: KataTheme.light(),
+        home: Material(
+          child: SizedBox(
+            width: kCardWidth,
+            height: h,
+            child: ShareCard(ShareSpec(
+              recipe: long,
+              template: ShareTemplate.card,
+              ratio: ratio,
+              credit: 'Kata',
+              imageFor: (_) => const _NeverImage(),
+            )),
+          ),
+        ),
+      ));
+      await t.pump();
+    }
+
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final nameText = find.text('KODAK T-MAX 100 HARD TONE');
+
+    await pump(ShareRatio.r1x1);
+    expect(find.byType(Image), findsNothing, reason: 'a square card must not carry a sliver of a frame');
+    expect(t.widget<Text>(nameText).maxLines, 2, reason: 'without the frame the name gets its second line back');
+
+    await pump(ShareRatio.r4x5);
+    expect(find.byType(Image), findsOneWidget, reason: 'a 4:5 card has room for the frame and must keep it');
+    expect(t.widget<Text>(nameText).maxLines, 2);
   });
 
   testWidgets('the recipe card shows every setting it has, not the first twelve', (t) async {

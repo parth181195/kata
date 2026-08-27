@@ -178,22 +178,25 @@ class _S1 extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = spec.recipe;
     final items = RecipeSpecs.items(r.ofr, rulers: false);
-    // On a square card the fixed rows — name, swatch, every setting, credit,
-    // code — add up to more than the card even after the frame has given up
-    // all its height. The name is the only row that can lose a line without
-    // losing a fact, so on a short card it gets one.
+    // On a 390px square the fixed rows — name, swatch, every setting, credit,
+    // code — come to ~403px with a two-line name, so the frame can never have
+    // meaningful height: with a one-line name it got 18px, a sliver of photo
+    // above a name that had lost its last word. The square card is a settings
+    // card. It has no frame, and the name is whole.
     final square = spec.ratio == ShareRatio.r1x1;
     return Padding(
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _wordmark(ink, right: 'S1 · RECIPE CARD'),
         const SizedBox(height: 14),
-        Expanded(child: _frame(ink, spec)),
-        const SizedBox(height: 14),
+        if (!square) ...[
+          Expanded(child: _frame(ink, spec)),
+          const SizedBox(height: 14),
+        ],
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(r.name.toUpperCase(), maxLines: square ? 1 : 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 22, color: ink.fg, letterSpacing: 0, height: 1.02)),
+              Text(r.name.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 22, color: ink.fg, letterSpacing: 0, height: 1.02)),
               const SizedBox(height: 5),
               Text('${r.ofr.filmSimulation} · ${r.ofr.sensors.isEmpty ? 'ANY SENSOR' : r.ofr.sensors.join('/')}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
             ]),
