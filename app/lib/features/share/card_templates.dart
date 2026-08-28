@@ -148,6 +148,9 @@ const kMinQrPxPerModule = 5.0;
 /// payload ever outgrows it again.
 const kQrSlot = 128.0;
 
+/// The sheet's code, beside its settings: larger, the sheet has the width.
+const kQrSheet = 176.0;
+
 /// Palette for a card: white card / black ink by default; inverted flips.
 class _Ink {
   _Ink(bool inv) : bg = inv ? Colors.black : Colors.white, fg = inv ? Colors.white : Colors.black, mid = inv ? KataColors.grey300 : KataColors.grey700, mute = KataColors.grey500, rule = inv ? KataColors.grey700 : KataColors.grey300, frame = inv ? const Color(0xFF141414) : const Color(0xFFF2F2F2);
@@ -162,7 +165,10 @@ class ShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = _Ink(spec.inverted);
-    final h = kCardWidth / spec.ratio.aspect;
+    // page 1 is as tall as its photograph and name need — a 3:2 frame on a
+    // 4:5 card was two bands of nothing — and its frame runs the full width,
+    // edge to edge. The ratio is page 2's, whose rows are fixed and need the room.
+    final h = spec.page == SharePage.photo ? null : kCardWidth / spec.ratio.aspect;
     final body = switch ((spec.template, spec.page)) {
       (ShareTemplate.card, SharePage.photo) => _S1Photo(spec, ink),
       (ShareTemplate.card, SharePage.recipe) => _S1Recipe(spec, ink),
@@ -236,8 +242,8 @@ Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double r
               : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
     ),
   );
-  // a shaped frame takes the largest box of its aspect the space allows
-  return aspect == null ? box : Center(child: AspectRatio(aspectRatio: aspect, child: box));
+  // a shaped frame runs the full width, its height from the aspect
+  return aspect == null ? box : AspectRatio(aspectRatio: aspect, child: box);
 }
 
 /// The photograph shifted and zoomed as the spec says, no further than the
@@ -293,10 +299,10 @@ class _S1Photo extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.all(22),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
           _header(ink, spec),
           const SizedBox(height: 14),
-          Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect)),
+          _frame(ink, spec, aspect: spec.template.frameAspect),
           const SizedBox(height: 14),
           _nameLine(ink, spec.recipe),
         ]),
@@ -353,27 +359,28 @@ class _S1Recipe extends StatelessWidget {
 /// GridView: a grid divides the height it is given, and a card is not a place
 /// where the height is negotiable — the rows are, and the picture above them.
 class _SettingsGrid extends StatelessWidget {
-  const _SettingsGrid({required this.items, required this.ink});
+  const _SettingsGrid({required this.items, required this.ink, this.columns = 2});
   final List<SpecItem> items;
   final _Ink ink;
+  final int columns;
 
   static const _rowH = 12.5, _gapX = 18.0;
 
   @override
   Widget build(BuildContext context) {
-    final rows = (items.length / 2).ceil();
+    final rows = (items.length / columns).ceil();
     return Column(mainAxisSize: MainAxisSize.min, children: [
       for (var i = 0; i < rows; i++)
         SizedBox(
           height: _rowH,
           child: Row(children: [
-            for (var c = 0; c < 2; c++) ...[
+            for (var c = 0; c < columns; c++) ...[
               if (c > 0) const SizedBox(width: _gapX),
               Expanded(
-                child: i * 2 + c < items.length
+                child: i * columns + c < items.length
                     ? Row(children: [
-                        Expanded(child: Text(items[i * 2 + c].label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))),
-                        Text(items[i * 2 + c].value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)),
+                        Expanded(child: Text(items[i * columns + c].label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))),
+                        Text(items[i * columns + c].value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)),
                       ])
                     : const SizedBox.shrink(),
               ),
@@ -398,10 +405,10 @@ class _S2Photo extends StatelessWidget {
     final r = spec.recipe;
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
         _header(ink, spec),
         const SizedBox(height: 12),
-        Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect)),
+        _frame(ink, spec, aspect: spec.template.frameAspect),
         const SizedBox(height: 12),
         _nameLine(ink, r, size: 18, maxLines: 1),
         const SizedBox(height: 6),
@@ -411,7 +418,8 @@ class _S2Photo extends StatelessWidget {
   }
 }
 
-/// Page 2: the name, the settings that matter, the code large.
+/// Page 2: the name, then every setting down the left with the code beside
+/// it on the right — the code at its size, the settings in the room it leaves.
 class _S2Recipe extends StatelessWidget {
   const _S2Recipe(this.spec, this.ink);
   final ShareSpec spec;
@@ -419,20 +427,32 @@ class _S2Recipe extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = spec.recipe;
-    final compact = RecipeSpecs.compact(r.ofr);
+    final items = RecipeSpecs.items(r.ofr, rulers: false);
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(ink, spec),
         const SizedBox(height: 12),
         _nameLine(ink, r, size: 18, maxLines: 1),
-        const SizedBox(height: 10),
-        Wrap(spacing: 14, runSpacing: 6, children: [for (final it in compact.take(6)) _kv(ink, it.label, it.value, vs: 10)]),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(_tags(r).join(' ').toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 8.5, color: ink.mute, letterSpacing: 0.08)),
         const SizedBox(height: 10),
-        // the code takes whatever height is left and never pushes the credit off the card
-        Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: _qrBlock(spec, ink, 260)))),
+        Container(height: 1, decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.rule)))),
+        const SizedBox(height: 10),
+        Expanded(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // every setting, one column; scaled down rather than cut when a
+            // recipe has more rows than the card has height
+            Expanded(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.topLeft, child: SizedBox(width: kCardWidth - 40 - 14 - kQrSheet, child: _SettingsGrid(items: items, ink: ink, columns: 1))),
+              ),
+            ),
+            const SizedBox(width: 14),
+            _qrBlock(spec, ink, kQrSheet),
+          ]),
+        ),
         const SizedBox(height: 10),
         Row(children: [
           Expanded(child: Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
@@ -456,17 +476,13 @@ class _S3Photo extends StatelessWidget {
     final r = spec.recipe;
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: LayoutBuilder(builder: (context, box) {
-        // drawn for 9:16; on a square the frame yields and the name goes to one line
-        final tight = box.maxHeight < 560;
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _header(ink, spec),
-          SizedBox(height: tight ? 10 : 16),
-          Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect)),
-          SizedBox(height: tight ? 14 : 22),
-          _nameLine(ink, r, size: tight ? 26 : 34, maxLines: tight ? 1 : 2, sub: RecipeSpecs.summary(r.ofr)),
-        ]);
-      }),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+        _header(ink, spec),
+        const SizedBox(height: 16),
+        _frame(ink, spec, aspect: spec.template.frameAspect),
+        const SizedBox(height: 22),
+        _nameLine(ink, r, size: 34, sub: RecipeSpecs.summary(r.ofr)),
+      ]),
     );
   }
 }

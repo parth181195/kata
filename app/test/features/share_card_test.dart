@@ -49,14 +49,15 @@ void main() {
           final prev = FlutterError.onError;
           FlutterError.onError = (d) => overflow.add(d.exceptionAsString().split('\n').first);
           final h = kCardWidth / ratio.aspect;
-          t.view.physicalSize = Size(kCardWidth, h);
+          // page 1 sizes itself, so its view is simply tall; page 2 is the card's ratio
+          t.view.physicalSize = Size(kCardWidth, page == SharePage.photo ? 1600 : h);
           t.view.devicePixelRatio = 1;
           await t.pumpWidget(MaterialApp(
             theme: KataTheme.light(),
             home: Material(
               child: SizedBox(
                 width: kCardWidth,
-                height: h,
+                height: page == SharePage.photo ? null : h,
                 child: ShareCard(ShareSpec(
                   recipe: Recipe(id: 'o1', ofr: ofr),
                   template: template,
@@ -89,14 +90,14 @@ void main() {
     );
     Future<void> pump(ShareTemplate template, SharePage page, ShareRatio ratio) async {
       final h = kCardWidth / ratio.aspect;
-      t.view.physicalSize = Size(kCardWidth, h);
+      t.view.physicalSize = Size(kCardWidth, page == SharePage.photo ? 1600 : h);
       t.view.devicePixelRatio = 1;
       await t.pumpWidget(MaterialApp(
         theme: KataTheme.light(),
         home: Material(
           child: SizedBox(
             width: kCardWidth,
-            height: h,
+            height: page == SharePage.photo ? null : h,
             child: ShareCard(ShareSpec(
               recipe: long,
               template: template,
@@ -122,6 +123,7 @@ void main() {
         final r = t.getRect(find.byType(Image));
         expect(r.height, greaterThan(80), reason: '${template.code} at ${ratio.label}: a picture, not a sliver: ${r.height}px');
         expect(r.width, greaterThan(80));
+        expect(r.width, greaterThan(kCardWidth - 50), reason: '${template.code}: the frame runs edge to edge');
         expect(nameText, findsOneWidget, reason: 'the name travels with the picture');
 
         await pump(template, SharePage.recipe, ratio);
@@ -192,6 +194,10 @@ void main() {
             )),
           ),
         ));
+    t.view.physicalSize = const Size(kCardWidth, 1600);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
     await pump(outline: false, round: true);
     final frame = find.byType(ClipRRect).at(1); // the photograph's frame (the first clip is the card's own edge)
     final before = t.getRect(frame);
@@ -219,7 +225,6 @@ void main() {
           home: Material(
             child: SizedBox(
               width: kCardWidth,
-              height: kCardWidth / (4 / 5),
               child: ShareCard(ShareSpec(
                 recipe: Recipe(id: 'r1', ofr: _colour),
                 template: ShareTemplate.card,
@@ -234,7 +239,7 @@ void main() {
             ),
           ),
         ));
-    t.view.physicalSize = Size(kCardWidth, kCardWidth / (4 / 5));
+    t.view.physicalSize = const Size(kCardWidth, 1600);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
