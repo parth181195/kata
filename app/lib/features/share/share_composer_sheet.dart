@@ -9,16 +9,20 @@ import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
 import '../../core/compose/export.dart';
 import 'card_renderer.dart';
+import 'crop_sheet.dart';
 import 'photo_import.dart';
+import 'photo_tools.dart';
 import 'card_templates.dart';
 
 /// Design 3a: preview · template row S1–S4 · options (invert, embed code, ratio) · `{ }` payload peek · Share card.
-Future<void> showShareComposer(BuildContext context, Recipe recipe) =>
-    showKataSheet<void>(context, maxWidth: 980, builder: (_) => ShareComposerSheet(recipe: recipe));
+Future<void> showShareComposer(BuildContext context, Recipe recipe, {List<Uint8List?> photos = const []}) =>
+    showKataSheet<void>(context, maxWidth: 980, builder: (_) => ShareComposerSheet(recipe: recipe, initialPhotos: photos));
 
 class ShareComposerSheet extends ConsumerStatefulWidget {
-  const ShareComposerSheet({super.key, required this.recipe});
+  const ShareComposerSheet({super.key, required this.recipe, this.initialPhotos = const []});
   final Recipe recipe;
+  /// Photographs already chosen — the from-a-photo flow arrives with one.
+  final List<Uint8List?> initialPhotos;
   @override
   ConsumerState<ShareComposerSheet> createState() => _ShareComposerSheetState();
 }
@@ -31,10 +35,48 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   bool _embed = true;
   bool _showPayload = false;
   bool _busy = false;
-  /// The card's photograph, when the user swaps in their own.
-  Uint8List? _photo;
+  /// The card's photographs, one per frame slot, when the user swaps in their own.
+  late final List<Uint8List?> _photos = List.of(widget.initialPhotos);
 
-  Future<void> _changePhoto({bool gallery = true}) async {
+  /// As chosen, before any rotate/flip/crop — what Reset goes back to.
+  late final List<Uint8List?> _originals = List.of(widget.initialPhotos);
+  /// Which frame is being rotated/flipped/cropped right now, if any.
+  int? _editing;
+
+  Uint8List? _photoAt(int i) => i < _photos.length ? _photos[i] : null;
+  void _setPhoto(int i, Uint8List? b, {bool original = true}) => setState(() {
+        while (_photos.length <= i) {
+          _photos.add(null);
+          _originals.add(null);
+        }
+        _photos[i] = b;
+        if (original) _originals[i] = b;
+      });
+
+  /// Bake an edit into the frame's photo; the original stays for Reset.
+  Future<void> _edit(int i, Future<Uint8List> Function(Uint8List) fn) async {
+    final src = _photoAt(i);
+    if (src == null || _editing != null) return;
+    setState(() => _editing = i);
+    try {
+      final out = await fn(src);
+      if (mounted) _setPhoto(i, out, original: false);
+    } catch (_) {
+      if (mounted) KataToast.show(context, 'Could not edit the photo');
+    } finally {
+      if (mounted) setState(() => _editing = null);
+    }
+  }
+
+  Future<void> _crop(int i) async {
+    final src = _photoAt(i);
+    if (src == null) return;
+    final kept = await showCropSheet(context, src);
+    if (kept == null || !mounted) return;
+    await _edit(i, (b) => cropPhoto(b, kept));
+  }
+
+  Future<void> _changePhoto(int index, {bool gallery = true}) async {
     final res = gallery
         ? await FilePicker.platform.pickFiles(dialogTitle: 'Choose a photo', type: FileType.image, withData: true)
         : await FilePicker.platform.pickFiles(dialogTitle: 'Choose a photo', type: FileType.custom, allowedExtensions: sharePhotoExtensions, withData: true);
@@ -46,7 +88,33 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
       KataToast.show(context, "Couldn't read an image out of that file");
       return;
     }
-    setState(() => _photo = usable);
+    _setPhoto(index, usable);
+  }
+
+  /// The pair: the photograph alone, and the recipe on the card beside it.
+  /// Rendered one after the other through the same boundary.
+  Future<void> _shareBoth() async {
+    setState(() => _busy = true);
+    final details = _template == ShareTemplate.photo ? ShareTemplate.card : _template;
+    final restore = _template;
+    final files = <(String, Uint8List)>[];
+    try {
+      for (final t in [ShareTemplate.photo, details]) {
+        setState(() => _template = t);
+        await WidgetsBinding.instance.endOfFrame;
+        files.add((shareFileName(widget.recipe, t), await CardRenderer(_boundary).toPng(pixelRatio: kCardPixelRatio)));
+      }
+      if (mounted) await deliverPngs(context, files, subject: '${widget.recipe.name} — Kata', text: _spec.payload);
+    } catch (_) {
+      if (mounted) KataToast.show(context, 'Could not render the pair');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _template = restore;
+          _busy = false;
+        });
+      }
+    }
   }
 
   String get _credit {
@@ -56,12 +124,12 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
   }
 
-  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, embedCode: _embed, credit: _credit, photo: _photo);
+  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, embedCode: _embed, credit: _credit, photos: _photos);
 
   void _pickTemplate(ShareTemplate t) => setState(() {
     _template = t;
     // sensible default ratio per template
-    _ratio = switch (t) { ShareTemplate.card => ShareRatio.r4x5, ShareTemplate.sheet => ShareRatio.r1x1, ShareTemplate.story => ShareRatio.r9x16, ShareTemplate.code => ShareRatio.r1x1 };
+    _ratio = switch (t) { ShareTemplate.photo => ShareRatio.r4x5, ShareTemplate.card => ShareRatio.r4x5, ShareTemplate.sheet => ShareRatio.r1x1, ShareTemplate.story => ShareRatio.r9x16, ShareTemplate.code => ShareRatio.r1x1 };
   });
 
   Future<void> _share() async {
@@ -154,15 +222,30 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
           ),
         ),
         KataListRow(title: 'Credit', value: _credit),
-        // the card's photo: the recipe's sample frame, or one of yours
-        KataListRow(title: 'Photo', value: _photo == null ? 'SAMPLE FRAME' : 'YOURS'),
-        const SizedBox(height: 8),
-        Wrap(spacing: 7, runSpacing: 7, children: [
-          KataPillButton(label: 'Gallery', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => _changePhoto()),
-          KataPillButton(label: 'Files', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => _changePhoto(gallery: false)),
-          if (_photo != null)
-            KataPillButton(label: 'Reset', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => setState(() => _photo = null)),
-        ]),
+        // the card's photographs, one row per frame the template shows: the
+        // recipe's sample, or one of yours
+        for (var i = 0; i < _template.frameCount; i++) ...[
+          KataListRow(title: _template.frameCount == 1 ? 'Photo' : 'Photo ${i + 1}', value: _photoAt(i) == null ? 'SAMPLE FRAME' : 'YOURS'),
+          const SizedBox(height: 8),
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            KataPillButton(key: ValueKey('photo-gallery-$i'), label: 'Gallery', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => _changePhoto(i)),
+            KataPillButton(label: 'Files', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => _changePhoto(i, gallery: false)),
+            if (_photoAt(i) != null) ...[
+              // the photo's own edits, baked in: turn it, mirror it, keep a part of it
+              KataPillButton(label: 'Rotate', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, loading: _editing == i, onPressed: _editing != null ? null : () => _edit(i, rotatePhoto)),
+              KataPillButton(label: 'Flip', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: _editing != null ? null : () => _edit(i, flipPhoto)),
+              KataPillButton(label: 'Crop', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: _editing != null ? null : () => _crop(i)),
+              KataPillButton(
+                  label: _photoAt(i) != _originals[i] ? 'Undo edits' : 'Reset',
+                  kind: KataButtonKind.secondary,
+                  display: false,
+                  expand: false,
+                  height: 32,
+                  onPressed: () => _photoAt(i) != _originals[i] ? _setPhoto(i, _originals[i], original: false) : _setPhoto(i, null)),
+            ],
+          ]),
+          const SizedBox(height: 6),
+        ],
         const SizedBox(height: 10),
         Row(children: [
           Text('RATIO', style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.16)),
@@ -186,6 +269,9 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
         ],
         const SizedBox(height: 16),
         KataPillButton(label: 'Share card', loading: _busy, onPressed: _busy ? null : _share),
+        const SizedBox(height: 8),
+        // the pair: the photograph on its own, and the recipe beside it
+        KataPillButton(label: 'Share photo + card', kind: KataButtonKind.secondary, display: false, height: 48, onPressed: _busy ? null : _shareBoth),
         const SizedBox(height: 8),
         KataPillButton(label: 'Copy Kata Code', kind: KataButtonKind.secondary, display: false, height: 48, onPressed: _copyCode),
       ],

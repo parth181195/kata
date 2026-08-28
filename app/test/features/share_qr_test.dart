@@ -49,7 +49,8 @@ void main() {
     final payload = KataCode.encode(_worst, credit: _worst.sourceAttribution);
     final modules = _modulesFor(payload.length);
 
-    for (final template in ShareTemplate.values) {
+    // S0 is the photograph alone — no code on it
+    for (final template in ShareTemplate.values.where((t) => t != ShareTemplate.photo)) {
       for (final ratio in ShareRatio.values) {
         final h = kCardWidth / ratio.aspect;
         t.view.physicalSize = Size(kCardWidth, h);

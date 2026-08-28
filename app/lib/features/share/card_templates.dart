@@ -8,11 +8,14 @@ import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import 'kata_code_qr.dart';
 
-enum ShareTemplate { card, sheet, story, code }
+enum ShareTemplate { photo, card, sheet, story, code }
 
 extension ShareTemplateX on ShareTemplate {
-  String get code => switch (this) { ShareTemplate.card => 'S1', ShareTemplate.sheet => 'S2', ShareTemplate.story => 'S3', ShareTemplate.code => 'S4' };
-  String get label => switch (this) { ShareTemplate.card => 'CARD', ShareTemplate.sheet => 'SHEET', ShareTemplate.story => 'STORY', ShareTemplate.code => 'CODE' };
+  String get code => switch (this) { ShareTemplate.photo => 'S0', ShareTemplate.card => 'S1', ShareTemplate.sheet => 'S2', ShareTemplate.story => 'S3', ShareTemplate.code => 'S4' };
+  String get label => switch (this) { ShareTemplate.photo => 'PHOTO', ShareTemplate.card => 'CARD', ShareTemplate.sheet => 'SHEET', ShareTemplate.story => 'STORY', ShareTemplate.code => 'CODE' };
+
+  /// How many photographs the template shows — one row of controls each.
+  int get frameCount => switch (this) { ShareTemplate.photo => 1, ShareTemplate.card => 1, ShareTemplate.sheet => 2, ShareTemplate.story => 3, ShareTemplate.code => 0 };
 }
 
 enum ShareRatio { r4x5, r1x1, r9x16 }
@@ -33,13 +36,14 @@ class ShareSpec {
     this.embedCode = true,
     required this.credit,
     this.imageFor = _network,
-    this.photo,
+    this.photos = const [],
   });
   final Recipe recipe;
 
-  /// The user's own photograph for the card, in place of the recipe's first
-  /// sample frame. Bytes, already decodable (RAW previews extracted upstream).
-  final Uint8List? photo;
+  /// The user's own photographs, one per frame slot (index = frame); a null or
+  /// missing entry leaves that frame to the recipe's own sample. Bytes are
+  /// already decodable — RAW previews are extracted upstream.
+  final List<Uint8List?> photos;
 
   /// How a sample-frame URL becomes an image. The network by default; a test
   /// hands in a provider it controls, so the export's wait for the photo can be
@@ -112,6 +116,7 @@ class ShareCard extends StatelessWidget {
     final ink = _Ink(spec.inverted);
     final h = kCardWidth / spec.ratio.aspect;
     final body = switch (spec.template) {
+      ShareTemplate.photo => _S0(spec, ink),
       ShareTemplate.card => _S1(spec, ink),
       ShareTemplate.sheet => _S2(spec, ink),
       ShareTemplate.story => _S3(spec, ink),
@@ -127,6 +132,29 @@ class ShareCard extends StatelessWidget {
 
 // ---------------------------------------------------------------- pieces
 
+/// S0: just the photograph. A slim card border, the picture edge to edge
+/// inside it, and the 型 mark in a corner so the pair reads as one set with
+/// the recipe card that travels beside it.
+class _S0 extends StatelessWidget {
+  const _S0(this.spec, this.ink);
+  final ShareSpec spec;
+  final _Ink ink;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Stack(fit: StackFit.expand, children: [
+        _frame(ink, spec, radius: 6),
+        Positioned(
+          right: 12,
+          bottom: 10,
+          child: Text('型', style: KataType.displayStyle(size: 13, weight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.82), letterSpacing: 0)),
+        ),
+      ]),
+    );
+  }
+}
+
 Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
   Text('KATA 型', style: KataType.displayStyle(size: 14, weight: FontWeight.w900, color: ink.fg, letterSpacing: 0.05)),
   const Spacer(),
@@ -136,8 +164,8 @@ Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
 Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = 4}) {
   final r = spec.recipe;
   final url = r.imageUrls.length > index ? r.imageUrls[index] : null;
-  // the user's photo takes the lead frame; the recipe's own samples fill the rest
-  final own = index == 0 ? spec.photo : null;
+  // the user's photo for this frame, else the recipe's own sample
+  final own = index < spec.photos.length ? spec.photos[index] : null;
   return ClipRRect(
     borderRadius: BorderRadius.circular(radius),
     child: Container(

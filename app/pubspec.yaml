@@ -24,6 +24,7 @@ dependencies:
   desktop_drop: ^0.6.1
   zxing2: ^0.2.3
   image: ^4.3.0
+  exif: ^3.3.0
   path: ^1.9.0
   fuji_ptp:
     path: ../packages/fuji_ptp
