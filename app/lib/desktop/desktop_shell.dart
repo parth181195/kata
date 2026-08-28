@@ -30,7 +30,7 @@ class DesktopShell extends ConsumerStatefulWidget {
   ConsumerState<DesktopShell> createState() => _DesktopShellState();
 }
 
-enum DesktopSection { library, saved, mine, camera, waku, settings, editor }
+enum DesktopSection { library, saved, mine, camera, share, settings, editor }
 
 /// What descendants may ask the shell to do.
 abstract class DesktopShellController {
@@ -150,7 +150,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
       DesktopSection.saved => const DesktopLibrary(savedOnly: true),
       DesktopSection.mine => const DesktopMine(),
       DesktopSection.camera => const DesktopCamera(),
-      DesktopSection.waku => const WakuScreen(),
+      DesktopSection.share => const WakuScreen(),
       DesktopSection.settings => const DesktopSettings(),
       DesktopSection.editor => DesktopEditor(
           key: ValueKey((_editorArgs, _editorSeed?.hash ?? _editorSeed?.filmSimulation)),
@@ -238,7 +238,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
                   (DesktopSection.saved, 'Saved'),
                   (DesktopSection.mine, 'Mine'),
                   (DesktopSection.camera, 'Camera'),
-                  (DesktopSection.waku, 'Waku'),
+                  (DesktopSection.share, 'Share'),
                 ])
                   _railItem(p, label, s),
                 const Spacer(),

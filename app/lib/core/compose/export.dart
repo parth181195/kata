@@ -103,3 +103,19 @@ Future<bool> deliverPng(BuildContext context, Uint8List png, {required String na
   await Share.shareXFiles([XFile.fromData(png, name: name, mimeType: 'image/png')], subject: subject, text: text);
   return true;
 }
+
+
+/// Several files in one go — the framed photo and its code card. Mobile puts
+/// both on one share sheet; desktop asks where to save each.
+Future<bool> deliverPngs(BuildContext context, List<(String name, Uint8List png)> files, {String? subject, String? text}) async {
+  if (_isDesktop) {
+    var any = false;
+    for (final (name, png) in files) {
+      if (!context.mounted) return any;
+      any = await deliverPng(context, png, name: name) || any;
+    }
+    return any;
+  }
+  await Share.shareXFiles([for (final (name, png) in files) XFile.fromData(png, name: name, mimeType: 'image/png')], subject: subject, text: text);
+  return true;
+}

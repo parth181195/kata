@@ -103,7 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/library', builder: (_, _) => const LibraryScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/camera', builder: (_, _) => const CameraScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/waku', builder: (_, _) => const WakuScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/share', builder: (_, _) => const WakuScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/mine', builder: (_, _) => const MineScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen())]),
         ],

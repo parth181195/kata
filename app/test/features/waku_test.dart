@@ -15,6 +15,7 @@ import 'package:kata/features/waku/waku_exif.dart';
 import 'package:kata/data/local_db.dart';
 import 'package:kata/data/recipe.dart';
 import 'package:kata/data/recipe_repository.dart';
+import 'package:kata/features/share/card_templates.dart';
 import 'package:kata/features/waku/waku_screen.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
@@ -118,6 +119,20 @@ class _LooseObject extends WakuObject {
 }
 
 void main() {
+  testWidgets('share tab: the photo matches its kata, and the code card is the second picture', (t) async {
+    final photo = (await t.runAsync(() => _png(const Color(0xFF445566))))!;
+    await _pump(t, WakuScreen(initialPhoto: photo, initialMeta: const PhotoMeta(filmMode: 'CLASSIC CHROME')));
+    // detected from the film simulation: Kodachrome 64 shoots Classic Chrome
+    expect(find.text('KODACHROME 64'), findsWidgets); // the attach pill, uppercased
+    expect(find.text('Gallery'), findsOneWidget);
+    expect(find.text('Files'), findsOneWidget);
+    // flip to the second picture: the code card renders for the matched kata
+    await t.tap(find.text('KATA CODE'));
+    await t.pumpAndSettle();
+    expect(find.byType(ShareCard), findsOneWidget);
+    expect(find.text('S4 CODE'), findsOneWidget);
+  });
+
   testWidgets('without a photo: the empty state invites choosing one', (t) async {
     await _pump(t, const WakuScreen());
     expect(find.text('Choose photo'), findsOneWidget);
@@ -172,7 +187,7 @@ void main() {
     // would quietly hand back a sheet with no tooth at all
     final desktop = Platform.isLinux || Platform.isMacOS || Platform.isWindows;
     // KataPillButton renders its label in caps when display is on
-    final save = find.text(desktop ? 'SAVE PNG' : 'SHARE');
+    final save = find.text(desktop ? 'SAVE FRAME' : 'SHARE FRAME');
     await t.ensureVisible(save);
     await t.pumpAndSettle();
     await t.tap(save);

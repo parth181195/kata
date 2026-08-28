@@ -9,8 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
+import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
 import '../../data/recipe_repository.dart';
+import '../share/card_renderer.dart';
+import '../share/card_templates.dart';
 
 import '../../core/compose/export.dart';
 import '../../core/compose/layers.dart';
@@ -96,6 +99,29 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
   WakuRatio _ratio = WakuRatio.r4x5;
   bool _busy = false;
 
+  /// The Share tab makes two pictures of one kata: the photograph, big, on a
+  /// frame — and its Kata Code with the recipe's details. One output is looked
+  /// at at a time; "Share both" renders each in turn.
+  _Output _output = _Output.frame;
+  ShareTemplate _codeTemplate = ShareTemplate.code;
+  final _codeBoundary = GlobalKey();
+
+  ShareRatio get _codeRatio => switch (_ratio) {
+        WakuRatio.square => ShareRatio.r1x1,
+        WakuRatio.story => ShareRatio.r9x16,
+        _ => ShareRatio.r4x5,
+      };
+
+  String get _credit {
+    final r = _kata;
+    if (r == null) return 'Kata';
+    if (r.ofr.sourceAttribution != null && r.ofr.sourceAttribution!.isNotEmpty) return r.ofr.sourceAttribution!;
+    final me = ref.read(sessionProvider).valueOrNull?.user;
+    return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
+  }
+
+  ShareSpec? get _codeSpec => _kata == null ? null : ShareSpec(recipe: _kata!, template: _codeTemplate, ratio: _codeRatio, inverted: false, embedCode: true, credit: _credit);
+
   @override
   void initState() {
     super.initState();
@@ -161,8 +187,11 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
 
   void _togglePin(RollAxis axis) => setState(() => _pins.contains(axis) ? _pins.remove(axis) : _pins.add(axis));
 
-  Future<Uint8List?> _pickImage(String title) async {
-    final res = await FilePicker.platform.pickFiles(dialogTitle: title, type: FileType.custom, allowedExtensions: wakuImportExtensions, withData: true);
+  Future<Uint8List?> _pickImage(String title, {bool gallery = false}) async {
+    // the gallery is where phones keep photos; Files is the way to a RAW
+    final res = gallery
+        ? await FilePicker.platform.pickFiles(dialogTitle: title, type: FileType.image, withData: true)
+        : await FilePicker.platform.pickFiles(dialogTitle: title, type: FileType.custom, allowedExtensions: wakuImportExtensions, withData: true);
     final raw = res?.files.firstOrNull?.bytes;
     if (raw == null) return null;
     final usable = await prepareWakuImage(raw);
@@ -197,8 +226,8 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
     setState(() => _kata = identical(picked, _none) ? null : picked);
   }
 
-  Future<void> _pickPhoto() async {
-    final b = await _pickImage('Choose a photo');
+  Future<void> _pickPhoto({bool gallery = false}) async {
+    final b = await _pickImage('Choose a photo', gallery: gallery);
     if (b == null || !mounted) return;
     final meta = await readPhotoMeta(b);
     final palette = await extractPalette(b);
@@ -218,24 +247,71 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
     _reroll(seed: DateTime.now().millisecondsSinceEpoch % 100000);
   }
 
-  Future<void> _export() async {
-    if (_photo == null || _busy) return;
-    FocusManager.instance.primaryFocus?.unfocus();
+  String get _frameFileName => '${(_kata?.name ?? 'kata').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-')}-frame.png';
+
+  Future<Uint8List> _renderFrame() async {
     setState(() {
+      _output = _Output.frame;
       _selected = null; // chrome must never rasterise
-      _busy = true; // hides empty-slot invitations and brings the grain in
     });
-    const name = 'waku.png';
-    try {
-      await WidgetsBinding.instance.endOfFrame; // the busy rebuild (hidden invitations) must paint first
-      final png = await rasterizePng(_boundary);
-      if (mounted) await deliverPng(context, png, name: name);
-    } catch (e, st) {
-      debugPrint('waku export failed: $e\n$st');
-      if (mounted) KataToast.show(context, 'Could not render the frame');
-    } finally {
-      if (mounted) setState(() => _busy = false);
+    await WidgetsBinding.instance.endOfFrame; // the busy rebuild (hidden invitations) must paint first
+    return rasterizePng(_boundary);
+  }
+
+  Future<Uint8List> _renderCode() async {
+    setState(() => _output = _Output.code);
+    await WidgetsBinding.instance.endOfFrame;
+    return rasterizePng(_codeBoundary, pixelRatio: kCardPixelRatio);
+  }
+
+  Future<void> _export({bool both = false}) async {
+    if (_busy) return;
+    if (_output == _Output.frame && _photo == null) return;
+    if ((_output == _Output.code || both) && _kata == null) {
+      KataToast.show(context, 'Attach a kata first — the code card needs one');
+      return;
     }
+    FocusManager.instance.primaryFocus?.unfocus();
+    final restore = _output;
+    setState(() => _busy = true); // hides empty-slot invitations and brings the grain in
+    try {
+      if (both) {
+        final files = <(String, Uint8List)>[];
+        if (_photo != null) files.add((_frameFileName, await _renderFrame()));
+        files.add((shareFileName(_kata!, _codeTemplate), await _renderCode()));
+        if (mounted) await deliverPngs(context, files, subject: '${_kata!.name} — Kata', text: _codeSpec?.payload);
+      } else if (_output == _Output.code) {
+        final png = await _renderCode();
+        if (mounted) await deliverPng(context, png, name: shareFileName(_kata!, _codeTemplate), subject: '${_kata!.name} — Kata recipe card', text: _codeSpec?.payload);
+      } else {
+        final png = await _renderFrame();
+        if (mounted) await deliverPng(context, png, name: _frameFileName);
+      }
+    } catch (e, st) {
+      debugPrint('share export failed: $e\n$st');
+      if (mounted) KataToast.show(context, 'Could not render the picture');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _output = restore;
+        });
+      }
+    }
+  }
+
+  /// The second picture: the Kata Code and the recipe's details on a card.
+  Widget _codePreview(KataPalette p) {
+    final spec = _codeSpec;
+    if (spec == null) {
+      return KataEmptyState(glyph: '型', title: 'Kata Code', body: 'Attach a kata and its code card renders here.', actionLabel: 'Attach a kata', onAction: _attachKata);
+    }
+    return LayoutBuilder(builder: (context, box) {
+      final scale = (box.maxWidth / kCardWidth).clamp(0.2, 1.0);
+      final natural = (kCardWidth / spec.ratio.aspect) * scale;
+      final fit = natural > box.maxHeight && box.maxHeight.isFinite ? scale * (box.maxHeight / natural) : scale;
+      return Center(child: OffscreenCardHost(boundaryKey: _codeBoundary, spec: spec, scale: fit));
+    });
   }
 
   @override
@@ -246,20 +322,28 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
         child: LayoutBuilder(builder: (context, box) {
           final wide = box.maxWidth >= 900;
           final controls = _controls(p);
-          final preview = Padding(padding: const EdgeInsets.all(20), child: Center(child: _preview(p)));
+          final preview = Padding(padding: const EdgeInsets.all(20), child: Center(child: _output == _Output.code ? _codePreview(p) : _preview(p)));
           return wide
               ? Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   Expanded(child: preview),
                   Container(
                     width: 300,
                     decoration: BoxDecoration(border: Border(left: BorderSide(color: p.hairline))),
-                    child: ListView(padding: const EdgeInsets.fromLTRB(18, 18, 18, 24), children: controls),
+                    // eager, not lazy: the panel's text field must exist to take focus
+                    // and scroll itself into view when a slot is selected
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: controls),
+                    ),
                   ),
                 ])
-              : ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 24), children: [
-                  SizedBox(height: box.maxHeight * 0.5, child: preview),
-                  ...controls,
-                ]);
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    SizedBox(height: box.maxHeight * 0.5, child: preview),
+                    ...controls,
+                  ]),
+                );
         }),
       ),
     );
@@ -473,11 +557,20 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
 
   List<Widget> _controls(KataPalette p) => [
         Row(children: [
-          Expanded(child: Text('WAKU 枠', style: KataType.displayStyle(size: 18, color: p.fg))),
-          KataPillButton(label: _photo == null ? 'Photo' : 'Replace', kind: KataButtonKind.secondary, display: false, expand: false, height: 34, onPressed: _pickPhoto),
+          Expanded(child: Text('SHARE', style: KataType.displayStyle(size: 18, color: p.fg))),
+          KataPillButton(label: 'Gallery', kind: KataButtonKind.secondary, display: false, expand: false, height: 34, onPressed: () => _pickPhoto(gallery: true)),
+          const SizedBox(width: 6),
+          KataPillButton(label: 'Files', kind: KataButtonKind.secondary, display: false, expand: false, height: 34, onPressed: _pickPhoto),
+        ]),
+        const SizedBox(height: 6),
+        Text('Two pictures of one kata: the photograph, big, on a frame — and its Kata Code with the details.',
+            style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4)),
+        const SizedBox(height: 12),
+        Wrap(spacing: 7, children: [
+          for (final o in _Output.values) KataChip(label: o.label, selected: _output == o, onTap: () => setState(() => _output = o)),
         ]),
         const SizedBox(height: 16),
-        if (_photo == null)
+        if (_photo == null && _output == _Output.frame)
           Text('Pick a photo first — it lands on something already composed.', style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4))
         else ...[
           KataPillButton(
@@ -489,11 +582,19 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
           const SizedBox(height: 6),
           Text(
             _kata == null
-                ? 'The recipe becomes the object\u2019s content, and its code rides along.'
-                : 'Its code rides on the object, so a scan puts it in someone\u2019s camera.',
+                ? 'Detected from the photo\u2019s film simulation when it can be — or pick one.'
+                : 'Matched from the photo. Tap to change it if that\u2019s not the one.',
             style: KataType.bodyStyle(size: 11, color: p.muted, height: 1.4),
           ),
           const SizedBox(height: 12),
+          if (_output == _Output.code) ...[
+            KataSectionHeader('Card'),
+            Wrap(spacing: 7, runSpacing: 7, children: [
+              for (final t in ShareTemplate.values)
+                KataChip(label: '${t.code} ${t.label}', selected: _codeTemplate == t, onTap: () => setState(() => _codeTemplate = t)),
+            ]),
+            const SizedBox(height: 12),
+          ],
           KataPillButton(label: 'Shuffle', height: 46, onPressed: _reroll),
           const SizedBox(height: 12),
           KataSectionHeader('Keep'),
@@ -688,7 +789,20 @@ class WakuScreenState extends ConsumerState<WakuScreen> {
           for (final r in WakuRatio.values) KataChip(label: r.label, selected: _ratio == r, onTap: () => setState(() => _ratio = r)),
         ]),
         const SizedBox(height: 20),
-        KataPillButton(label: _isDesktop ? 'Save PNG' : 'Share', height: 46, loading: _busy, onPressed: _photo == null ? null : _export),
+        KataPillButton(
+          label: _output == _Output.code ? (_isDesktop ? 'Save code card' : 'Share code card') : (_isDesktop ? 'Save frame' : 'Share frame'),
+          height: 46,
+          loading: _busy,
+          onPressed: (_output == _Output.frame ? _photo == null : _kata == null) ? null : _export,
+        ),
+        const SizedBox(height: 8),
+        KataPillButton(
+          label: _isDesktop ? 'Save both' : 'Share both',
+          kind: KataButtonKind.secondary,
+          display: false,
+          height: 42,
+          onPressed: _photo == null || _kata == null ? null : () => _export(both: true),
+        ),
         const SizedBox(height: 8),
         Text('Drag and pinch the photo to place it. Tap the object’s text to edit it.', textAlign: TextAlign.center, style: KataType.bodyStyle(size: 11, color: p.muted)),
         const SizedBox(height: 6),
@@ -725,4 +839,14 @@ class _UpperCaseFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) =>
       newValue.copyWith(text: newValue.text.toUpperCase());
+}
+
+
+/// What the Share tab is looking at right now.
+enum _Output {
+  frame('Frame'),
+  code('Kata Code');
+
+  const _Output(this.label);
+  final String label;
 }
