@@ -41,41 +41,38 @@ void main() {
   // A card is a fixed box; a Column that outgrows it overflows, which in a
   // release build is a silent clip — the code or the credit simply isn't there.
   // The story template did this on every square card for a plain recipe.
-  testWidgets('no template overflows its card, at any ratio, with the worst content', (t) async {
+  testWidgets('no page overflows, with the worst content', (t) async {
+    t.view.physicalSize = const Size(kCardWidth, 1600);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
     for (final (label, ofr) in [('worst', _worst), ('plain', _colour)]) {
       for (final (template, page) in [for (final t in ShareTemplate.values) for (final pg in SharePage.values) (t, pg)]) {
-        for (final ratio in ShareRatio.values) {
-          final overflow = <String>[];
-          final prev = FlutterError.onError;
-          FlutterError.onError = (d) => overflow.add(d.exceptionAsString().split('\n').first);
-          final h = kCardWidth / ratio.aspect;
-          // page 1 sizes itself, so its view is simply tall; page 2 is the card's ratio
-          t.view.physicalSize = Size(kCardWidth, page == SharePage.photo ? 1600 : h);
-          t.view.devicePixelRatio = 1;
-          await t.pumpWidget(MaterialApp(
-            theme: KataTheme.light(),
-            home: Material(
+        final overflow = <String>[];
+        final prev = FlutterError.onError;
+        FlutterError.onError = (d) => overflow.add(d.exceptionAsString().split('\n').first);
+        await t.pumpWidget(MaterialApp(
+          theme: KataTheme.light(),
+          home: Material(
+            child: Align(
+              alignment: Alignment.topLeft,
               child: SizedBox(
                 width: kCardWidth,
-                height: page == SharePage.photo ? null : h,
                 child: ShareCard(ShareSpec(
                   recipe: Recipe(id: 'o1', ofr: ofr),
                   template: template,
                   page: page,
-                  ratio: ratio,
                   credit: ofr.sourceAttribution ?? 'Kata',
                 )),
               ),
             ),
-          ));
-          await t.pump();
-          FlutterError.onError = prev;
-          expect(overflow, isEmpty, reason: '$label on ${template.code} ${page.name} at ${ratio.label}: ${overflow.join('; ')}');
-        }
+          ),
+        ));
+        await t.pump();
+        FlutterError.onError = prev;
+        expect(overflow, isEmpty, reason: '$label on ${template.code} ${page.name}: ${overflow.join('; ')}');
       }
     }
-    addTearDown(t.view.resetPhysicalSize);
-    addTearDown(t.view.resetDevicePixelRatio);
   });
 
   // On a 390px square a frame above the name can never have meaningful height
@@ -88,24 +85,24 @@ void main() {
       ofr: _colour.copyWith(name: 'Kodak T-Max 100 Hard Tone'),
       imageUrls: const ['gated://a', 'gated://b', 'gated://c'],
     );
-    Future<void> pump(ShareTemplate template, SharePage page, ShareRatio ratio) async {
-      final h = kCardWidth / ratio.aspect;
-      t.view.physicalSize = Size(kCardWidth, page == SharePage.photo ? 1600 : h);
+    Future<void> pump(ShareTemplate template, SharePage page) async {
+      t.view.physicalSize = const Size(kCardWidth, 1600);
       t.view.devicePixelRatio = 1;
       await t.pumpWidget(MaterialApp(
         theme: KataTheme.light(),
         home: Material(
-          child: SizedBox(
-            width: kCardWidth,
-            height: page == SharePage.photo ? null : h,
-            child: ShareCard(ShareSpec(
-              recipe: long,
-              template: template,
-              page: page,
-              ratio: ratio,
-              credit: 'Kata',
-              imageFor: (_) => const _NeverImage(),
-            )),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: kCardWidth,
+              child: ShareCard(ShareSpec(
+                recipe: long,
+                template: template,
+                page: page,
+                credit: 'Kata',
+                imageFor: (_) => const _NeverImage(),
+              )),
+            ),
           ),
         ),
       ));
@@ -114,22 +111,23 @@ void main() {
 
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
-    final nameText = find.text('KODAK T-MAX 100 HARD TONE');
+    // both pages are in the tree (they are sized together); only the shown one can be hit
+    final nameText = find.text('KODAK T-MAX 100 HARD TONE').hitTestable();
 
     for (final template in ShareTemplate.values) {
-      for (final ratio in ShareRatio.values) {
-        await pump(template, SharePage.photo, ratio);
-        expect(find.byType(Image), findsOneWidget, reason: '${template.code} page 1 at ${ratio.label} is one photograph');
-        final r = t.getRect(find.byType(Image));
-        expect(r.height, greaterThan(80), reason: '${template.code} at ${ratio.label}: a picture, not a sliver: ${r.height}px');
-        expect(r.width, greaterThan(80));
-        expect(r.width, greaterThan(kCardWidth - 50), reason: '${template.code}: the frame runs edge to edge');
-        expect(nameText, findsOneWidget, reason: 'the name travels with the picture');
+      await pump(template, SharePage.photo);
+      expect(find.byType(Image).hitTestable(), findsOneWidget, reason: '${template.code} page 1 is one photograph');
+      final r = t.getRect(find.byType(Image).hitTestable());
+      expect(r.height, greaterThanOrEqualTo((kCardWidth - 48) / template.frameAspect - 1), reason: '${template.code}: the frame is at least its shape');
+      expect(r.width, greaterThan(kCardWidth - 50), reason: '${template.code}: the frame runs edge to edge');
+      expect(nameText, findsOneWidget, reason: 'the name travels with the picture');
+      final h1 = t.getRect(find.byType(ShareCard)).height;
 
-        await pump(template, SharePage.recipe, ratio);
-        expect(find.byType(Image), findsNothing, reason: '${template.code} page 2 at ${ratio.label} has no picture');
-        expect(find.byType(KataCodeQr), findsOneWidget, reason: 'and carries the code');
-      }
+      await pump(template, SharePage.recipe);
+      expect(find.byType(Image).hitTestable(), findsNothing, reason: '${template.code} page 2 has no picture');
+      expect(find.byType(KataCodeQr).hitTestable(), findsOneWidget, reason: 'and carries the code');
+      // the pair: one height, whichever page needed it
+      expect(t.getRect(find.byType(ShareCard)).height, closeTo(h1, 0.5), reason: '${template.code}: page 2 is as tall as page 1');
     }
   });
 
@@ -139,7 +137,7 @@ void main() {
     final items = RecipeSpecs.items(_colour.copyWith(), rulers: false);
     expect(items.length, greaterThan(12), reason: 'the fixture must exercise the overflow');
 
-    t.view.physicalSize = const Size(kCardWidth, kCardWidth / (4 / 5));
+    t.view.physicalSize = const Size(kCardWidth, 1600);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
@@ -150,7 +148,6 @@ void main() {
         child: ShareCard(ShareSpec(
           recipe: Recipe(id: 'r1', ofr: _colour),
           template: ShareTemplate.card,
-          ratio: ShareRatio.r4x5,
           credit: 'Kata',
         )),
       ),
@@ -186,7 +183,6 @@ void main() {
               recipe: Recipe(id: 'r1', ofr: _colour),
               template: ShareTemplate.card,
               page: SharePage.photo,
-              ratio: ShareRatio.r4x5,
               inverted: true,
               outline: outline,
               roundCorners: round,
@@ -229,7 +225,6 @@ void main() {
                 recipe: Recipe(id: 'r1', ofr: _colour),
                 template: ShareTemplate.card,
                 page: SharePage.photo,
-                ratio: ShareRatio.r4x5,
                 credit: 'Kata',
                 photos: [bytes],
                 photoSize: const Size(200, 100),
@@ -244,24 +239,26 @@ void main() {
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
 
-    Offset shift() => t.widgetList<Transform>(find.byType(Transform)).first.transform.getTranslation().let((v) => Offset(v.x, v.y));
+    // the photo's own Transform, inside its frame, against the frame's corner
+    final frameF = find.byType(ClipRRect).at(1);
+    Offset shift() => t.getRect(find.descendant(of: frameF, matching: find.byType(Transform)).first).topLeft - t.getRect(frameF).topLeft;
     await pump(Offset.zero, 1);
     expect(shift(), Offset.zero);
-    // a wide photo cover-fits a taller frame with spare width only: it can
-    // slide sideways, never up or down at zoom 1
+    // a 2:1 photo cover-fits a 3:2 frame with spare width only: it slides
+    // sideways, never up or down at zoom 1
     await pump(const Offset(30, 30), 1);
     expect(shift().dx, 30);
     expect(shift().dy, 0, reason: 'no vertical slack at zoom 1');
-    // and however far it is dragged, the frame stays covered
+    // and however far it is dragged, the photo's edge never comes inside the frame's
     await pump(const Offset(9999, 9999), 2);
     final frame = t.getRect(find.byType(ClipRRect).at(1));
     final s = shift();
     expect(s.dx, lessThan(9999));
     expect(s.dy, lessThan(frame.height), reason: 'clamped to the zoomed overflow');
     expect(s.dy, greaterThan(0), reason: 'zoom 2 leaves vertical slack');
+    // the clamp itself: the largest shift that still covers a 346×231 frame
+    expect(clampPlacement(const Offset(9999, 9999), const Size(200, 100), 1, const Size(346, 231)).dy, 0);
+    // cover scale 2.31 × zoom 2 = 4.62 → 924×462 drawn: (924−346)/2 and (462−231)/2 of slack
+    expect(clampPlacement(const Offset(9999, 9999), const Size(200, 100), 2, const Size(346, 231)), const Offset(289, 115.5));
   });
-}
-
-extension<T> on T {
-  R let<R>(R Function(T) f) => f(this);
 }

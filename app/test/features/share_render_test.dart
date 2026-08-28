@@ -132,7 +132,6 @@ void main() {
       recipe: Recipe(id: 'r1', ofr: _ofr, imageUrls: const ['gated://one']),
       template: ShareTemplate.card,
       page: SharePage.photo, // the photograph is on page 1
-      ratio: ShareRatio.r4x5,
       credit: 'Kata',
     );
     await t.pumpWidget(MaterialApp(

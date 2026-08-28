@@ -20,7 +20,7 @@ void main() {
     await t.tap(find.text('Share card…'));
     await t.pumpAndSettle();
     expect(find.byType(ShareComposerSheet), findsOneWidget);
-    expect(find.text('KATA 型'), findsOneWidget);
+    expect(find.text('KATA 型'), findsWidgets);
     await t.ensureVisible(find.text('S3 STORY'));
     await t.pumpAndSettle();
     await t.tap(find.text('S3 STORY'));
@@ -49,7 +49,7 @@ void main() {
     await t.runAsync(() async {
       final key = GlobalKey();
       final r = FakeRecipeApi.fromSeed(seedJson).recipes.first;
-      await t.pumpWidget(MaterialApp(home: Scaffold(body: Center(child: OffscreenCardHost(boundaryKey: key, spec: ShareSpec(recipe: r, template: ShareTemplate.card, ratio: ShareRatio.r4x5, credit: 'Fuji X Weekly'), scale: 0.5)))));
+      await t.pumpWidget(MaterialApp(home: Scaffold(body: Center(child: OffscreenCardHost(boundaryKey: key, spec: ShareSpec(recipe: r, template: ShareTemplate.card, credit: 'Fuji X Weekly'), scale: 0.5)))));
       await t.pump();
       final png = await CardRenderer(key).toPng(pixelRatio: 2, settle: false);
       expect(png.length, greaterThan(8 * 1024));

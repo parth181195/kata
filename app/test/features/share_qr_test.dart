@@ -50,36 +50,34 @@ void main() {
     final modules = _modulesFor(payload.length);
 
     // the recipe page of every template carries the code; the photo page never does
+    t.view.physicalSize = const Size(kCardWidth, 1600);
+    t.view.devicePixelRatio = 1;
     for (final template in ShareTemplate.values) {
-      for (final ratio in ShareRatio.values) {
-        final h = kCardWidth / ratio.aspect;
-        t.view.physicalSize = Size(kCardWidth, h);
-        t.view.devicePixelRatio = 1;
-        await t.pumpWidget(MaterialApp(
-          theme: KataTheme.light(),
-          home: Material(
+      await t.pumpWidget(MaterialApp(
+        theme: KataTheme.light(),
+        home: Material(
+          child: Align(
+            alignment: Alignment.topLeft,
             child: SizedBox(
               width: kCardWidth,
-              height: h,
               child: ShareCard(ShareSpec(
                 recipe: Recipe(id: 'w1', ofr: _worst),
                 template: template,
-                ratio: ratio,
                 credit: _worst.sourceAttribution!,
               )),
             ),
           ),
-        ));
-        await t.pumpAndSettle();
+        ),
+      ));
+      await t.pumpAndSettle();
 
-        // the painted rect, not the requested size — S2 and S3 scale their code down to fit
-        final rect = t.getRect(find.byType(KataCodeQr));
-        final quiet = rect.width * 0.08 * 2;
-        final pxPerModule = (rect.width - quiet) * kCardPixelRatio / modules;
-        expect(pxPerModule, greaterThanOrEqualTo(kMinQrPxPerModule),
-            reason: '${template.code} at ${ratio.label}: ${payload.length}B → $modules modules in '
-                '${rect.width.toStringAsFixed(0)}px = ${pxPerModule.toStringAsFixed(2)}px per module');
-      }
+      // the painted rect, not the requested size — the code scales into the room page 1 leaves
+      final rect = t.getRect(find.byType(KataCodeQr));
+      final quiet = rect.width * 0.08 * 2;
+      final pxPerModule = (rect.width - quiet) * kCardPixelRatio / modules;
+      expect(pxPerModule, greaterThanOrEqualTo(kMinQrPxPerModule),
+          reason: '${template.code}: ${payload.length}B → $modules modules in '
+              '${rect.width.toStringAsFixed(0)}px = ${pxPerModule.toStringAsFixed(2)}px per module');
     }
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);

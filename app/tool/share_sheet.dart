@@ -24,12 +24,10 @@ import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
 const _fixture = String.fromEnvironment('fixture', defaultValue: 'typical');
-const _ratioKey = String.fromEnvironment('ratio', defaultValue: '4x5');
 const _inverted = bool.fromEnvironment('inverted');
 const _embed = bool.fromEnvironment('embed', defaultValue: true);
 const _outDir = String.fromEnvironment('out', defaultValue: '/home/parth/.claude/jobs/787ed077/tmp/share');
 
-const _ratios = {'4x5': ShareRatio.r4x5, '1x1': ShareRatio.r1x1, '9x16': ShareRatio.r9x16};
 
 /// The base every fixture varies from — a plausible everyday recipe.
 const _base = OfrRecipe(
@@ -147,11 +145,10 @@ Future<void> _loadFonts() async {
 void main() {
   testWidgets('share sheet', (t) async {
     await t.runAsync(_loadFonts);
-    final ratio = _ratios[_ratioKey]!;
     final (recipe, credit) = _fixtures[_fixture]!;
-    final h = kCardWidth / ratio.aspect;
 
-    t.view.physicalSize = Size(kCardWidth, h);
+    // the pair is as tall as it needs; the view is simply tall enough
+    t.view.physicalSize = const Size(kCardWidth, 1600);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
@@ -162,7 +159,6 @@ void main() {
         recipe: recipe,
         template: template,
         page: page,
-        ratio: ratio,
         inverted: _inverted,
         embedCode: _embed,
         credit: credit,
@@ -179,7 +175,7 @@ void main() {
         final img = await b.toImage();
         final png = await img.toByteData(format: ui.ImageByteFormat.png);
         final flags = [if (_inverted) 'inv', if (!_embed) 'nocode'];
-        final name = '${[_fixture, template.code, page.name, _ratioKey, ...flags].join('_')}.png';
+        final name = '${[_fixture, template.code, page.name, ...flags].join('_')}.png';
         File('$_outDir/$name').writeAsBytesSync(png!.buffer.asUint8List());
         img.dispose();
       });

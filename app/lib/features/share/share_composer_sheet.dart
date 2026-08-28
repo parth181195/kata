@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +9,7 @@ import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
 import '../../core/compose/export.dart';
 import 'card_renderer.dart';
+import 'place_photo_screen.dart';
 import 'photo_import.dart';
 import 'photo_meta.dart';
 import 'photo_tools.dart';
@@ -33,7 +33,6 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   ShareTemplate _template = ShareTemplate.card;
   /// Which page of the pair the preview shows; the export walks both.
   SharePage _page = SharePage.photo;
-  ShareRatio _ratio = ShareRatio.r4x5;
   bool _inverted = false;
   bool _outline = false;
   bool _round = true;
@@ -54,8 +53,19 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   double _zoom = 1;
   Size? _photoSize;
   String? _camera;
-  Offset _dragStart = Offset.zero, _offsetStart = Offset.zero;
-  double _zoomStart = 1;
+
+  /// The placement page: page 1 large, drag and pinch, Reset and Done.
+  Future<void> _place() async {
+    final r = await Navigator.of(context).push<(Offset, double)>(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => PlacePhotoScreen(spec: _spec, offset: _offset, zoom: _zoom),
+    ));
+    if (r == null || !mounted) return;
+    setState(() {
+      _offset = r.$1;
+      _zoom = r.$2;
+    });
+  }
 
   Future<void> _measure(Uint8List? b) async {
     if (b == null) {
@@ -136,13 +146,9 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
   }
 
-  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, outline: _outline, roundCorners: _round, embedCode: _embed, credit: _credit, photos: _photos, page: _page, photoOffset: _offset, photoZoom: _zoom, photoSize: _photoSize, camera: _camera);
+  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, inverted: _inverted, outline: _outline, roundCorners: _round, embedCode: _embed, credit: _credit, photos: _photos, page: _page, photoOffset: _offset, photoZoom: _zoom, photoSize: _photoSize, camera: _camera);
 
-  void _pickTemplate(ShareTemplate t) => setState(() {
-    _template = t;
-    // sensible default ratio per template
-    _ratio = switch (t) { ShareTemplate.card => ShareRatio.r4x5, ShareTemplate.sheet => ShareRatio.r1x1, ShareTemplate.story => ShareRatio.r9x16 };
-  });
+  void _pickTemplate(ShareTemplate t) => setState(() => _template = t);
 
   /// Render the pages asked for — both by default — one after the other
   /// through the same boundary, and hand them over together: to the share
@@ -214,9 +220,9 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     final spec = _spec;
     final previewW = MediaQuery.sizeOf(context).width - 40;
     final scale = (previewW / kCardWidth).clamp(0.3, 1.0);
-    // keep the preview from eating the whole sheet on tall ratios
+    // keep the preview from eating the whole sheet; a pair is about 4:5 tall
     final maxH = MediaQuery.sizeOf(context).height * 0.42;
-    final natural = (kCardWidth / spec.ratio.aspect) * scale;
+    final natural = (kCardWidth / 0.8) * scale;
     final previewScale = natural > maxH ? scale * (maxH / natural) : scale;
 
     Widget segmented<T>(List<T> values, T current, String Function(T) label, ValueChanged<T> onPick) => Row(children: [
@@ -232,52 +238,32 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     // the card and its page chips share one column, as wide as the wider of
     // the two, so the chips start at the card's left edge instead of the sheet's
     final preview = Center(
-      child: IntrinsicWidth(
+      child: SizedBox(
+        width: kCardWidth * shown,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           // a shadow, not a border: the card has its own edge, and a hairline
           // around a white card read as two borders
-          // drag to move the photograph in its frame, pinch (or scroll) to zoom —
-          // on page 1, once a photo of yours is on it
-          Listener(
-            onPointerSignal: !placeable
-                ? null
-                : (e) {
-                    if (e is PointerScrollEvent) setState(() => _zoom = (_zoom * (1 - e.scrollDelta.dy / 600)).clamp(1.0, 6.0));
-                  },
-            child: GestureDetector(
-              onScaleStart: !placeable
-                  ? null
-                  : (d) {
-                      _dragStart = d.focalPoint;
-                      _offsetStart = _offset;
-                      _zoomStart = _zoom;
-                    },
-              onScaleUpdate: !placeable
-                  ? null
-                  : (d) => setState(() {
-                        _offset = _offsetStart + (d.focalPoint - _dragStart) / shown;
-                        _zoom = (_zoomStart * d.scale).clamp(1.0, 6.0);
-                      }),
-              child: Container(
-                // no rounded clip: the card's corners are square, and rounding
-                // the preview cut its outline at the corners
-                decoration: BoxDecoration(boxShadow: [BoxShadow(blurRadius: 18, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: 0.18))]),
-                clipBehavior: Clip.hardEdge,
-                child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: shown),
-              ),
+          // tap page 1 to place the photograph on a page of its own — dragging
+          // here fought the sheet's own scrolling
+          GestureDetector(
+            onTap: !placeable ? null : _place,
+            child: Container(
+              // no rounded clip: the card's corners are square, and rounding
+              // the preview cut its outline at the corners
+              decoration: BoxDecoration(boxShadow: [BoxShadow(blurRadius: 18, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: 0.18))]),
+              clipBehavior: Clip.hardEdge,
+              child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: shown),
             ),
           ),
           const SizedBox(height: 10),
           // the pair, one page at a time
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            for (final pg in SharePage.values) ...[
+          Wrap(spacing: 7, runSpacing: 7, children: [
+            for (final pg in SharePage.values)
               KataChip(label: '${SharePage.values.indexOf(pg) + 1} · ${pg.label}', selected: pg == _page, onTap: () => setState(() => _page = pg)),
-              const SizedBox(width: 7),
-            ],
           ]),
           if (placeable) ...[
             const SizedBox(height: 8),
-            Text('DRAG TO MOVE · PINCH OR SCROLL TO ZOOM', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.08)),
+            Text('TAP THE CARD TO MOVE OR ZOOM THE PHOTO', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.08)),
           ],
         ]),
       ),
@@ -356,9 +342,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
         const SizedBox(height: 6),
         const SizedBox(height: 10),
         Row(children: [
-          Text('RATIO', style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.16)),
-          const SizedBox(width: 12),
-          segmented<ShareRatio>(ShareRatio.values, _ratio, (r) => r.label, (r) => setState(() => _ratio = r)),
+          Text('KATA CODE', style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.16)),
           const Spacer(),
           KataIconCircle(size: 36, onPressed: () => setState(() => _showPayload = !_showPayload), child: Text('{ }', style: KataType.monoStyle(size: 11, color: p.dim, height: 1))),
         ]),

@@ -31,21 +31,14 @@ extension SharePageX on SharePage {
   String get label => switch (this) { SharePage.photo => 'PHOTO', SharePage.recipe => 'RECIPE' };
 }
 
-enum ShareRatio { r4x5, r1x1, r9x16 }
-
-extension ShareRatioX on ShareRatio {
-  String get label => switch (this) { ShareRatio.r4x5 => '4:5', ShareRatio.r1x1 => '1:1', ShareRatio.r9x16 => '9:16' };
-  double get aspect => switch (this) { ShareRatio.r4x5 => 4 / 5, ShareRatio.r1x1 => 1, ShareRatio.r9x16 => 9 / 16 };
-}
-
-/// Everything a template needs. Cards are laid out at a logical width of [kCardWidth] and
-/// rendered at [kCardPixelRatio]×.
+/// Everything a template needs. Cards are laid out at a logical width of
+/// [kCardWidth] and rendered at [kCardPixelRatio]×; their height is whatever
+/// the pair's taller page needs — both pages are always the same height.
 class ShareSpec {
   const ShareSpec({
     required this.recipe,
     required this.template,
     this.page = SharePage.recipe,
-    required this.ratio,
     this.inverted = false,
     this.outline = false,
     this.roundCorners = true,
@@ -85,7 +78,6 @@ class ShareSpec {
   static ImageProvider _network(String url) => CachedNetworkImageProvider(url);
   final ShareTemplate template;
   final SharePage page;
-  final ShareRatio ratio;
   final bool inverted;
 
   /// A thin rule just inside the card's edge — a black card on a dark feed
@@ -151,6 +143,9 @@ const kQrSlot = 128.0;
 /// The sheet's code, beside its settings: larger, the sheet has the width.
 const kQrSheet = 176.0;
 
+/// How large a code grows when page 1 leaves it the room.
+const kQrMax = 240.0;
+
 /// Palette for a card: white card / black ink by default; inverted flips.
 class _Ink {
   _Ink(bool inv) : bg = inv ? Colors.black : Colors.white, fg = inv ? Colors.white : Colors.black, mid = inv ? KataColors.grey300 : KataColors.grey700, mute = KataColors.grey500, rule = inv ? KataColors.grey700 : KataColors.grey300, frame = inv ? const Color(0xFF141414) : const Color(0xFFF2F2F2);
@@ -165,18 +160,35 @@ class ShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = _Ink(spec.inverted);
-    // page 1 is as tall as its photograph and name need — a 3:2 frame on a
-    // 4:5 card was two bands of nothing — and its frame runs the full width,
-    // edge to edge. The ratio is page 2's, whose rows are fixed and need the room.
-    final h = spec.page == SharePage.photo ? null : kCardWidth / spec.ratio.aspect;
-    final body = switch ((spec.template, spec.page)) {
-      (ShareTemplate.card, SharePage.photo) => _S1Photo(spec, ink),
-      (ShareTemplate.card, SharePage.recipe) => _S1Recipe(spec, ink),
-      (ShareTemplate.sheet, SharePage.photo) => _S2Photo(spec, ink),
-      (ShareTemplate.sheet, SharePage.recipe) => _S2Recipe(spec, ink),
-      (ShareTemplate.story, SharePage.photo) => _S3Photo(spec, ink),
-      (ShareTemplate.story, SharePage.recipe) => _S3Recipe(spec, ink),
+    final photo = switch (spec.template) {
+      ShareTemplate.card => _S1Photo(spec, ink),
+      ShareTemplate.sheet => _S2Photo(spec, ink),
+      ShareTemplate.story => _S3Photo(spec, ink),
     };
+    final recipe = switch (spec.template) {
+      ShareTemplate.card => _S1Recipe(spec, ink),
+      ShareTemplate.sheet => _S2Recipe(spec, ink),
+      ShareTemplate.story => _S3Recipe(spec, ink),
+    };
+    // Both pages are laid out side by side under one IntrinsicHeight, so the
+    // pair is as tall as the taller page needs and no taller: page 1's frame
+    // grows to take any difference, page 2's code does. The clip shows the
+    // page asked for. (Nothing in here may be a LayoutBuilder — intrinsic
+    // sizing asks every child for its height, and a LayoutBuilder has none.)
+    // A viewport rather than an Align: it gives the row its unbounded width
+    // and hugs the height; it never scrolls, it is just parked on the page.
+    final body = SingleChildScrollView(
+      key: ValueKey(spec.page),
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      controller: ScrollController(initialScrollOffset: spec.page == SharePage.photo ? 0 : kCardWidth),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          SizedBox(width: kCardWidth, child: photo),
+          SizedBox(width: kCardWidth, child: recipe),
+        ]),
+      ),
+    );
     // cards are white by default (light palette), inverted = dark palette — so kata_ui widgets inside pick the right greys
     return Theme(
       data: spec.inverted ? KataTheme.dark() : KataTheme.light(),
@@ -186,7 +198,6 @@ class ShareCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(spec.roundCorners ? kCardRadius : 0),
         child: Container(
           width: kCardWidth,
-          height: h,
           color: ink.bg,
           // the outline is drawn over the content, inset by its own width, so
           // nothing on the card moves when it is turned on
@@ -225,7 +236,7 @@ Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
   if (right != null) Text(right, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
 ]);
 
-Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = kFrameRadius, double? aspect}) {
+Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = kFrameRadius, double? aspect, double width = kCardWidth}) {
   final r = spec.recipe;
   final url = r.imageUrls.length > index ? r.imageUrls[index] : null;
   // the user's photo for this frame, else the recipe's own sample
@@ -239,34 +250,63 @@ Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double r
           ? _placed(spec, Image(image: ResizeImage(MemoryImage(own), width: 2600, height: 2600, policy: ResizeImagePolicy.fit), fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true))
           : url == null
               ? CustomPaint(painter: _Dots(ink.rule), child: Center(child: Text('SAMPLE FRAME', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.12))))
-              : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              : _placed(spec, Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity), own: false),
     ),
   );
-  // a shaped frame runs the full width, its height from the aspect
-  return aspect == null ? box : AspectRatio(aspectRatio: aspect, child: box);
+  // a shaped frame runs the full width; its height is at least the aspect's,
+  // and grows when the other page of the pair is taller
+  return aspect == null ? box : ConstrainedBox(constraints: BoxConstraints(minHeight: width / aspect), child: box);
 }
 
 /// The photograph shifted and zoomed as the spec says, no further than the
-/// frame stays covered. Decoded no larger than the export needs (1560px wide
-/// at 4×): a 24MP photo at full size is a texture the GPU has no reason to hold.
-Widget _placed(ShareSpec spec, Widget image) => LayoutBuilder(builder: (_, c) {
-  final zoom = spec.photoZoom.clamp(1.0, 6.0);
-  var off = spec.photoOffset;
-  final img = spec.photoSize;
-  if (img != null && c.hasBoundedWidth && c.hasBoundedHeight && img.width > 0 && img.height > 0) {
-    final fw = c.maxWidth, fh = c.maxHeight;
-    final scale = math.max(fw / img.width, fh / img.height) * zoom;
-    final mx = (img.width * scale - fw) / 2, my = (img.height * scale - fh) / 2;
-    off = Offset(off.dx.clamp(-mx, mx), off.dy.clamp(-my, my));
-  }
-  return Transform.translate(offset: off, child: Transform.scale(scale: zoom, child: image));
-});
+/// frame stays covered — you cannot drag past the photo's own edge. A layout
+/// delegate rather than a LayoutBuilder: the pair's height is found by
+/// intrinsic sizing, which a LayoutBuilder refuses. Decoded no larger than the
+/// export needs (1560px wide at 4×): a 24MP photo at full size is a texture
+/// the GPU has no reason to hold.
+Widget _placed(ShareSpec spec, Widget image, {bool own = true}) => CustomSingleChildLayout(
+  delegate: _Place(own ? spec.photoSize : null, own ? spec.photoZoom.clamp(1.0, 6.0) : 1.0, own ? spec.photoOffset : Offset.zero),
+  child: Transform.scale(scale: own ? spec.photoZoom.clamp(1.0, 6.0) : 1.0, child: image),
+);
+
+class _Place extends SingleChildLayoutDelegate {
+  const _Place(this.img, this.zoom, this.offset);
+  final Size? img;
+  final double zoom;
+  final Offset offset;
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints c) => BoxConstraints.tight(c.biggest);
+  @override
+  Offset getPositionForChild(Size size, Size childSize) => clampPlacement(offset, img, zoom, size);
+  @override
+  bool shouldRelayout(_Place o) => o.img != img || o.zoom != zoom || o.offset != offset;
+}
+
+/// The shift that keeps a photo of [img] pixels, cover-fitted and zoomed by
+/// [zoom] into a [frame], covering the frame: the edge of the photo never
+/// comes inside the edge of the frame.
+Offset clampPlacement(Offset offset, Size? img, double zoom, Size frame) {
+  if (img == null || img.width <= 0 || img.height <= 0 || !frame.width.isFinite || !frame.height.isFinite) return Offset.zero;
+  final scale = math.max(frame.width / img.width, frame.height / img.height) * zoom;
+  final mx = (img.width * scale - frame.width) / 2, my = (img.height * scale - frame.height) / 2;
+  return Offset(offset.dx.clamp(-mx, mx), offset.dy.clamp(-my, my));
+}
 
 Widget _kv(_Ink ink, String k, String v, {double vs = 11}) => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
   Text(k.toUpperCase(), style: KataType.bodyStyle(size: 7.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 7.5 * 0.16)),
   const SizedBox(height: 3),
   Text(v, style: KataType.monoStyle(size: vs, color: ink.fg, height: 1)),
 ]);
+
+/// The code at [min] as far as sizing goes, scaled up into the room it gets —
+/// square, top-right, no larger than [kQrMax]. Vector, so still crisp.
+Widget _qrGrowing(ShareSpec spec, _Ink ink, double min) => Align(
+  alignment: Alignment.topRight,
+  child: ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: kQrMax, maxHeight: kQrMax),
+    child: AspectRatio(aspectRatio: 1, child: FittedBox(fit: BoxFit.contain, child: _qrBlock(spec, ink, min))),
+  ),
+);
 
 Widget _qrBlock(ShareSpec spec, _Ink ink, double size) => spec.embedCode
     ? KataCodeQr(payload: spec.payload, size: size, inverted: spec.inverted)
@@ -299,10 +339,10 @@ class _S1Photo extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.all(22),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _header(ink, spec),
           const SizedBox(height: 14),
-          _frame(ink, spec, aspect: spec.template.frameAspect),
+          Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect, width: kCardWidth - 44)),
           const SizedBox(height: 14),
           _nameLine(ink, spec.recipe),
         ]),
@@ -330,25 +370,28 @@ class _S1Recipe extends StatelessWidget {
         const SizedBox(height: 10),
         // Every setting, in as many rows as it takes. A fixed childAspectRatio
         // with a fixed take(12) dropped the last row off every colour recipe —
-        // Clarity, silently. So the grid takes the height its rows need, and
-        // the air between it and the code is what yields.
+        // Clarity, silently. So the grid takes the height its rows need.
         _SettingsGrid(items: items, ink: ink),
-        const Spacer(),
+        const SizedBox(height: 10),
         Container(height: 1, color: ink.fg),
         const SizedBox(height: 10),
-        SizedBox(
-          height: kQrSlot,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(spec.credit, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1.2)),
-                const SizedBox(height: 4),
-                Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
-              ]),
-            ),
-            const SizedBox(width: 12),
-            _qrBlock(spec, ink, kQrSlot),
-          ]),
+        // the code's row takes whatever height page 1 leaves, and the code
+        // grows into it — never below kQrSlot, never past kQrMax
+        Expanded(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: kQrSlot),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text(spec.credit, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1.2)),
+                  const SizedBox(height: 4),
+                  Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+                ]),
+              ),
+              const SizedBox(width: 12),
+              _qrGrowing(spec, ink, kQrSlot),
+            ]),
+          ),
         ),
       ]),
     );
@@ -405,10 +448,10 @@ class _S2Photo extends StatelessWidget {
     final r = spec.recipe;
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(ink, spec),
         const SizedBox(height: 12),
-        _frame(ink, spec, aspect: spec.template.frameAspect),
+        Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect, width: kCardWidth - 40)),
         const SizedBox(height: 12),
         _nameLine(ink, r, size: 18, maxLines: 1),
         const SizedBox(height: 6),
@@ -450,7 +493,7 @@ class _S2Recipe extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-            _qrBlock(spec, ink, kQrSheet),
+            _qrGrowing(spec, ink, kQrSheet),
           ]),
         ),
         const SizedBox(height: 10),
@@ -476,10 +519,10 @@ class _S3Photo extends StatelessWidget {
     final r = spec.recipe;
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(ink, spec),
         const SizedBox(height: 16),
-        _frame(ink, spec, aspect: spec.template.frameAspect),
+        Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect, width: kCardWidth - 48)),
         const SizedBox(height: 22),
         _nameLine(ink, r, size: 34, sub: RecipeSpecs.summary(r.ofr)),
       ]),
@@ -498,22 +541,20 @@ class _S3Recipe extends StatelessWidget {
     final items = RecipeSpecs.compact(r.ofr).take(4).toList();
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: LayoutBuilder(builder: (context, box) {
-        final tight = box.maxHeight < 560;
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _header(ink, spec),
-          SizedBox(height: tight ? 10 : 16),
-          _nameLine(ink, r, size: tight ? 26 : 34, maxLines: tight ? 1 : 2, sub: RecipeSpecs.summary(r.ofr)),
-          SizedBox(height: tight ? 12 : 18),
-          Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
-          SizedBox(height: tight ? 12 : 22),
-          Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: _qrBlock(spec, ink, 260)))),
-          SizedBox(height: tight ? 12 : 22),
-          Text('SCAN TO LOAD INTO YOUR OWN C-SLOT', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25)),
-          const SizedBox(height: 8),
-          Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
-        ]);
-      }),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _header(ink, spec),
+        const SizedBox(height: 16),
+        _nameLine(ink, r, size: 34, sub: RecipeSpecs.summary(r.ofr)),
+        const SizedBox(height: 18),
+        Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
+        const SizedBox(height: 22),
+        // the code takes what page 1 leaves, centred
+        Expanded(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(minHeight: kQrSlot, maxHeight: kQrMax), child: AspectRatio(aspectRatio: 1, child: FittedBox(fit: BoxFit.contain, child: _qrBlock(spec, ink, kQrSlot)))))),
+        const SizedBox(height: 22),
+        Text('SCAN TO LOAD INTO YOUR OWN C-SLOT', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25)),
+        const SizedBox(height: 8),
+        Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
+      ]),
     );
   }
 }
