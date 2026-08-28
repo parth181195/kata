@@ -407,7 +407,7 @@ class _S1Recipe extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
                   Text(spec.creditLine, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1.2)),
                   const SizedBox(height: 4),
-                  Text('SCAN IN KATA TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+                  Text('SCAN IN KATA TO IMPORT', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
                 ]),
               ),
               const SizedBox(width: 12),
@@ -525,7 +525,7 @@ class _S2Recipe extends StatelessWidget {
         Row(children: [
           Expanded(child: Text(spec.creditLine, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
           const SizedBox(width: 8),
-          Text('SCAN IN KATA TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+          Text('SCAN IN KATA TO IMPORT', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
         ]),
       ]),
     );
