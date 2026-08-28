@@ -90,6 +90,11 @@ class ShareSpec {
   final String credit;
   String get payload => KataCode.encode(recipe.ofr, credit: credit);
   int get settingsCount => recipe.ofr.settingsJson().length;
+
+  /// What travels with the pictures on the share sheet: not the code (that
+  /// is on the card), but a caption in the shape Fujifilm's own accounts use
+  /// — the camera, the film simulation, and the tags they repost from.
+  String get caption => shareCaption(recipe, camera: camera, credit: credit);
 }
 
 const kCardWidth = 390.0;
@@ -107,6 +112,23 @@ String shareFileName(Recipe r, SharePage page, {DateTime? now}) {
   final d = now ?? DateTime.now();
   String two(int v) => v.toString().padLeft(2, '0');
   return 'kata-${recipeCode5(r.id)}-${d.year}${two(d.month)}${two(d.day)}-${page == SharePage.photo ? 1 : 2}.png';
+}
+
+/// The caption for a shared pair, the way Fujifilm's own accounts write
+/// theirs: what it was captured with, the film simulation, then the tags the
+/// official accounts repost from — #fujifilm_xseries (global) and #myfujifilm
+/// (US) — with the recipe's own tag and Kata's at the end.
+String shareCaption(Recipe r, {String? camera, String? credit}) {
+  String tag(String v) => '#${v.replaceAll(RegExp(r'[^A-Za-z0-9]'), '')}';
+  final sim = r.ofr.filmSimulation;
+  final lines = <String>[
+    'Captured with ${camera == null || camera.isEmpty ? 'FUJIFILM' : camera.toUpperCase().startsWith('FUJIFILM') ? camera : 'FUJIFILM $camera'} · ${r.name}',
+    'Film Simulation: $sim',
+    if (credit != null && credit.isNotEmpty && credit != 'Kata') 'Recipe: $credit',
+    '',
+    ['#FUJIFILM', '#FujifilmXSeries', '#XSeries', '#fujifilm_xseries', '#myfujifilm', '#FilmSimulation', tag(sim), tag(r.name), '#Kata'].join(' '),
+  ];
+  return lines.join('\n');
 }
 
 /// Five digits for a recipe id: the last five of a numeric id, a hash otherwise.
@@ -140,8 +162,11 @@ const kMinQrPxPerModule = 5.0;
 /// payload ever outgrows it again.
 const kQrSlot = 128.0;
 
-/// The sheet's code, beside its settings: larger, the sheet has the width.
-const kQrSheet = 176.0;
+/// The sheet's code, beneath its settings: smaller than the card's slot so
+/// the settings get the room, and no larger than [kQrSheetMax] when page 1
+/// leaves it more.
+const kQrSheet = 140.0;
+const kQrSheetMax = 200.0;
 
 /// How large a code grows when page 1 leaves it the room.
 const kQrMax = 240.0;
@@ -292,12 +317,6 @@ Offset clampPlacement(Offset offset, Size? img, double zoom, Size frame) {
   return Offset(offset.dx.clamp(-mx, mx), offset.dy.clamp(-my, my));
 }
 
-Widget _kv(_Ink ink, String k, String v, {double vs = 11}) => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-  Text(k.toUpperCase(), style: KataType.bodyStyle(size: 7.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 7.5 * 0.16)),
-  const SizedBox(height: 3),
-  Text(v, style: KataType.monoStyle(size: vs, color: ink.fg, height: 1)),
-]);
-
 /// The code at [min] as far as sizing goes, scaled up into the room it gets —
 /// square, top-right, no larger than [kQrMax]. Vector, so still crisp.
 Widget _qrGrowing(ShareSpec spec, _Ink ink, double min) => Align(
@@ -407,23 +426,26 @@ class _SettingsGrid extends StatelessWidget {
   final _Ink ink;
   final int columns;
 
-  static const _rowH = 12.5, _gapX = 18.0;
+  static const _rowH = 12.5;
 
   @override
   Widget build(BuildContext context) {
     final rows = (items.length / columns).ceil();
+    final gapX = columns > 2 ? 12.0 : 18.0;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       for (var i = 0; i < rows; i++)
         SizedBox(
           height: _rowH,
           child: Row(children: [
             for (var c = 0; c < columns; c++) ...[
-              if (c > 0) const SizedBox(width: _gapX),
+              if (c > 0) SizedBox(width: gapX),
               Expanded(
                 child: i * columns + c < items.length
                     ? Row(children: [
                         Expanded(child: Text(items[i * columns + c].label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 9, color: ink.mid, height: 1))),
-                        Text(items[i * columns + c].value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)),
+                        const SizedBox(width: 4),
+                        // a long value in a narrow column shrinks a little rather than spilling
+                        Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: Text(items[i * columns + c].value, style: KataType.monoStyle(size: 9.5, color: ink.fg, height: 1)))),
                       ])
                     : const SizedBox.shrink(),
               ),
@@ -461,8 +483,8 @@ class _S2Photo extends StatelessWidget {
   }
 }
 
-/// Page 2: the name, then every setting down the left with the code beside
-/// it on the right — the code at its size, the settings in the room it leaves.
+/// Page 2: the name, then every setting in three columns, the code beneath
+/// them — smaller than the card's, so the settings get the room.
 class _S2Recipe extends StatelessWidget {
   const _S2Recipe(this.spec, this.ink);
   final ShareSpec spec;
@@ -482,19 +504,19 @@ class _S2Recipe extends StatelessWidget {
         const SizedBox(height: 10),
         Container(height: 1, decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.rule)))),
         const SizedBox(height: 10),
+        _SettingsGrid(items: items, ink: ink, columns: 3),
+        const SizedBox(height: 10),
+        Container(height: 1, color: ink.fg),
+        const SizedBox(height: 10),
+        // the code takes what page 1 leaves, centred — never below kQrSheet,
+        // never past kQrSheetMax
         Expanded(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // every setting, one column; scaled down rather than cut when a
-            // recipe has more rows than the card has height
-            Expanded(
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.topLeft, child: SizedBox(width: kCardWidth - 40 - 14 - kQrSheet, child: _SettingsGrid(items: items, ink: ink, columns: 1))),
-              ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: kQrSheet, maxHeight: kQrSheetMax),
+              child: AspectRatio(aspectRatio: 1, child: FittedBox(fit: BoxFit.contain, child: _qrBlock(spec, ink, kQrSheet))),
             ),
-            const SizedBox(width: 14),
-            _qrGrowing(spec, ink, kQrSheet),
-          ]),
+          ),
         ),
         const SizedBox(height: 10),
         Row(children: [
@@ -530,7 +552,7 @@ class _S3Photo extends StatelessWidget {
   }
 }
 
-/// Page 2: the name, four settings, the code large, how to use it.
+/// Page 2: the name, every setting, the code large.
 class _S3Recipe extends StatelessWidget {
   const _S3Recipe(this.spec, this.ink);
   final ShareSpec spec;
@@ -538,16 +560,20 @@ class _S3Recipe extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = spec.recipe;
-    final items = RecipeSpecs.compact(r.ofr).take(4).toList();
+    final items = RecipeSpecs.items(r.ofr, rulers: false);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(ink, spec),
         const SizedBox(height: 16),
         _nameLine(ink, r, size: 34, sub: RecipeSpecs.summary(r.ofr)),
-        const SizedBox(height: 18),
-        Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
-        const SizedBox(height: 22),
+        const SizedBox(height: 16),
+        Container(height: 1, decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.rule)))),
+        const SizedBox(height: 10),
+        _SettingsGrid(items: items, ink: ink),
+        const SizedBox(height: 10),
+        Container(height: 1, color: ink.fg),
+        const SizedBox(height: 16),
         // the code takes what page 1 leaves, centred
         Expanded(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(minHeight: kQrSlot, maxHeight: kQrMax), child: AspectRatio(aspectRatio: 1, child: FittedBox(fit: BoxFit.contain, child: _qrBlock(spec, ink, kQrSlot)))))),
         const SizedBox(height: 22),

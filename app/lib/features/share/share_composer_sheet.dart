@@ -36,7 +36,6 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   bool _inverted = false;
   bool _outline = false;
   bool _round = true;
-  bool _embed = true;
   bool _showPayload = false;
   bool _busy = false;
   /// Page 1's photograph (index 0), when the user swaps in their own.
@@ -146,7 +145,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
   }
 
-  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, inverted: _inverted, outline: _outline, roundCorners: _round, embedCode: _embed, credit: _credit, photos: _photos, page: _page, photoOffset: _offset, photoZoom: _zoom, photoSize: _photoSize, camera: _camera);
+  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, inverted: _inverted, outline: _outline, roundCorners: _round, credit: _credit, photos: _photos, page: _page, photoOffset: _offset, photoZoom: _zoom, photoSize: _photoSize, camera: _camera);
 
   void _pickTemplate(ShareTemplate t) => setState(() => _template = t);
 
@@ -179,9 +178,9 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
       if (save) {
         await savePngs(context, files);
       } else if (files.length == 1) {
-        await deliverPng(context, files.single.$2, name: files.single.$1, subject: subject, text: _spec.payload);
+        await deliverPng(context, files.single.$2, name: files.single.$1, subject: subject, text: _spec.caption);
       } else {
-        await deliverPngs(context, files, subject: subject, text: _spec.payload);
+        await deliverPngs(context, files, subject: subject, text: _spec.caption);
       }
     } catch (_) {
       if (mounted) KataToast.show(context, 'Card made, but sharing failed — try Save instead');
@@ -210,7 +209,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   }
 
   Future<void> _copyCode() async {
-    await Clipboard.setData(ClipboardData(text: _spec.payload));
+    await Clipboard.setData(ClipboardData(text: _spec.caption));
     if (mounted) KataToast.show(context, 'Kata Code copied');
   }
 
@@ -311,15 +310,6 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
             selected: _round,
             label: (v) => v ? 'Round' : 'Square',
             onChanged: (v) => setState(() => _round = v),
-          ),
-        ),
-        KataListRow(
-          title: 'Kata Code',
-          trailing: KataChoice<bool>(
-            values: const [true, false],
-            selected: _embed,
-            label: (v) => v ? 'Shown' : 'Hidden',
-            onChanged: (v) => setState(() => _embed = v),
           ),
         ),
         KataListRow(title: 'Credit', value: _credit),

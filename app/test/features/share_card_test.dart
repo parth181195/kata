@@ -261,4 +261,20 @@ void main() {
     // cover scale 2.31 × zoom 2 = 4.62 → 924×462 drawn: (924−346)/2 and (462−231)/2 of slack
     expect(clampPlacement(const Offset(9999, 9999), const Size(200, 100), 2, const Size(346, 231)), const Offset(289, 115.5));
   });
+
+  test('the caption reads like Fujifilm\'s own: camera, film simulation, the tags they repost from', () {
+    final r = Recipe(id: 'x', ofr: _colour);
+    final c = shareCaption(r, camera: 'FUJIFILM X-T4', credit: 'Fuji X Weekly');
+    expect(c, startsWith('Captured with FUJIFILM X-T4 · ${r.name}'));
+    expect(c, contains('Film Simulation: ${_colour.filmSimulation}'));
+    expect(c, contains('Recipe: Fuji X Weekly'));
+    expect(c, contains('#fujifilm_xseries'));
+    expect(c, contains('#myfujifilm'));
+    expect(c, contains('#Kata'));
+    expect(c, isNot(contains('kata1:')), reason: 'the code is on the card, not in the caption');
+    // no camera known: still a Fujifilm, and no "FUJIFILM FUJIFILM"
+    expect(shareCaption(r, camera: null), startsWith('Captured with FUJIFILM · '));
+    expect(shareCaption(r, camera: 'X100V'), startsWith('Captured with FUJIFILM X100V'));
+    expect(shareCaption(r, credit: 'Kata'), isNot(contains('Recipe:')));
+  });
 }
