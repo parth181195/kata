@@ -102,6 +102,10 @@ class ShareSpec {
 
 const kCardWidth = 390.0;
 
+/// The card's outer corner, and the photograph's, when Corners is Round.
+const kCardRadius = 20.0;
+const kFrameRadius = 12.0;
+
 /// The file a page is saved or shared as: `kata-<five digits>-<date>-<page>.png`.
 ///
 /// Five digits from the recipe id — the id itself when it is numeric, else a
@@ -170,14 +174,21 @@ class ShareCard extends StatelessWidget {
     // cards are white by default (light palette), inverted = dark palette — so kata_ui widgets inside pick the right greys
     return Theme(
       data: spec.inverted ? KataTheme.dark() : KataTheme.light(),
-      child: Container(
-        width: kCardWidth,
-        height: h,
-        color: ink.bg,
-        // the outline is drawn over the content, inset by its own width, so
-        // nothing on the card moves when it is turned on
-        foregroundDecoration: spec.outline ? BoxDecoration(border: Border.all(color: ink.rule, width: 1.5)) : null,
-        child: DefaultTextStyle(style: TextStyle(color: ink.fg), child: body),
+      // the card's own corners follow the Corners option too: rounded, the
+      // PNG keeps transparent corners; square, it is the full rectangle
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(spec.roundCorners ? kCardRadius : 0),
+        child: Container(
+          width: kCardWidth,
+          height: h,
+          color: ink.bg,
+          // the outline is drawn over the content, inset by its own width, so
+          // nothing on the card moves when it is turned on
+          foregroundDecoration: spec.outline
+              ? BoxDecoration(border: Border.all(color: ink.rule, width: 1.5), borderRadius: BorderRadius.circular(spec.roundCorners ? kCardRadius : 0))
+              : null,
+          child: DefaultTextStyle(style: TextStyle(color: ink.fg), child: body),
+        ),
       ),
     );
   }
@@ -208,7 +219,7 @@ Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
   if (right != null) Text(right, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
 ]);
 
-Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = 4, double? aspect}) {
+Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = kFrameRadius, double? aspect}) {
   final r = spec.recipe;
   final url = r.imageUrls.length > index ? r.imageUrls[index] : null;
   // the user's photo for this frame, else the recipe's own sample
@@ -451,7 +462,7 @@ class _S3Photo extends StatelessWidget {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _header(ink, spec),
           SizedBox(height: tight ? 10 : 16),
-          Expanded(child: _frame(ink, spec, radius: 8, aspect: spec.template.frameAspect)),
+          Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect)),
           SizedBox(height: tight ? 14 : 22),
           _nameLine(ink, r, size: tight ? 26 : 34, maxLines: tight ? 1 : 2, sub: RecipeSpecs.summary(r.ofr)),
         ]);

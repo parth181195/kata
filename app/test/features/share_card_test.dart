@@ -193,12 +193,13 @@ void main() {
           ),
         ));
     await pump(outline: false, round: true);
-    final frame = find.byType(ClipRRect).first; // the photograph's frame
+    final frame = find.byType(ClipRRect).at(1); // the photograph's frame (the first clip is the card's own edge)
     final before = t.getRect(frame);
-    expect(t.widget<ClipRRect>(frame).borderRadius, BorderRadius.circular(4));
+    expect(t.widget<ClipRRect>(frame).borderRadius, BorderRadius.circular(kFrameRadius));
     await pump(outline: true, round: false);
     expect(t.getRect(frame), before, reason: 'the outline is drawn over the content, not around it');
-    expect(t.widget<ClipRRect>(find.byType(ClipRRect).first).borderRadius, BorderRadius.zero);
+    expect(t.widget<ClipRRect>(frame).borderRadius, BorderRadius.zero);
+    expect(t.widget<ClipRRect>(find.byType(ClipRRect).first).borderRadius, BorderRadius.zero, reason: 'square corners square the card too');
     final card = t.widget<Container>(find.byWidgetPredicate((w) => w is Container && w.foregroundDecoration != null));
     expect((card.foregroundDecoration! as BoxDecoration).border, isNotNull);
   });
@@ -248,7 +249,7 @@ void main() {
     expect(shift().dy, 0, reason: 'no vertical slack at zoom 1');
     // and however far it is dragged, the frame stays covered
     await pump(const Offset(9999, 9999), 2);
-    final frame = t.getRect(find.byType(ClipRRect).first);
+    final frame = t.getRect(find.byType(ClipRRect).at(1));
     final s = shift();
     expect(s.dx, lessThan(9999));
     expect(s.dy, lessThan(frame.height), reason: 'clamped to the zoomed overflow');
