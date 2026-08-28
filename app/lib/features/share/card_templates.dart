@@ -43,6 +43,8 @@ class ShareSpec {
     this.page = SharePage.recipe,
     required this.ratio,
     this.inverted = false,
+    this.outline = false,
+    this.roundCorners = true,
     this.embedCode = true,
     required this.credit,
     this.imageFor = _network,
@@ -64,6 +66,13 @@ class ShareSpec {
   final SharePage page;
   final ShareRatio ratio;
   final bool inverted;
+
+  /// A thin rule just inside the card's edge — a black card on a dark feed
+  /// has no edge of its own without one.
+  final bool outline;
+
+  /// Round the photograph's corners (the default), or keep them square.
+  final bool roundCorners;
   final bool embedCode;
   final String credit;
   String get payload => KataCode.encode(recipe.ofr, credit: credit);
@@ -140,7 +149,15 @@ class ShareCard extends StatelessWidget {
     // cards are white by default (light palette), inverted = dark palette — so kata_ui widgets inside pick the right greys
     return Theme(
       data: spec.inverted ? KataTheme.dark() : KataTheme.light(),
-      child: Container(width: kCardWidth, height: h, color: ink.bg, child: DefaultTextStyle(style: TextStyle(color: ink.fg), child: body)),
+      child: Container(
+        width: kCardWidth,
+        height: h,
+        color: ink.bg,
+        // the outline is drawn over the content, inset by its own width, so
+        // nothing on the card moves when it is turned on
+        foregroundDecoration: spec.outline ? BoxDecoration(border: Border.all(color: ink.rule, width: 1.5)) : null,
+        child: DefaultTextStyle(style: TextStyle(color: ink.fg), child: body),
+      ),
     );
   }
 }
@@ -176,7 +193,7 @@ Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double r
   // the user's photo for this frame, else the recipe's own sample
   final own = index < spec.photos.length ? spec.photos[index] : null;
   return ClipRRect(
-    borderRadius: BorderRadius.circular(radius),
+    borderRadius: BorderRadius.circular(spec.roundCorners ? radius : 0),
     child: Container(
       height: height,
       color: ink.frame,

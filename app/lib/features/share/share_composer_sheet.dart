@@ -34,6 +34,8 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   SharePage _page = SharePage.photo;
   ShareRatio _ratio = ShareRatio.r4x5;
   bool _inverted = false;
+  bool _outline = false;
+  bool _round = true;
   bool _embed = true;
   bool _showPayload = false;
   bool _busy = false;
@@ -100,7 +102,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
   }
 
-  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, embedCode: _embed, credit: _credit, photos: _photos, page: _page);
+  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, outline: _outline, roundCorners: _round, embedCode: _embed, credit: _credit, photos: _photos, page: _page);
 
   void _pickTemplate(ShareTemplate t) => setState(() {
     _template = t;
@@ -240,6 +242,24 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
             selected: _inverted,
             label: (v) => v ? 'Black' : 'White',
             onChanged: (v) => setState(() => _inverted = v),
+          ),
+        ),
+        KataListRow(
+          title: 'Outline',
+          trailing: KataChoice<bool>(
+            values: const [false, true],
+            selected: _outline,
+            label: (v) => v ? 'Shown' : 'None',
+            onChanged: (v) => setState(() => _outline = v),
+          ),
+        ),
+        KataListRow(
+          title: 'Corners',
+          trailing: KataChoice<bool>(
+            values: const [true, false],
+            selected: _round,
+            label: (v) => v ? 'Round' : 'Square',
+            onChanged: (v) => setState(() => _round = v),
           ),
         ),
         KataListRow(

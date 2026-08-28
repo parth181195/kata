@@ -173,4 +173,31 @@ void main() {
     expect(recipeCode5('srv-1'), recipeCode5('srv-1'), reason: 'stable');
     expect(recipeCode5('srv-1'), isNot(recipeCode5('srv-2')));
   });
+
+  testWidgets('the outline draws over the card without moving anything; square corners drop the radius', (t) async {
+    Future<void> pump({required bool outline, required bool round}) => t.pumpWidget(MaterialApp(
+          theme: KataTheme.light(),
+          home: Material(
+            child: ShareCard(ShareSpec(
+              recipe: Recipe(id: 'r1', ofr: _colour),
+              template: ShareTemplate.card,
+              page: SharePage.photo,
+              ratio: ShareRatio.r4x5,
+              inverted: true,
+              outline: outline,
+              roundCorners: round,
+              credit: 'Kata',
+            )),
+          ),
+        ));
+    await pump(outline: false, round: true);
+    final frame = find.byType(ClipRRect).first; // the photograph's frame
+    final before = t.getRect(frame);
+    expect(t.widget<ClipRRect>(frame).borderRadius, BorderRadius.circular(4));
+    await pump(outline: true, round: false);
+    expect(t.getRect(frame), before, reason: 'the outline is drawn over the content, not around it');
+    expect(t.widget<ClipRRect>(find.byType(ClipRRect).first).borderRadius, BorderRadius.zero);
+    final card = t.widget<Container>(find.byWidgetPredicate((w) => w is Container && w.foregroundDecoration != null));
+    expect((card.foregroundDecoration! as BoxDecoration).border, isNotNull);
+  });
 }
