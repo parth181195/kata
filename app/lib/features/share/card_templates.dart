@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,8 +21,10 @@ extension ShareTemplateX on ShareTemplate {
   String get code => switch (this) { ShareTemplate.card => 'S1', ShareTemplate.sheet => 'S2', ShareTemplate.story => 'S3' };
   String get label => switch (this) { ShareTemplate.card => 'CARD', ShareTemplate.sheet => 'SHEET', ShareTemplate.story => 'STORY' };
 
-  /// The small tag at the top right of both pages — what ties them as a set.
-  String get tag => switch (this) { ShareTemplate.card => 'S1 · RECIPE CARD', ShareTemplate.sheet => 'S2 · CONTACT SHEET', ShareTemplate.story => 'S3 · STORY' };
+  /// The shape of the photograph's frame — the card's ratio is the user's,
+  /// the frame's is the template's, so between them every orientation is
+  /// covered: landscape on the card, square on the sheet, portrait on the story.
+  double get frameAspect => switch (this) { ShareTemplate.card => 3 / 2, ShareTemplate.sheet => 1, ShareTemplate.story => 4 / 5 };
 }
 
 extension SharePageX on SharePage {
@@ -49,7 +53,24 @@ class ShareSpec {
     required this.credit,
     this.imageFor = _network,
     this.photos = const [],
+    this.photoOffset = Offset.zero,
+    this.photoZoom = 1,
+    this.photoSize,
+    this.camera,
   });
+
+  /// The camera the photograph was made on, from its EXIF — the header's
+  /// right-hand line when known.
+  final String? camera;
+
+  /// Where the photograph sits in its frame: a shift in card pixels from
+  /// centred, and a zoom ≥ 1 on top of the cover fit. Clamped at draw time so
+  /// the frame is always full — the preview and the export share the clamp.
+  final Offset photoOffset;
+  final double photoZoom;
+
+  /// The photograph's pixel size, when known; what the clamp needs.
+  final Size? photoSize;
   final Recipe recipe;
 
   /// The user's own photograph for page 1 (index 0); absent, the recipe's
@@ -164,8 +185,8 @@ class ShareCard extends StatelessWidget {
 
 // ---------------------------------------------------------------- pieces
 
-/// The header both pages share: the wordmark, and the template's tag.
-Widget _header(_Ink ink, ShareSpec spec) => _wordmark(ink, right: spec.template.tag);
+/// The header both pages share: the wordmark, and the camera when known.
+Widget _header(_Ink ink, ShareSpec spec) => _wordmark(ink, right: spec.camera?.toUpperCase());
 
 /// The name line both pages share: the name, `FILM SIM · SENSOR` under it,
 /// the swatch bars and the film's short mark to the right.
@@ -187,26 +208,42 @@ Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
   if (right != null) Text(right, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
 ]);
 
-Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = 4}) {
+Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = 4, double? aspect}) {
   final r = spec.recipe;
   final url = r.imageUrls.length > index ? r.imageUrls[index] : null;
   // the user's photo for this frame, else the recipe's own sample
   final own = index < spec.photos.length ? spec.photos[index] : null;
-  return ClipRRect(
+  final box = ClipRRect(
     borderRadius: BorderRadius.circular(spec.roundCorners ? radius : 0),
     child: Container(
       height: height,
       color: ink.frame,
       child: own != null
-          // decoded no larger than the export needs (1560px wide at 4×): a
-          // 24MP photo at full size is a texture the GPU has no reason to hold
-          ? Image(image: ResizeImage(MemoryImage(own), width: 2600, height: 2600, policy: ResizeImagePolicy.fit), fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true)
+          ? _placed(spec, Image(image: ResizeImage(MemoryImage(own), width: 2600, height: 2600, policy: ResizeImagePolicy.fit), fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true))
           : url == null
               ? CustomPaint(painter: _Dots(ink.rule), child: Center(child: Text('SAMPLE FRAME', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.12))))
               : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
     ),
   );
+  // a shaped frame takes the largest box of its aspect the space allows
+  return aspect == null ? box : Center(child: AspectRatio(aspectRatio: aspect, child: box));
 }
+
+/// The photograph shifted and zoomed as the spec says, no further than the
+/// frame stays covered. Decoded no larger than the export needs (1560px wide
+/// at 4×): a 24MP photo at full size is a texture the GPU has no reason to hold.
+Widget _placed(ShareSpec spec, Widget image) => LayoutBuilder(builder: (_, c) {
+  final zoom = spec.photoZoom.clamp(1.0, 6.0);
+  var off = spec.photoOffset;
+  final img = spec.photoSize;
+  if (img != null && c.hasBoundedWidth && c.hasBoundedHeight && img.width > 0 && img.height > 0) {
+    final fw = c.maxWidth, fh = c.maxHeight;
+    final scale = math.max(fw / img.width, fh / img.height) * zoom;
+    final mx = (img.width * scale - fw) / 2, my = (img.height * scale - fh) / 2;
+    off = Offset(off.dx.clamp(-mx, mx), off.dy.clamp(-my, my));
+  }
+  return Transform.translate(offset: off, child: Transform.scale(scale: zoom, child: image));
+});
 
 Widget _kv(_Ink ink, String k, String v, {double vs = 11}) => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
   Text(k.toUpperCase(), style: KataType.bodyStyle(size: 7.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 7.5 * 0.16)),
@@ -237,7 +274,7 @@ class _Dots extends CustomPainter {
 
 // ---------------------------------------------------------------- S1 recipe card
 
-/// Page 1: the photograph, the name under it.
+/// Page 1: the photograph landscape, the name under it.
 class _S1Photo extends StatelessWidget {
   const _S1Photo(this.spec, this.ink);
   final ShareSpec spec;
@@ -248,7 +285,7 @@ class _S1Photo extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _header(ink, spec),
           const SizedBox(height: 14),
-          Expanded(child: _frame(ink, spec)),
+          Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect)),
           const SizedBox(height: 14),
           _nameLine(ink, spec.recipe),
         ]),
@@ -353,7 +390,7 @@ class _S2Photo extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(ink, spec),
         const SizedBox(height: 12),
-        Expanded(child: _frame(ink, spec)),
+        Expanded(child: _frame(ink, spec, aspect: spec.template.frameAspect)),
         const SizedBox(height: 12),
         _nameLine(ink, r, size: 18, maxLines: 1),
         const SizedBox(height: 6),
@@ -398,7 +435,7 @@ class _S2Recipe extends StatelessWidget {
 
 // ---------------------------------------------------------------- S3 story 9:16
 
-/// Page 1: the photograph tall, the name large beneath it.
+/// Page 1: the photograph portrait, the name large beneath it.
 class _S3Photo extends StatelessWidget {
   const _S3Photo(this.spec, this.ink);
   final ShareSpec spec;
@@ -414,7 +451,7 @@ class _S3Photo extends StatelessWidget {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _header(ink, spec),
           SizedBox(height: tight ? 10 : 16),
-          Expanded(child: _frame(ink, spec, radius: 8)),
+          Expanded(child: _frame(ink, spec, radius: 8, aspect: spec.template.frameAspect)),
           SizedBox(height: tight ? 14 : 22),
           _nameLine(ink, r, size: tight ? 26 : 34, maxLines: tight ? 1 : 2, sub: RecipeSpecs.summary(r.ofr)),
         ]);

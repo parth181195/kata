@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -200,4 +202,60 @@ void main() {
     final card = t.widget<Container>(find.byWidgetPredicate((w) => w is Container && w.foregroundDecoration != null));
     expect((card.foregroundDecoration! as BoxDecoration).border, isNotNull);
   });
+
+  testWidgets('the photograph is placed by the spec, and never pulled off its frame', (t) async {
+    // a 2:1 photo of solid colour, as bytes (real async: the rasteriser
+    // doesn't run inside the test's fake clock)
+    late final Uint8List bytes;
+    await t.runAsync(() async {
+      final rec = ui.PictureRecorder();
+      ui.Canvas(rec).drawRect(const Rect.fromLTWH(0, 0, 200, 100), Paint()..color = const Color(0xFF3366CC));
+      final img = await rec.endRecording().toImage(200, 100);
+      bytes = (await img.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+    });
+    Future<void> pump(Offset off, double zoom) => t.pumpWidget(MaterialApp(
+          theme: KataTheme.light(),
+          home: Material(
+            child: SizedBox(
+              width: kCardWidth,
+              height: kCardWidth / (4 / 5),
+              child: ShareCard(ShareSpec(
+                recipe: Recipe(id: 'r1', ofr: _colour),
+                template: ShareTemplate.card,
+                page: SharePage.photo,
+                ratio: ShareRatio.r4x5,
+                credit: 'Kata',
+                photos: [bytes],
+                photoSize: const Size(200, 100),
+                photoOffset: off,
+                photoZoom: zoom,
+              )),
+            ),
+          ),
+        ));
+    t.view.physicalSize = Size(kCardWidth, kCardWidth / (4 / 5));
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+
+    Offset shift() => t.widgetList<Transform>(find.byType(Transform)).first.transform.getTranslation().let((v) => Offset(v.x, v.y));
+    await pump(Offset.zero, 1);
+    expect(shift(), Offset.zero);
+    // a wide photo cover-fits a taller frame with spare width only: it can
+    // slide sideways, never up or down at zoom 1
+    await pump(const Offset(30, 30), 1);
+    expect(shift().dx, 30);
+    expect(shift().dy, 0, reason: 'no vertical slack at zoom 1');
+    // and however far it is dragged, the frame stays covered
+    await pump(const Offset(9999, 9999), 2);
+    final frame = t.getRect(find.byType(ClipRRect).first);
+    final s = shift();
+    expect(s.dx, lessThan(9999));
+    expect(s.dy, lessThan(frame.height), reason: 'clamped to the zoomed overflow');
+    expect(s.dy, greaterThan(0), reason: 'zoom 2 leaves vertical slack');
+  });
+}
+
+extension<T> on T {
+  R let<R>(R Function(T) f) => f(this);
 }

@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui' show Rect;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as im;
@@ -26,12 +25,6 @@ void main() {
     final out = im.decodeImage(flipPhotoSync(sample()))!;
     expect(out.getPixel(2, 10).b, greaterThan(200)); // blue now on the left
     expect(out.getPixel(37, 10).r, greaterThan(200));
-  });
-
-  test('crop: keeps the fraction asked for', () {
-    final out = im.decodeImage(cropPhotoSync(sample(), const Rect.fromLTWH(0.5, 0, 0.5, 1)))!;
-    expect((out.width, out.height), (20, 20));
-    expect(out.getPixel(5, 5).b, greaterThan(200)); // only the blue half remains
   });
 
   test('undecodable bytes pass through untouched', () {

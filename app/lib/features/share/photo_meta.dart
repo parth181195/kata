@@ -153,3 +153,11 @@ String? fujiFilmSimName(int? filmMode, String? saturation) {
   };
   return sims[filmMode];
 }
+
+/// "FUJIFILM X-T4" from make + model, without saying the make twice.
+String? cameraName(PhotoMeta m) {
+  final make = m.make?.trim(), model = m.model?.trim();
+  if (model == null || model.isEmpty) return make == null || make.isEmpty ? null : make;
+  if (make == null || make.isEmpty || model.toUpperCase().startsWith(make.toUpperCase())) return model;
+  return '$make $model';
+}

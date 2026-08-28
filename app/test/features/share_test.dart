@@ -20,12 +20,11 @@ void main() {
     await t.tap(find.text('Share card…'));
     await t.pumpAndSettle();
     expect(find.byType(ShareComposerSheet), findsOneWidget);
-    expect(find.text('S1 · RECIPE CARD'), findsOneWidget);
+    expect(find.text('KATA 型'), findsOneWidget);
     await t.ensureVisible(find.text('S3 STORY'));
     await t.pumpAndSettle();
     await t.tap(find.text('S3 STORY'));
     await t.pumpAndSettle();
-    expect(find.text('S3 · STORY'), findsOneWidget);
     // the other page of the pair
     await t.tap(find.text('2 · RECIPE'));
     await t.pumpAndSettle();

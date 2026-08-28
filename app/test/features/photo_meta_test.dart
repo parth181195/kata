@@ -47,4 +47,12 @@ void _simChecks() {
     expect(fujiFilmSimName(0x000, '1216'), 'ACROS'); // raw 0x4C0 — newer than the package's table
     expect(fujiFilmSimName(0x1234, 'Normal'), isNull); // unknown stays honest
   });
+
+  test('cameraName: make and model, without the make twice', () {
+    expect(cameraName(const PhotoMeta(make: 'FUJIFILM', model: 'X-T4')), 'FUJIFILM X-T4');
+    expect(cameraName(const PhotoMeta(make: 'FUJIFILM', model: 'FUJIFILM X100V')), 'FUJIFILM X100V');
+    expect(cameraName(const PhotoMeta(model: 'X-E4')), 'X-E4');
+    expect(cameraName(const PhotoMeta(make: 'FUJIFILM')), 'FUJIFILM');
+    expect(cameraName(const PhotoMeta()), isNull);
+  });
 }

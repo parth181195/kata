@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +10,8 @@ import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
 import '../../core/compose/export.dart';
 import 'card_renderer.dart';
-import 'crop_sheet.dart';
 import 'photo_import.dart';
+import 'photo_meta.dart';
 import 'photo_tools.dart';
 import 'card_templates.dart';
 
@@ -47,6 +48,42 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   /// Which frame is being rotated/flipped/cropped right now, if any.
   int? _editing;
 
+  /// The photograph's placement in its frame — dragged and pinched on the
+  /// preview — and its pixel size, for the clamp. Reset whenever the bytes change.
+  Offset _offset = Offset.zero;
+  double _zoom = 1;
+  Size? _photoSize;
+  String? _camera;
+  Offset _dragStart = Offset.zero, _offsetStart = Offset.zero;
+  double _zoomStart = 1;
+
+  Future<void> _measure(Uint8List? b) async {
+    if (b == null) {
+      setState(() {
+        _photoSize = null;
+        _camera = null;
+      });
+      return;
+    }
+    try {
+      final img = await decodeImageFromList(b);
+      if (mounted) setState(() => _photoSize = Size(img.width.toDouble(), img.height.toDouble()));
+      img.dispose();
+    } catch (_) {
+      if (mounted) setState(() => _photoSize = null);
+    }
+    // the camera, read off the photo — a turn or a mirror keeps the EXIF, so
+    // this only changes when the photo does
+    final meta = await readPhotoMeta(b);
+    if (mounted) setState(() => _camera = cameraName(meta));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPhotos.isNotEmpty) _measure(widget.initialPhotos.first);
+  }
+
   Uint8List? _photoAt(int i) => i < _photos.length ? _photos[i] : null;
   void _setPhoto(int i, Uint8List? b, {bool original = true}) => setState(() {
         while (_photos.length <= i) {
@@ -55,9 +92,14 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
         }
         _photos[i] = b;
         if (original) _originals[i] = b;
+        if (i == 0) {
+          _offset = Offset.zero;
+          _zoom = 1;
+          _measure(b);
+        }
       });
 
-  /// Bake an edit into the frame's photo; the original stays for Reset.
+  /// Bake a turn or a mirror into the photo; the original stays for Undo.
   Future<void> _edit(int i, Future<Uint8List> Function(Uint8List) fn) async {
     final src = _photoAt(i);
     if (src == null || _editing != null) return;
@@ -70,14 +112,6 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     } finally {
       if (mounted) setState(() => _editing = null);
     }
-  }
-
-  Future<void> _crop(int i) async {
-    final src = _photoAt(i);
-    if (src == null) return;
-    final kept = await showCropSheet(context, src);
-    if (kept == null || !mounted) return;
-    await _edit(i, (b) => cropPhoto(b, kept));
   }
 
   Future<void> _changePhoto(int index, {bool gallery = true}) async {
@@ -102,7 +136,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
   }
 
-  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, outline: _outline, roundCorners: _round, embedCode: _embed, credit: _credit, photos: _photos, page: _page);
+  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, outline: _outline, roundCorners: _round, embedCode: _embed, credit: _credit, photos: _photos, page: _page, photoOffset: _offset, photoZoom: _zoom, photoSize: _photoSize, camera: _camera);
 
   void _pickTemplate(ShareTemplate t) => setState(() {
     _template = t;
@@ -194,6 +228,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
 
     final wide = MediaQuery.sizeOf(context).width >= 820;
     final shown = wide ? scale.clamp(0.3, 1.0) : previewScale;
+    final placeable = _page == SharePage.photo && _photoAt(0) != null;
     // the card and its page chips share one column, as wide as the wider of
     // the two, so the chips start at the card's left edge instead of the sheet's
     final preview = Center(
@@ -201,10 +236,36 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           // a shadow, not a border: the card has its own edge, and a hairline
           // around a white card read as two borders
-          Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(blurRadius: 18, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: 0.18))]),
-            clipBehavior: Clip.antiAlias,
-            child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: shown),
+          // drag to move the photograph in its frame, pinch (or scroll) to zoom —
+          // on page 1, once a photo of yours is on it
+          Listener(
+            onPointerSignal: !placeable
+                ? null
+                : (e) {
+                    if (e is PointerScrollEvent) setState(() => _zoom = (_zoom * (1 - e.scrollDelta.dy / 600)).clamp(1.0, 6.0));
+                  },
+            child: GestureDetector(
+              onScaleStart: !placeable
+                  ? null
+                  : (d) {
+                      _dragStart = d.focalPoint;
+                      _offsetStart = _offset;
+                      _zoomStart = _zoom;
+                    },
+              onScaleUpdate: !placeable
+                  ? null
+                  : (d) => setState(() {
+                        _offset = _offsetStart + (d.focalPoint - _dragStart) / shown;
+                        _zoom = (_zoomStart * d.scale).clamp(1.0, 6.0);
+                      }),
+              child: Container(
+                // no rounded clip: the card's corners are square, and rounding
+                // the preview cut its outline at the corners
+                decoration: BoxDecoration(boxShadow: [BoxShadow(blurRadius: 18, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: 0.18))]),
+                clipBehavior: Clip.hardEdge,
+                child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: shown),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           // the pair, one page at a time
@@ -214,6 +275,10 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
               const SizedBox(width: 7),
             ],
           ]),
+          if (placeable) ...[
+            const SizedBox(height: 8),
+            Text('DRAG TO MOVE · PINCH OR SCROLL TO ZOOM', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.08)),
+          ],
         ]),
       ),
     );
@@ -282,7 +347,6 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
           if (_photoAt(0) != null) ...[
             _tool(icon: Icons.rotate_90_degrees_cw_outlined, label: 'Rotate', busy: _editing == 0, onTap: _editing != null ? null : () => _edit(0, rotatePhoto)),
             _tool(icon: Icons.flip_outlined, label: 'Flip', onTap: _editing != null ? null : () => _edit(0, flipPhoto)),
-            _tool(icon: Icons.crop_outlined, label: 'Crop', onTap: _editing != null ? null : () => _crop(0)),
             if (_photoAt(0) != _originals[0])
               _tool(icon: Icons.undo_outlined, label: 'Undo', onTap: () => _setPhoto(0, _originals[0], original: false))
             else
