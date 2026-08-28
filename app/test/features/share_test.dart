@@ -21,12 +21,15 @@ void main() {
     await t.pumpAndSettle();
     expect(find.byType(ShareComposerSheet), findsOneWidget);
     expect(find.text('S1 · RECIPE CARD'), findsOneWidget);
-    await t.ensureVisible(find.text('S4 CODE'));
+    await t.ensureVisible(find.text('S3 STORY'));
     await t.pumpAndSettle();
-    await t.tap(find.text('S4 CODE'));
+    await t.tap(find.text('S3 STORY'));
     await t.pumpAndSettle();
-    expect(find.text('S4 · KATA CODE'), findsOneWidget);
-    expect(find.text('HOW TO USE'), findsOneWidget);
+    expect(find.text('S3 · STORY'), findsOneWidget);
+    // the other page of the pair
+    await t.tap(find.text('2 · RECIPE'));
+    await t.pumpAndSettle();
+    expect(find.text('SCAN TO LOAD INTO YOUR OWN C-SLOT'), findsOneWidget);
     await t.ensureVisible(find.text('{ }'));
     await t.pumpAndSettle();
     await t.tap(find.text('{ }'));

@@ -8,14 +8,23 @@ import '../../data/recipe.dart';
 import '../../data/recipe_specs.dart';
 import 'kata_code_qr.dart';
 
-enum ShareTemplate { photo, card, sheet, story, code }
+/// A share is always a pair: the photograph on one page, the recipe on the
+/// other, never both on one. A template is the style the pair is drawn in.
+enum ShareTemplate { card, sheet, story }
+
+/// Which page of the pair.
+enum SharePage { photo, recipe }
 
 extension ShareTemplateX on ShareTemplate {
-  String get code => switch (this) { ShareTemplate.photo => 'S0', ShareTemplate.card => 'S1', ShareTemplate.sheet => 'S2', ShareTemplate.story => 'S3', ShareTemplate.code => 'S4' };
-  String get label => switch (this) { ShareTemplate.photo => 'PHOTO', ShareTemplate.card => 'CARD', ShareTemplate.sheet => 'SHEET', ShareTemplate.story => 'STORY', ShareTemplate.code => 'CODE' };
+  String get code => switch (this) { ShareTemplate.card => 'S1', ShareTemplate.sheet => 'S2', ShareTemplate.story => 'S3' };
+  String get label => switch (this) { ShareTemplate.card => 'CARD', ShareTemplate.sheet => 'SHEET', ShareTemplate.story => 'STORY' };
 
-  /// How many photographs the template shows — one row of controls each.
-  int get frameCount => switch (this) { ShareTemplate.photo => 1, ShareTemplate.card => 1, ShareTemplate.sheet => 2, ShareTemplate.story => 3, ShareTemplate.code => 0 };
+  /// The small tag at the top right of both pages — what ties them as a set.
+  String get tag => switch (this) { ShareTemplate.card => 'S1 · RECIPE CARD', ShareTemplate.sheet => 'S2 · CONTACT SHEET', ShareTemplate.story => 'S3 · STORY' };
+}
+
+extension SharePageX on SharePage {
+  String get label => switch (this) { SharePage.photo => 'PHOTO', SharePage.recipe => 'RECIPE' };
 }
 
 enum ShareRatio { r4x5, r1x1, r9x16 }
@@ -31,6 +40,7 @@ class ShareSpec {
   const ShareSpec({
     required this.recipe,
     required this.template,
+    this.page = SharePage.recipe,
     required this.ratio,
     this.inverted = false,
     this.embedCode = true,
@@ -40,9 +50,9 @@ class ShareSpec {
   });
   final Recipe recipe;
 
-  /// The user's own photographs, one per frame slot (index = frame); a null or
-  /// missing entry leaves that frame to the recipe's own sample. Bytes are
-  /// already decodable — RAW previews are extracted upstream.
+  /// The user's own photograph for page 1 (index 0); absent, the recipe's
+  /// own sample stands in. Bytes are already decodable — RAW previews are
+  /// extracted upstream.
   final List<Uint8List?> photos;
 
   /// How a sample-frame URL becomes an image. The network by default; a test
@@ -51,6 +61,7 @@ class ShareSpec {
   final ImageProvider Function(String url) imageFor;
   static ImageProvider _network(String url) => CachedNetworkImageProvider(url);
   final ShareTemplate template;
+  final SharePage page;
   final ShareRatio ratio;
   final bool inverted;
   final bool embedCode;
@@ -61,23 +72,26 @@ class ShareSpec {
 
 const kCardWidth = 390.0;
 
-/// The file the card is saved or shared as.
+/// The file a page is saved or shared as: `kata-<five digits>-<date>-<page>.png`.
 ///
-/// A name is not guaranteed to survive `[^A-Za-z0-9]` — '夏の海辺' and '...' both
-/// reduce to nothing, and every such recipe used to save as the same `--s1.png`,
-/// quietly overwriting the last one in someone's Downloads. So the name is used
-/// when it leaves something, the film simulation when it doesn't, and the id is
-/// appended in that case to keep two of them apart.
-String shareFileName(Recipe r, ShareTemplate template) {
-  String slug(String? v) => (v ?? '').replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '').toLowerCase();
-  var stem = slug(r.ofr.name);
-  if (stem.isEmpty) {
-    final sim = slug(r.ofr.filmSimulation);
-    final tail = slug(r.id);
-    stem = [if (sim.isNotEmpty) sim, if (tail.isNotEmpty) tail.substring(0, tail.length < 6 ? tail.length : 6)].join('-');
+/// Five digits from the recipe id — the id itself when it is numeric, else a
+/// stable hash of it — so two recipes saved the same day never collide, and
+/// the photo and the recipe page of one pair sit beside each other as -1 and -2.
+String shareFileName(Recipe r, SharePage page, {DateTime? now}) {
+  final d = now ?? DateTime.now();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return 'kata-${recipeCode5(r.id)}-${d.year}${two(d.month)}${two(d.day)}-${page == SharePage.photo ? 1 : 2}.png';
+}
+
+/// Five digits for a recipe id: the last five of a numeric id, a hash otherwise.
+String recipeCode5(String id) {
+  if (RegExp(r'^\d+$').hasMatch(id)) return id.padLeft(5, '0').substring(id.length > 5 ? id.length - 5 : 0);
+  // FNV-1a over the UTF-8 bytes — the same five digits on every platform
+  var h = 0x811C9DC5;
+  for (final b in id.codeUnits) {
+    h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF;
   }
-  if (stem.isEmpty) stem = 'kata';
-  return '$stem-${template.code.toLowerCase()}.png';
+  return (h % 100000).toString().padLeft(5, '0');
 }
 
 /// Export scale. 4× puts the card at 1560px wide — about what WhatsApp and Instagram
@@ -115,12 +129,13 @@ class ShareCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ink = _Ink(spec.inverted);
     final h = kCardWidth / spec.ratio.aspect;
-    final body = switch (spec.template) {
-      ShareTemplate.photo => _S0(spec, ink),
-      ShareTemplate.card => _S1(spec, ink),
-      ShareTemplate.sheet => _S2(spec, ink),
-      ShareTemplate.story => _S3(spec, ink),
-      ShareTemplate.code => _S4(spec, ink),
+    final body = switch ((spec.template, spec.page)) {
+      (ShareTemplate.card, SharePage.photo) => _S1Photo(spec, ink),
+      (ShareTemplate.card, SharePage.recipe) => _S1Recipe(spec, ink),
+      (ShareTemplate.sheet, SharePage.photo) => _S2Photo(spec, ink),
+      (ShareTemplate.sheet, SharePage.recipe) => _S2Recipe(spec, ink),
+      (ShareTemplate.story, SharePage.photo) => _S3Photo(spec, ink),
+      (ShareTemplate.story, SharePage.recipe) => _S3Recipe(spec, ink),
     };
     // cards are white by default (light palette), inverted = dark palette — so kata_ui widgets inside pick the right greys
     return Theme(
@@ -132,28 +147,22 @@ class ShareCard extends StatelessWidget {
 
 // ---------------------------------------------------------------- pieces
 
-/// S0: just the photograph. A slim card border, the picture edge to edge
-/// inside it, and the 型 mark in a corner so the pair reads as one set with
-/// the recipe card that travels beside it.
-class _S0 extends StatelessWidget {
-  const _S0(this.spec, this.ink);
-  final ShareSpec spec;
-  final _Ink ink;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Stack(fit: StackFit.expand, children: [
-        _frame(ink, spec, radius: 6),
-        Positioned(
-          right: 12,
-          bottom: 10,
-          child: Text('型', style: KataType.displayStyle(size: 13, weight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.82), letterSpacing: 0)),
-        ),
-      ]),
-    );
-  }
-}
+/// The header both pages share: the wordmark, and the template's tag.
+Widget _header(_Ink ink, ShareSpec spec) => _wordmark(ink, right: spec.template.tag);
+
+/// The name line both pages share: the name, `FILM SIM · SENSOR` under it,
+/// the swatch bars and the film's short mark to the right.
+Widget _nameLine(_Ink ink, Recipe r, {double size = 22, int maxLines = 2, String? sub}) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Expanded(
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(r.name.toUpperCase(), maxLines: maxLines, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: size, color: ink.fg, letterSpacing: 0, height: 1.02)),
+      const SizedBox(height: 5),
+      Text((sub ?? '${r.ofr.filmSimulation} · ${r.ofr.sensors.isEmpty ? 'ANY SENSOR' : r.ofr.sensors.join('/')}').toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
+    ]),
+  ),
+  const SizedBox(width: 12),
+  SwatchBars(values: RecipeSpecs.swatch(r.ofr), abbr: RecipeSpecs.filmAbbr(r.ofr)),
+]);
 
 Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
   Text('KATA 型', style: KataType.displayStyle(size: 14, weight: FontWeight.w900, color: ink.fg, letterSpacing: 0.05)),
@@ -172,7 +181,9 @@ Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double r
       height: height,
       color: ink.frame,
       child: own != null
-          ? Image.memory(own, fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true)
+          // decoded no larger than the export needs (1560px wide at 4×): a
+          // 24MP photo at full size is a texture the GPU has no reason to hold
+          ? Image(image: ResizeImage(MemoryImage(own), width: 2600, height: 2600, policy: ResizeImagePolicy.fit), fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true)
           : url == null
               ? CustomPaint(painter: _Dots(ink.rule), child: Center(child: Text('SAMPLE FRAME', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.12))))
               : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
@@ -208,79 +219,61 @@ class _Dots extends CustomPainter {
 }
 
 // ---------------------------------------------------------------- S1 recipe card
-class _S1 extends StatelessWidget {
-  const _S1(this.spec, this.ink);
+
+/// Page 1: the photograph, the name under it.
+class _S1Photo extends StatelessWidget {
+  const _S1Photo(this.spec, this.ink);
+  final ShareSpec spec;
+  final _Ink ink;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _header(ink, spec),
+          const SizedBox(height: 14),
+          Expanded(child: _frame(ink, spec)),
+          const SizedBox(height: 14),
+          _nameLine(ink, spec.recipe),
+        ]),
+      );
+}
+
+/// Page 2: every setting, the credit and the code. No picture — the pair
+/// carries it on page 1.
+class _S1Recipe extends StatelessWidget {
+  const _S1Recipe(this.spec, this.ink);
   final ShareSpec spec;
   final _Ink ink;
   @override
   Widget build(BuildContext context) {
     final r = spec.recipe;
     final items = RecipeSpecs.items(r.ofr, rulers: false);
-    // On a 390px square the fixed rows — name, swatch, every setting, credit,
-    // code — come to ~403px with a two-line name, so a frame above the name
-    // can never have meaningful height: it got 18px, a sliver of photo bought
-    // with the last word of the name. But the code's row is 128px tall and the
-    // credit beside it is two short lines in 200px of air. So on the square
-    // the pictures go there — two of them, beside the code, credit beneath —
-    // and nothing else on the card moves.
-    final square = spec.ratio == ShareRatio.r1x1;
     return Padding(
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _wordmark(ink, right: 'S1 · RECIPE CARD'),
+        _header(ink, spec),
         const SizedBox(height: 14),
-        if (!square) ...[
-          Expanded(child: _frame(ink, spec)),
-          const SizedBox(height: 14),
-        ],
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(r.name.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 22, color: ink.fg, letterSpacing: 0, height: 1.02)),
-              const SizedBox(height: 5),
-              Text('${r.ofr.filmSimulation} · ${r.ofr.sensors.isEmpty ? 'ANY SENSOR' : r.ofr.sensors.join('/')}'.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 8.5, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8.5 * 0.16)),
-            ]),
-          ),
-          const SizedBox(width: 12),
-          SwatchBars(values: RecipeSpecs.swatch(r.ofr), abbr: RecipeSpecs.filmAbbr(r.ofr)),
-        ]),
+        _nameLine(ink, r),
         const SizedBox(height: 11),
         Container(height: 1, decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.rule, style: BorderStyle.solid)))),
         const SizedBox(height: 10),
         // Every setting, in as many rows as it takes. A fixed childAspectRatio
         // with a fixed take(12) dropped the last row off every colour recipe —
-        // Clarity, silently. And sizing the rows from whatever height was left
-        // clipped the type on a square card instead, where the frame:grid flex
-        // split drawn for 4:5 leaves the grid 43px for seven rows. So the grid
-        // takes the height its rows need, and the frame above is what yields.
+        // Clarity, silently. So the grid takes the height its rows need, and
+        // the air between it and the code is what yields.
         _SettingsGrid(items: items, ink: ink),
+        const Spacer(),
         Container(height: 1, color: ink.fg),
         const SizedBox(height: 10),
         SizedBox(
           height: kQrSlot,
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
-              child: square
-                  ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      Expanded(
-                        child: Row(children: [
-                          Expanded(child: _frame(ink, spec, index: 0)),
-                          const SizedBox(width: 6),
-                          Expanded(child: _frame(ink, spec, index: 1)),
-                        ]),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(children: [
-                        Expanded(child: Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
-                        const SizedBox(width: 8),
-                        Text('${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
-                      ]),
-                    ])
-                  : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text(spec.credit, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1)),
-                      const SizedBox(height: 4),
-                      Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
-                    ]),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text(spec.credit, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1.2)),
+                const SizedBox(height: 4),
+                Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+              ]),
             ),
             const SizedBox(width: 12),
             _qrBlock(spec, ink, kQrSlot),
@@ -327,118 +320,119 @@ class _SettingsGrid extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------- S2 contact sheet
-class _S2 extends StatelessWidget {
-  const _S2(this.spec, this.ink);
+
+List<String> _tags(Recipe r) => ['#FUJI${(r.ofr.sensors.firstOrNull ?? 'X').replaceAll(RegExp(r'[^A-Za-z0-9]'), '')}', '#${r.ofr.filmSimulation.replaceAll(RegExp(r'[^A-Za-z0-9]'), '')}', '#KATA'];
+
+/// Page 1: the photograph square, the name and the tags.
+class _S2Photo extends StatelessWidget {
+  const _S2Photo(this.spec, this.ink);
+  final ShareSpec spec;
+  final _Ink ink;
+  @override
+  Widget build(BuildContext context) {
+    final r = spec.recipe;
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _header(ink, spec),
+        const SizedBox(height: 12),
+        Expanded(child: _frame(ink, spec)),
+        const SizedBox(height: 12),
+        _nameLine(ink, r, size: 18, maxLines: 1),
+        const SizedBox(height: 6),
+        Text(_tags(r).join(' ').toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 8.5, color: ink.mute, letterSpacing: 0.08)),
+      ]),
+    );
+  }
+}
+
+/// Page 2: the name, the settings that matter, the code large.
+class _S2Recipe extends StatelessWidget {
+  const _S2Recipe(this.spec, this.ink);
   final ShareSpec spec;
   final _Ink ink;
   @override
   Widget build(BuildContext context) {
     final r = spec.recipe;
     final compact = RecipeSpecs.compact(r.ofr);
-    final tags = ['#FUJI${(r.ofr.sensors.firstOrNull ?? 'X').replaceAll(RegExp(r'[^A-Za-z0-9]'), '')}', '#${r.ofr.filmSimulation.replaceAll(RegExp(r'[^A-Za-z0-9]'), '')}', '#KATA'];
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _wordmark(ink, right: 'S2 · CONTACT SHEET'),
+        _header(ink, spec),
         const SizedBox(height: 12),
-        Expanded(
-          flex: 3,
-          child: Row(children: [
-            Expanded(flex: 3, child: _frame(ink, spec, index: 0)),
-            const SizedBox(width: 6),
-            Expanded(flex: 2, child: Column(children: [Expanded(child: _frame(ink, spec, index: 1)), const SizedBox(height: 6), Expanded(child: _frame(ink, spec, index: 2))])),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        Flexible(
-          flex: 2,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(r.name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 18, color: ink.fg, letterSpacing: 0)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 14, runSpacing: 6, children: [for (final it in compact.take(6)) _kv(ink, it.label, it.value, vs: 10)]),
-              const SizedBox(height: 8),
-              Text(tags.join(' ').toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 8.5, color: ink.mute, letterSpacing: 0.08)),
-            ]),
-          ),
-          const SizedBox(width: 10),
-          _qrBlock(spec, ink, kQrSlot),
+        _nameLine(ink, r, size: 18, maxLines: 1),
+        const SizedBox(height: 10),
+        Wrap(spacing: 14, runSpacing: 6, children: [for (final it in compact.take(6)) _kv(ink, it.label, it.value, vs: 10)]),
+        const SizedBox(height: 8),
+        Text(_tags(r).join(' ').toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 8.5, color: ink.mute, letterSpacing: 0.08)),
+        const SizedBox(height: 10),
+        // the code takes whatever height is left and never pushes the credit off the card
+        Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: _qrBlock(spec, ink, 260)))),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
+          const SizedBox(width: 8),
+          Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
         ]),
-        ),
       ]),
     );
   }
 }
 
 // ---------------------------------------------------------------- S3 story 9:16
-class _S3 extends StatelessWidget {
-  const _S3(this.spec, this.ink);
+
+/// Page 1: the photograph tall, the name large beneath it.
+class _S3Photo extends StatelessWidget {
+  const _S3Photo(this.spec, this.ink);
   final ShareSpec spec;
   final _Ink ink;
   @override
   Widget build(BuildContext context) {
     final r = spec.recipe;
-    final items = RecipeSpecs.compact(r.ofr).take(4).toList();
-    // The story is drawn for 9:16, but the ratio chips let it be posted square,
-    // and on a square card the fixed rows below the frame add up to more than
-    // the card is tall: it overflowed by ~20px in release, silently clipped.
-    // So the frame yields first, and if that isn't enough the title does — a
-    // story with no picture is still a story; one with its code cut off isn't.
     return Padding(
       padding: const EdgeInsets.all(24),
       child: LayoutBuilder(builder: (context, box) {
+        // drawn for 9:16; on a square the frame yields and the name goes to one line
         final tight = box.maxHeight < 560;
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _wordmark(ink, right: 'S3 · STORY'),
+          _header(ink, spec),
           SizedBox(height: tight ? 10 : 16),
-          Expanded(flex: 5, child: _frame(ink, spec, radius: 8)),
+          Expanded(child: _frame(ink, spec, radius: 8)),
           SizedBox(height: tight ? 14 : 22),
-          Text(r.name.toUpperCase(), maxLines: tight ? 1 : 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: tight ? 26 : 34, color: ink.fg, letterSpacing: 0, height: 1)),
-          const SizedBox(height: 8),
-          Text(RecipeSpecs.summary(r.ofr).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.monoStyle(size: 10.5, color: ink.mid, letterSpacing: 0.08)),
-          SizedBox(height: tight ? 12 : 18),
-          Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
-          SizedBox(height: tight ? 14 : 22),
-          Row(children: [
-            _qrBlock(spec, ink, kQrSlot),
-            const SizedBox(width: 14),
-            Expanded(child: Text('SCAN TO LOAD INTO\nYOUR OWN C-SLOT', style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25))),
-          ]),
-          const SizedBox(height: 8),
-          Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
+          _nameLine(ink, r, size: tight ? 26 : 34, maxLines: tight ? 1 : 2, sub: RecipeSpecs.summary(r.ofr)),
         ]);
       }),
     );
   }
 }
 
-// ---------------------------------------------------------------- S4 code
-class _S4 extends StatelessWidget {
-  const _S4(this.spec, this.ink);
+/// Page 2: the name, four settings, the code large, how to use it.
+class _S3Recipe extends StatelessWidget {
+  const _S3Recipe(this.spec, this.ink);
   final ShareSpec spec;
   final _Ink ink;
   @override
   Widget build(BuildContext context) {
     final r = spec.recipe;
+    final items = RecipeSpecs.compact(r.ofr).take(4).toList();
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _wordmark(ink, right: 'S4 · KATA CODE'),
-        const SizedBox(height: 18),
-        Text(r.name.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 24, color: ink.fg, letterSpacing: 0, height: 1.02)),
-        const SizedBox(height: 6),
-        Text('${r.ofr.filmSimulation} · ${RecipeSpecs.summary(r.ofr)} · ${spec.settingsCount} SETTINGS'.toUpperCase(), maxLines: 2, style: KataType.monoStyle(size: 9.5, color: ink.mid, letterSpacing: 0.06, height: 1.4)),
-        const SizedBox(height: 4),
-        Text(spec.credit, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1)),
-        const SizedBox(height: 12),
-        // the code takes whatever height is left (≥ 120) and never pushes the footer off the card
-        Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: KataCodeQr(payload: spec.payload, size: 260, inverted: spec.inverted)))),
-        const SizedBox(height: 12),
-        Text('HOW TO USE', style: KataType.bodyStyle(size: 8, weight: FontWeight.w500, color: ink.mute, height: 1).copyWith(letterSpacing: 8 * 0.16)),
-        const SizedBox(height: 6),
-        Text('Open Kata → Scan → the recipe lands in your library, then write it to a C-slot over USB-C.', style: KataType.bodyStyle(size: 11, color: ink.fg, height: 1.45)),
-      ]),
+      child: LayoutBuilder(builder: (context, box) {
+        final tight = box.maxHeight < 560;
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _header(ink, spec),
+          SizedBox(height: tight ? 10 : 16),
+          _nameLine(ink, r, size: tight ? 26 : 34, maxLines: tight ? 1 : 2, sub: RecipeSpecs.summary(r.ofr)),
+          SizedBox(height: tight ? 12 : 18),
+          Row(children: [for (final it in items) ...[Expanded(child: _kv(ink, it.label, it.value, vs: 13))]]),
+          SizedBox(height: tight ? 12 : 22),
+          Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: _qrBlock(spec, ink, 260)))),
+          SizedBox(height: tight ? 12 : 22),
+          Text('SCAN TO LOAD INTO YOUR OWN C-SLOT', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25)),
+          const SizedBox(height: 8),
+          Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
+        ]);
+      }),
     );
   }
 }

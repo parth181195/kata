@@ -49,8 +49,8 @@ void main() {
     final payload = KataCode.encode(_worst, credit: _worst.sourceAttribution);
     final modules = _modulesFor(payload.length);
 
-    // S0 is the photograph alone — no code on it
-    for (final template in ShareTemplate.values.where((t) => t != ShareTemplate.photo)) {
+    // the recipe page of every template carries the code; the photo page never does
+    for (final template in ShareTemplate.values) {
       for (final ratio in ShareRatio.values) {
         final h = kCardWidth / ratio.aspect;
         t.view.physicalSize = Size(kCardWidth, h);
@@ -72,7 +72,7 @@ void main() {
         ));
         await t.pumpAndSettle();
 
-        // the painted rect, not the requested size — S4 scales its code down to fit
+        // the painted rect, not the requested size — S2 and S3 scale their code down to fit
         final rect = t.getRect(find.byType(KataCodeQr));
         final quiet = rect.width * 0.08 * 2;
         final pxPerModule = (rect.width - quiet) * kCardPixelRatio / modules;

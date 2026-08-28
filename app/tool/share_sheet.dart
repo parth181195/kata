@@ -157,10 +157,11 @@ void main() {
     addTearDown(t.view.resetDevicePixelRatio);
     Directory(_outDir).createSync(recursive: true);
 
-    for (final template in ShareTemplate.values) {
+    for (final (template, page) in [for (final t in ShareTemplate.values) for (final pg in SharePage.values) (t, pg)]) {
       final spec = ShareSpec(
         recipe: recipe,
         template: template,
+        page: page,
         ratio: ratio,
         inverted: _inverted,
         embedCode: _embed,
@@ -178,14 +179,14 @@ void main() {
         final img = await b.toImage();
         final png = await img.toByteData(format: ui.ImageByteFormat.png);
         final flags = [if (_inverted) 'inv', if (!_embed) 'nocode'];
-        final name = '${[_fixture, template.code, _ratioKey, ...flags].join('_')}.png';
+        final name = '${[_fixture, template.code, page.name, _ratioKey, ...flags].join('_')}.png';
         File('$_outDir/$name').writeAsBytesSync(png!.buffer.asUint8List());
         img.dispose();
       });
       // ignore: avoid_print
-      print('${template.code} ${spec.payload.length} bytes payload');
+      print('${template.code} ${page.name} ${spec.payload.length} bytes payload');
     }
     // ignore: avoid_print
-    print('wrote ${ShareTemplate.values.length} cards to $_outDir');
+    print('wrote ${ShareTemplate.values.length * SharePage.values.length} pages to $_outDir');
   });
 }

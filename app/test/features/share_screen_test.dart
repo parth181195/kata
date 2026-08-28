@@ -17,20 +17,25 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Gallery'), findsOneWidget);
     expect(find.text('Files'), findsOneWidget);
-    // the pair — photograph alone plus the recipe card — has its own action
-    expect(find.text('Share photo + card'), findsOneWidget);
+    // the pair is the default; either page alone beneath it
+    expect(find.text('SHARE BOTH'), findsOneWidget);
+    expect(find.text('Photo only'), findsOneWidget);
+    expect(find.text('Recipe only'), findsOneWidget);
   });
 
-  testWidgets('share tab: the sheet takes a photo per frame; the photo card is a template of its own', (t) async {
+  testWidgets('share tab: one photo per pair; the preview walks both pages', (t) async {
     await pumpKata(t, initialLocation: '/share');
     await t.tap(find.text('Kodachrome 64').first);
     await t.pumpAndSettle();
     await t.ensureVisible(find.text('S2 SHEET'));
     await t.tap(find.text('S2 SHEET'));
     await t.pumpAndSettle();
-    expect(find.text('Photo 1'), findsOneWidget);
-    expect(find.text('Photo 2'), findsOneWidget);
-    expect(find.text('S0 PHOTO'), findsOneWidget);
+    // one photograph, whatever the template; the tools sit under it
+    expect(find.text('Photo'), findsOneWidget);
+    expect(find.text('Gallery'), findsOneWidget);
+    // page chips: photo first, recipe second
+    expect(find.text('1 · PHOTO'), findsOneWidget);
+    expect(find.text('2 · RECIPE'), findsOneWidget);
   });
 
   testWidgets('share tab: starts from a photo too', (t) async {

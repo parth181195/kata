@@ -29,13 +29,18 @@ class OffscreenCardHost extends StatelessWidget {
     final h = kCardWidth / spec.ratio.aspect;
     final effective = imageFor == null
         ? spec
-        : ShareSpec(recipe: spec.recipe, template: spec.template, ratio: spec.ratio, inverted: spec.inverted, embedCode: spec.embedCode, credit: spec.credit, imageFor: imageFor!);
-    return SizedBox(
-      width: kCardWidth * scale,
-      height: h * scale,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: RepaintBoundary(key: boundaryKey, child: ShareCard(effective)),
+        : ShareSpec(recipe: spec.recipe, template: spec.template, page: spec.page, ratio: spec.ratio, inverted: spec.inverted, embedCode: spec.embedCode, credit: spec.credit, imageFor: imageFor!, photos: spec.photos);
+    // The outer boundary caches the scaled composite as one layer. Without it
+    // the full-size boundary is re-rasterised through the FittedBox on every
+    // scroll frame, which on macOS came out as torn vertical streaks.
+    return RepaintBoundary(
+      child: SizedBox(
+        width: kCardWidth * scale,
+        height: h * scale,
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: RepaintBoundary(key: boundaryKey, child: ShareCard(effective)),
+        ),
       ),
     );
   }

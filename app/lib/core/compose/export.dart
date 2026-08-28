@@ -99,6 +99,27 @@ Future<bool> deliverPng(BuildContext context, Uint8List png, {required String na
 }
 
 
+/// Save, not share: desktop asks where; a phone opens the system's own
+/// save-as, which can put it in Downloads or Photos. Returns false when the
+/// user cancelled.
+Future<bool> savePng(BuildContext context, Uint8List png, {required String name}) async {
+  if (_isDesktop) return deliverPng(context, png, name: name);
+  final path = await FilePicker.platform.saveFile(dialogTitle: 'Save $name', fileName: name, type: FileType.image, bytes: png);
+  if (path == null) return false;
+  if (context.mounted) KataToast.show(context, 'Saved $name');
+  return true;
+}
+
+/// Save several, one after the other.
+Future<bool> savePngs(BuildContext context, List<(String name, Uint8List png)> files) async {
+  var any = false;
+  for (final (name, png) in files) {
+    if (!context.mounted) return any;
+    any = await savePng(context, png, name: name) || any;
+  }
+  return any;
+}
+
 /// Several files in one go — the framed photo and its code card. Mobile puts
 /// both on one share sheet; desktop asks where to save each.
 Future<bool> deliverPngs(BuildContext context, List<(String name, Uint8List png)> files, {String? subject, String? text}) async {

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kata/data/recipe.dart';
 import 'package:kata/data/recipe_specs.dart';
 import 'package:kata/features/share/card_templates.dart';
+import 'package:kata/features/share/kata_code_qr.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
 
@@ -40,7 +41,7 @@ void main() {
   // The story template did this on every square card for a plain recipe.
   testWidgets('no template overflows its card, at any ratio, with the worst content', (t) async {
     for (final (label, ofr) in [('worst', _worst), ('plain', _colour)]) {
-      for (final template in ShareTemplate.values) {
+      for (final (template, page) in [for (final t in ShareTemplate.values) for (final pg in SharePage.values) (t, pg)]) {
         for (final ratio in ShareRatio.values) {
           final overflow = <String>[];
           final prev = FlutterError.onError;
@@ -57,6 +58,7 @@ void main() {
                 child: ShareCard(ShareSpec(
                   recipe: Recipe(id: 'o1', ofr: ofr),
                   template: template,
+                  page: page,
                   ratio: ratio,
                   credit: ofr.sourceAttribution ?? 'Kata',
                 )),
@@ -65,7 +67,7 @@ void main() {
           ));
           await t.pump();
           FlutterError.onError = prev;
-          expect(overflow, isEmpty, reason: '$label on ${template.code} at ${ratio.label}: ${overflow.join('; ')}');
+          expect(overflow, isEmpty, reason: '$label on ${template.code} ${page.name} at ${ratio.label}: ${overflow.join('; ')}');
         }
       }
     }
@@ -77,13 +79,13 @@ void main() {
   // — it got 18px, a sliver bought with the last word of the name. The code's
   // row is 128px tall with air beside it, so that is where the pictures go:
   // two of them, and the name stays whole.
-  testWidgets('the square recipe card carries two frames beside the code, and the whole name', (t) async {
+  testWidgets('the pair: page 1 carries the picture at every ratio, page 2 never does', (t) async {
     final long = Recipe(
       id: 'l1',
       ofr: _colour.copyWith(name: 'Kodak T-Max 100 Hard Tone'),
       imageUrls: const ['gated://a', 'gated://b', 'gated://c'],
     );
-    Future<void> pump(ShareRatio ratio) async {
+    Future<void> pump(ShareTemplate template, SharePage page, ShareRatio ratio) async {
       final h = kCardWidth / ratio.aspect;
       t.view.physicalSize = Size(kCardWidth, h);
       t.view.devicePixelRatio = 1;
@@ -95,7 +97,8 @@ void main() {
             height: h,
             child: ShareCard(ShareSpec(
               recipe: long,
-              template: ShareTemplate.card,
+              template: template,
+              page: page,
               ratio: ratio,
               credit: 'Kata',
               imageFor: (_) => const _NeverImage(),
@@ -110,18 +113,20 @@ void main() {
     addTearDown(t.view.resetDevicePixelRatio);
     final nameText = find.text('KODAK T-MAX 100 HARD TONE');
 
-    await pump(ShareRatio.r1x1);
-    expect(find.byType(Image), findsNWidgets(2), reason: 'the square card shows two frames');
-    expect(t.widget<Text>(nameText).maxLines, 2, reason: 'and the name keeps its second line');
-    for (final img in find.byType(Image).evaluate()) {
-      final r = t.getRect(find.byWidget(img.widget));
-      expect(r.height, greaterThan(80), reason: 'a frame on the square is a picture, not a sliver: ${r.height}px');
-      expect(r.width, greaterThan(80));
-    }
+    for (final template in ShareTemplate.values) {
+      for (final ratio in ShareRatio.values) {
+        await pump(template, SharePage.photo, ratio);
+        expect(find.byType(Image), findsOneWidget, reason: '${template.code} page 1 at ${ratio.label} is one photograph');
+        final r = t.getRect(find.byType(Image));
+        expect(r.height, greaterThan(80), reason: '${template.code} at ${ratio.label}: a picture, not a sliver: ${r.height}px');
+        expect(r.width, greaterThan(80));
+        expect(nameText, findsOneWidget, reason: 'the name travels with the picture');
 
-    await pump(ShareRatio.r4x5);
-    expect(find.byType(Image), findsOneWidget, reason: 'a 4:5 card keeps its single frame above the name');
-    expect(t.widget<Text>(nameText).maxLines, 2);
+        await pump(template, SharePage.recipe, ratio);
+        expect(find.byType(Image), findsNothing, reason: '${template.code} page 2 at ${ratio.label} has no picture');
+        expect(find.byType(KataCodeQr), findsOneWidget, reason: 'and carries the code');
+      }
+    }
   });
 
   testWidgets('the recipe card shows every setting it has, not the first twelve', (t) async {
@@ -153,19 +158,19 @@ void main() {
     }
   });
 
-  test('a name that survives no ASCII still names a file, and two of them differ', () {
+  test('a file is named by five digits of the recipe and the day; the pair sits as -1 and -2', () {
+    final day = DateTime(2026, 8, 28);
     final a = Recipe(id: 'aaaaaa11', ofr: _colour.copyWith(name: '夏の海辺 — 富士フイルム'));
     final b = Recipe(id: 'bbbbbb22', ofr: _colour.copyWith(name: '...'));
-    final an = shareFileName(a, ShareTemplate.card);
-    final bn = shareFileName(b, ShareTemplate.card);
-
-    expect(an, isNot(startsWith('-')), reason: 'a filename should not start with a separator');
-    expect(an, isNot(contains('--')));
-    expect(an, endsWith('-s1.png'));
-    expect(an, isNot(bn), reason: 'two unnameable recipes would overwrite each other in Downloads');
-  });
-
-  test('an ordinary name is still the obvious filename', () {
-    expect(shareFileName(Recipe(id: 'x', ofr: _colour), ShareTemplate.card), 'beach-chrome-s1.png');
+    final an = shareFileName(a, SharePage.photo, now: day);
+    final bn = shareFileName(b, SharePage.photo, now: day);
+    expect(an, matches(RegExp(r'^kata-\d{5}-20260828-1\.png$')));
+    expect(shareFileName(a, SharePage.recipe, now: day), endsWith('-20260828-2.png'));
+    expect(an, isNot(bn), reason: 'two recipes saved the same day would overwrite each other in Downloads');
+    // a numeric id keeps its own digits; a long one keeps its last five
+    expect(recipeCode5('42'), '00042');
+    expect(recipeCode5('1234567'), '34567');
+    expect(recipeCode5('srv-1'), recipeCode5('srv-1'), reason: 'stable');
+    expect(recipeCode5('srv-1'), isNot(recipeCode5('srv-2')));
   });
 }
