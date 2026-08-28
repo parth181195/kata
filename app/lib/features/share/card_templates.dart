@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:ofr/ofr.dart';
@@ -32,8 +33,13 @@ class ShareSpec {
     this.embedCode = true,
     required this.credit,
     this.imageFor = _network,
+    this.photo,
   });
   final Recipe recipe;
+
+  /// The user's own photograph for the card, in place of the recipe's first
+  /// sample frame. Bytes, already decodable (RAW previews extracted upstream).
+  final Uint8List? photo;
 
   /// How a sample-frame URL becomes an image. The network by default; a test
   /// hands in a provider it controls, so the export's wait for the photo can be
@@ -130,14 +136,18 @@ Widget _wordmark(_Ink ink, {String? right}) => Row(children: [
 Widget _frame(_Ink ink, ShareSpec spec, {double? height, int index = 0, double radius = 4}) {
   final r = spec.recipe;
   final url = r.imageUrls.length > index ? r.imageUrls[index] : null;
+  // the user's photo takes the lead frame; the recipe's own samples fill the rest
+  final own = index == 0 ? spec.photo : null;
   return ClipRRect(
     borderRadius: BorderRadius.circular(radius),
     child: Container(
       height: height,
       color: ink.frame,
-      child: url == null
-          ? CustomPaint(painter: _Dots(ink.rule), child: Center(child: Text('SAMPLE FRAME', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.12))))
-          : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+      child: own != null
+          ? Image.memory(own, fit: BoxFit.cover, width: double.infinity, height: double.infinity, gaplessPlayback: true)
+          : url == null
+              ? CustomPaint(painter: _Dots(ink.rule), child: Center(child: Text('SAMPLE FRAME', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.12))))
+              : Image(image: spec.imageFor(url), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
     ),
   );
 }

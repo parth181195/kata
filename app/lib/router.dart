@@ -19,7 +19,7 @@ import 'features/debug/probe_screen.dart';
 import 'features/library/library_screen.dart';
 import 'features/library/recipe_detail_screen.dart';
 import 'features/mine/mine_screen.dart';
-import 'features/waku/waku_screen.dart';
+import 'features/share/share_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/scan/scan_screen.dart';
 import 'features/shell/shell_scaffold.dart';
@@ -103,7 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/library', builder: (_, _) => const LibraryScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/camera', builder: (_, _) => const CameraScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/share', builder: (_, _) => const WakuScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/share', builder: (_, _) => const ShareScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/mine', builder: (_, _) => const MineScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen())]),
         ],

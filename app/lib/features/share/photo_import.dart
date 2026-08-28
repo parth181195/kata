@@ -3,16 +3,16 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as im;
 
-/// What the Waku pickers accept. RAW support means pulling the embedded JPEG
+/// What the share card's photo picker accepts. RAW support means pulling the embedded JPEG
 /// preview out — every camera RAW carries one at (near) full resolution.
-const wakuImportExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'raf', 'dng', 'nef', 'arw', 'cr2', 'cr3', 'orf', 'rw2', 'srw', 'pef', 'tif', 'tiff'];
+const sharePhotoExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'raf', 'dng', 'nef', 'arw', 'cr2', 'cr3', 'orf', 'rw2', 'srw', 'pef', 'tif', 'tiff'];
 
 /// Turns whatever the picker returned into bytes `Image.memory` can decode,
 /// or null when nothing usable is inside. Heavy scans run off the UI isolate.
-Future<Uint8List?> prepareWakuImage(Uint8List bytes) => Isolate.run(() => prepareWakuImageSync(bytes));
+Future<Uint8List?> prepareSharePhoto(Uint8List bytes) => Isolate.run(() => prepareSharePhotoSync(bytes));
 
 @pragma('vm:entry-point')
-Uint8List? prepareWakuImageSync(Uint8List b) {
+Uint8List? prepareSharePhotoSync(Uint8List b) {
   if (b.length < 16) return null;
   if (_isNativelyDecodable(b)) return b;
   final raf = _rafPreview(b);

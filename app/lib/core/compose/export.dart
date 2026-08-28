@@ -9,15 +9,13 @@ import 'package:flutter/rendering.dart';
 import 'package:kata_ui/kata_ui.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'grain.dart';
 
-/// The one render-and-deliver pipeline: kata share cards and Waku frames both
-/// end here. Rasterise a boundary, then hand the PNG to the platform's way of
+/// The render-and-deliver pipeline for the share cards. Rasterise a boundary, then hand the PNG to the platform's way of
 /// getting a file to the user.
 
 /// Renders [boundaryKey]'s RepaintBoundary to PNG. Pass [pixelRatio] to fix the
 /// scale (the share cards do), or [targetShortSide] to hit a resolution
-/// regardless of preview size (Waku does).
+/// regardless of preview size.
 Future<Uint8List> rasterizePng(
   GlobalKey boundaryKey, {
   double? pixelRatio,
@@ -28,10 +26,6 @@ Future<Uint8List> rasterizePng(
   final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final ratio = pixelRatio ?? (targetShortSide / boundary.size.shortestSide).clamp(1.0, 6.0);
   try {
-    // the sheet's tooth keeps its size; the export just resolves it finer, and
-    // that finer tile has to exist before we rasterise
-    GrainOverlay.rasterScale.value = ratio;
-    await GrainOverlay.ready();
     if (settle) {
       // Every image under the boundary has to have decoded, or the first share
       // of a recipe ships a card with a grey box where its sample frame goes —
@@ -39,7 +33,7 @@ Future<Uint8List> rasterizePng(
       // usually wins. Bounded, so an offline device still gets its card, with
       // the placeholder it can actually see.
       await _imagesUnder(boundaryKey.currentContext!).timeout(imageWait, onTimeout: () {});
-      // and a couple of frames so what arrived, and the re-scaled grain, have painted
+      // and a couple of frames so what arrived has painted
       await WidgetsBinding.instance.endOfFrame;
       await WidgetsBinding.instance.endOfFrame;
     }
@@ -48,7 +42,7 @@ Future<Uint8List> rasterizePng(
     img.dispose();
     return bytes!.buffer.asUint8List();
   } finally {
-    GrainOverlay.rasterScale.value = 1;
+    // nothing to restore
   }
 }
 

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as im;
-import 'package:kata/features/waku/waku_import.dart';
+import 'package:kata/features/share/photo_import.dart';
 
 Uint8List _jpeg({int w = 12, int h = 9}) => Uint8List.fromList(im.encodeJpg(im.Image(width: w, height: h)));
 Uint8List _png() => Uint8List.fromList(im.encodePng(im.Image(width: 6, height: 6)));
@@ -10,9 +10,9 @@ Uint8List _png() => Uint8List.fromList(im.encodePng(im.Image(width: 6, height: 6
 void main() {
   test('native formats pass through untouched', () {
     final png = _png();
-    expect(prepareWakuImageSync(png), same(png));
+    expect(prepareSharePhotoSync(png), same(png));
     final jpg = _jpeg();
-    expect(prepareWakuImageSync(jpg), same(jpg));
+    expect(prepareSharePhotoSync(jpg), same(jpg));
   });
 
   test('RAF: the embedded JPEG preview is pulled out via the header offsets', () {
@@ -33,7 +33,7 @@ void main() {
     }
     head.add(preview);
     head.add(List.filled(64, 0xEE)); // trailing sensor data stand-in
-    final out = prepareWakuImageSync(head.toBytes());
+    final out = prepareSharePhotoSync(head.toBytes());
     expect(out, isNotNull);
     expect(out, equals(preview));
   });
@@ -48,13 +48,13 @@ void main() {
     b.add(List.filled(37, 0x22));
     b.add(large);
     b.add(List.filled(50, 0x33));
-    final out = prepareWakuImageSync(b.toBytes());
+    final out = prepareSharePhotoSync(b.toBytes());
     expect(out, isNotNull);
     expect(out, equals(large));
   });
 
   test('garbage comes back null, not a crash', () {
-    expect(prepareWakuImageSync(Uint8List.fromList(List.filled(4096, 0xAB))), isNull);
-    expect(prepareWakuImageSync(Uint8List(4)), isNull);
+    expect(prepareSharePhotoSync(Uint8List.fromList(List.filled(4096, 0xAB))), isNull);
+    expect(prepareSharePhotoSync(Uint8List(4)), isNull);
   });
 }

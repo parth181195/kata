@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import '../../core/auth/auth_repository.dart';
 import '../../data/recipe.dart';
 import '../../core/compose/export.dart';
 import 'card_renderer.dart';
+import 'photo_import.dart';
 import 'card_templates.dart';
 
 /// Design 3a: preview · template row S1–S4 · options (invert, embed code, ratio) · `{ }` payload peek · Share card.
@@ -29,6 +31,23 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
   bool _embed = true;
   bool _showPayload = false;
   bool _busy = false;
+  /// The card's photograph, when the user swaps in their own.
+  Uint8List? _photo;
+
+  Future<void> _changePhoto({bool gallery = true}) async {
+    final res = gallery
+        ? await FilePicker.platform.pickFiles(dialogTitle: 'Choose a photo', type: FileType.image, withData: true)
+        : await FilePicker.platform.pickFiles(dialogTitle: 'Choose a photo', type: FileType.custom, allowedExtensions: sharePhotoExtensions, withData: true);
+    final raw = res?.files.firstOrNull?.bytes;
+    if (raw == null || !mounted) return;
+    final usable = await prepareSharePhoto(raw);
+    if (!mounted) return;
+    if (usable == null) {
+      KataToast.show(context, "Couldn't read an image out of that file");
+      return;
+    }
+    setState(() => _photo = usable);
+  }
 
   String get _credit {
     final r = widget.recipe;
@@ -37,7 +56,7 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     return r.source == RecipeSource.published && me != null ? me.displayName : 'Kata';
   }
 
-  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, embedCode: _embed, credit: _credit);
+  ShareSpec get _spec => ShareSpec(recipe: widget.recipe, template: _template, ratio: _ratio, inverted: _inverted, embedCode: _embed, credit: _credit, photo: _photo);
 
   void _pickTemplate(ShareTemplate t) => setState(() {
     _template = t;
@@ -135,6 +154,15 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
           ),
         ),
         KataListRow(title: 'Credit', value: _credit),
+        // the card's photo: the recipe's sample frame, or one of yours
+        KataListRow(title: 'Photo', value: _photo == null ? 'SAMPLE FRAME' : 'YOURS'),
+        const SizedBox(height: 8),
+        Wrap(spacing: 7, runSpacing: 7, children: [
+          KataPillButton(label: 'Gallery', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => _changePhoto()),
+          KataPillButton(label: 'Files', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => _changePhoto(gallery: false)),
+          if (_photo != null)
+            KataPillButton(label: 'Reset', kind: KataButtonKind.secondary, display: false, expand: false, height: 32, onPressed: () => setState(() => _photo = null)),
+        ]),
         const SizedBox(height: 10),
         Row(children: [
           Text('RATIO', style: KataType.monoStyle(size: 9.5, weight: FontWeight.w500, color: p.muted, letterSpacing: 0.16)),

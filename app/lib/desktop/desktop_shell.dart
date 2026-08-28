@@ -11,7 +11,7 @@ import '../core/auth/auth_repository.dart';
 import '../core/fuji/camera_service.dart';
 import '../data/recipe_repository.dart';
 import 'desktop_camera.dart';
-import '../features/waku/waku_screen.dart';
+import '../features/share/share_screen.dart';
 import 'desktop_editor.dart';
 import 'desktop_import.dart';
 import 'desktop_library.dart';
@@ -150,7 +150,7 @@ class _DesktopShellState extends ConsumerState<DesktopShell> implements DesktopS
       DesktopSection.saved => const DesktopLibrary(savedOnly: true),
       DesktopSection.mine => const DesktopMine(),
       DesktopSection.camera => const DesktopCamera(),
-      DesktopSection.share => const WakuScreen(),
+      DesktopSection.share => const ShareScreen(),
       DesktopSection.settings => const DesktopSettings(),
       DesktopSection.editor => DesktopEditor(
           key: ValueKey((_editorArgs, _editorSeed?.hash ?? _editorSeed?.filmSimulation)),
