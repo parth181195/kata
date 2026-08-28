@@ -191,20 +191,30 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
     ]);
 
     final wide = MediaQuery.sizeOf(context).width >= 820;
-    final preview = Column(mainAxisSize: MainAxisSize.min, children: [
-      Center(
-        // a shadow, not a border: the card has its own edge, and a hairline
-        // around a white card read as two borders
-        child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(blurRadius: 18, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: 0.18))]),
-          clipBehavior: Clip.antiAlias,
-          child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: wide ? scale.clamp(0.3, 1.0) : previewScale),
-        ),
+    final shown = wide ? scale.clamp(0.3, 1.0) : previewScale;
+    // the card and its page chips share one column, as wide as the wider of
+    // the two, so the chips start at the card's left edge instead of the sheet's
+    final preview = Center(
+      child: IntrinsicWidth(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // a shadow, not a border: the card has its own edge, and a hairline
+          // around a white card read as two borders
+          Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(blurRadius: 18, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: 0.18))]),
+            clipBehavior: Clip.antiAlias,
+            child: OffscreenCardHost(boundaryKey: _boundary, spec: spec, scale: shown),
+          ),
+          const SizedBox(height: 10),
+          // the pair, one page at a time
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            for (final pg in SharePage.values) ...[
+              KataChip(label: '${SharePage.values.indexOf(pg) + 1} · ${pg.label}', selected: pg == _page, onTap: () => setState(() => _page = pg)),
+              const SizedBox(width: 7),
+            ],
+          ]),
+        ]),
       ),
-      const SizedBox(height: 10),
-      // the pair, one page at a time
-      Center(child: segmented<SharePage>(SharePage.values, _page, (pg) => '${SharePage.values.indexOf(pg) + 1} · ${pg.label}', (pg) => setState(() => _page = pg))),
-    ]);
+    );
 
     return KataSheet(
       eyebrow: 'Share',
@@ -282,13 +292,15 @@ class _ShareComposerSheetState extends ConsumerState<ShareComposerSheet> {
           Text('${spec.payload.length} BYTES · TAP TO COPY', style: KataType.monoStyle(size: 8.5, color: p.muted, letterSpacing: 0.14)),
         ],
         const SizedBox(height: 16),
-        // the pair by default; either page on its own beneath
+        // the pair by default — shared, or downloaded — and the previewed page alone beneath
         KataPillButton(label: 'Share both', loading: _busy, onPressed: _busy ? null : () => _share()),
         const SizedBox(height: 8),
+        KataPillButton(label: 'Download both', kind: KataButtonKind.secondary, display: false, height: 48, leading: const Icon(Icons.download_outlined, size: 18), onPressed: _busy ? null : () => _share(SharePage.values, true)),
+        const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: KataPillButton(label: 'Photo only', kind: KataButtonKind.secondary, display: false, height: 44, onPressed: _busy ? null : () => _share([SharePage.photo]))),
+          Expanded(child: KataPillButton(label: 'Share ${_page.label.toLowerCase()} only', kind: KataButtonKind.secondary, display: false, height: 44, onPressed: _busy ? null : () => _share([_page]))),
           const SizedBox(width: 8),
-          Expanded(child: KataPillButton(label: 'Recipe only', kind: KataButtonKind.secondary, display: false, height: 44, onPressed: _busy ? null : () => _share([SharePage.recipe]))),
+          Expanded(child: KataPillButton(label: 'Download ${_page.label.toLowerCase()}', kind: KataButtonKind.secondary, display: false, height: 44, onPressed: _busy ? null : () => _share([_page], true))),
         ]),
         const SizedBox(height: 8),
         KataPillButton(label: 'Copy Kata Code', kind: KataButtonKind.secondary, display: false, height: 48, onPressed: _copyCode),

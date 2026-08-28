@@ -21,6 +21,87 @@ Recipe? matchKata(Iterable<Recipe> all, PhotoMeta meta) {
   return hits.firstWhere((r) => r.isDraft || r.source == RecipeSource.published, orElse: () => hits.first);
 }
 
+/// Confirm the guessed kata or pick another. A page of its own on a phone
+/// (nothing about it slides, so no handle); a dialog on a desktop window.
+Future<Recipe?> pickKata(BuildContext context, {required List<Recipe> all, required List<Recipe> mine, Recipe? guess, String? filmMode}) {
+  final body = KataPicker(all: all, mine: mine, guess: guess, filmMode: filmMode);
+  if (MediaQuery.sizeOf(context).width >= 820) {
+    return showKataSheet<Recipe>(context, maxWidth: 560, builder: (_) => body);
+  }
+  return Navigator.of(context).push<Recipe>(MaterialPageRoute(builder: (_) => Scaffold(body: SafeArea(child: body))));
+}
+
+/// The picker's body: the guess pinned on top with a one-tap Use, a search
+/// field, then Mine and the Library. Pops with the chosen kata.
+class KataPicker extends StatefulWidget {
+  const KataPicker({super.key, required this.all, required this.mine, this.guess, this.filmMode});
+  final List<Recipe> all, mine;
+  final Recipe? guess;
+  final String? filmMode;
+  @override
+  State<KataPicker> createState() => _KataPickerState();
+}
+
+class _KataPickerState extends State<KataPicker> {
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.kata;
+    final guess = widget.guess;
+    final q = _query.trim().toLowerCase();
+    bool hit(Recipe r) => r.id != guess?.id && (q.isEmpty || r.name.toLowerCase().contains(q) || r.ofr.filmSimulation.toLowerCase().contains(q));
+    final mine = widget.mine.where(hit).toList();
+    final rest = widget.all.where((r) => !widget.mine.any((m) => m.id == r.id)).where(hit).toList();
+    final note = guess != null
+        ? 'Matched from the photo\u2019s film simulation (${widget.filmMode}). Use it, or pick another.'
+        : (widget.filmMode != null ? 'The photo says ${widget.filmMode}, but nothing in the library matches. Pick a kata.' : 'The photo carries no film simulation. Pick a kata.');
+    Widget row(Recipe r) => KataListRow(key: ValueKey('pick-${r.id}'), title: r.name, value: r.ofr.filmSimulation.toUpperCase(), onTap: () => Navigator.of(context).pop(r));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            KataIconCircle(size: 36, onPressed: () => Navigator.of(context).pop(), child: Icon(Icons.arrow_back, size: 18, color: p.fg)),
+            const SizedBox(width: 12),
+            Expanded(child: Text(guess != null ? 'SHOT ON ${guess.name.toUpperCase()}?' : 'WHICH KATA?', maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 22, color: p.fg))),
+          ]),
+          const SizedBox(height: 6),
+          Text(note, style: KataType.bodyStyle(size: 12, color: p.muted, height: 1.4)),
+          const SizedBox(height: 12),
+          if (guess != null) ...[
+            KataPillButton(label: 'Use ${guess.name}', height: 44, onPressed: () => Navigator.of(context).pop(guess)),
+            const SizedBox(height: 12),
+          ],
+          KataSearchField(hint: 'Search katas, film sims', controller: _search, onChanged: (v) => setState(() => _query = v)),
+        ]),
+      ),
+      Flexible(
+        child: (mine.isEmpty && rest.isEmpty)
+            ? Padding(padding: const EdgeInsets.all(24), child: Center(child: KataEmptyState(glyph: '0', title: 'No katas match')))
+            : ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(20, 0, 20, 20), children: [
+                if (mine.isNotEmpty) ...[
+                  KataSectionHeader('Mine'),
+                  for (final r in mine) row(r),
+                  const SizedBox(height: 14),
+                ],
+                if (rest.isNotEmpty) ...[
+                  KataSectionHeader(guess != null ? 'Or pick' : 'Library'),
+                  for (final r in rest) row(r),
+                ],
+              ]),
+      ),
+    ]);
+  }
+}
+
 /// The Share tab: pick a kata, share its code card — with the card's photo
 /// swappable for one of your own. Nothing more; the card is the product.
 class ShareScreen extends ConsumerStatefulWidget {
@@ -58,29 +139,7 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
     if (!mounted) return;
     final repo = ref.read(recipeRepositoryProvider);
     final guess = matchKata(repo.all, meta);
-    final picked = await showKataSheet<Recipe>(
-      context,
-      builder: (c) => KataSheet(
-        eyebrow: 'Share',
-        title: guess != null ? 'Shot on ${guess.name}?' : 'Which kata?',
-        children: [
-          Text(
-            guess != null
-                ? 'Matched from the photo\u2019s film simulation (${meta.filmMode}). Use it, or pick another.'
-                : (meta.filmMode != null ? 'The photo says ${meta.filmMode}, but nothing in the library matches. Pick a kata.' : 'The photo carries no film simulation. Pick a kata.'),
-            style: KataType.bodyStyle(size: 12, color: context.kata.muted, height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          if (guess != null) ...[
-            KataPillButton(label: 'Use ${guess.name}', height: 44, onPressed: () => Navigator.of(c).pop(guess)),
-            const SizedBox(height: 12),
-            KataSectionHeader('Or pick'),
-          ],
-          for (final r in repo.all.take(80))
-            if (r.id != guess?.id) KataListRow(title: r.name, value: r.ofr.filmSimulation.toUpperCase(), onTap: () => Navigator.of(c).pop(r)),
-        ],
-      ),
-    );
+    final picked = await pickKata(context, all: repo.all.toList(), mine: repo.mine.toList(), guess: guess, filmMode: meta.filmMode);
     if (picked == null || !mounted) return;
     await showShareComposer(context, picked, photos: [usable]);
   }

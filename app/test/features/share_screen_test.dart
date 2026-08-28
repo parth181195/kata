@@ -19,8 +19,10 @@ void main() {
     expect(find.text('Files'), findsOneWidget);
     // the pair is the default; either page alone beneath it
     expect(find.text('SHARE BOTH'), findsOneWidget);
-    expect(find.text('Photo only'), findsOneWidget);
-    expect(find.text('Recipe only'), findsOneWidget);
+    expect(find.text('Download both'), findsOneWidget);
+    // the single-page actions follow the page being previewed
+    expect(find.text('Share photo only'), findsOneWidget);
+    expect(find.text('Download photo'), findsOneWidget);
   });
 
   testWidgets('share tab: one photo per pair; the preview walks both pages', (t) async {
