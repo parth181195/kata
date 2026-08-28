@@ -91,6 +91,9 @@ class ShareSpec {
   String get payload => KataCode.encode(recipe.ofr, credit: credit);
   int get settingsCount => recipe.ofr.settingsJson().length;
 
+  /// The credit as it reads on the card: whose recipe it originally is.
+  String get creditLine => credit.isEmpty || credit == 'Kata' ? 'Kata' : 'Original recipe by $credit';
+
   /// What travels with the pictures on the share sheet: not the code (that
   /// is on the card), but a caption in the shape Fujifilm's own accounts use
   /// — the camera, the film simulation, and the tags they repost from.
@@ -402,9 +405,9 @@ class _S1Recipe extends StatelessWidget {
             child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text(spec.credit, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1.2)),
+                  Text(spec.creditLine, maxLines: 2, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1.2)),
                   const SizedBox(height: 4),
-                  Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+                  Text('SCAN IN KATA TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
                 ]),
               ),
               const SizedBox(width: 12),
@@ -520,9 +523,9 @@ class _S2Recipe extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
+          Expanded(child: Text(spec.creditLine, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.fg, height: 1))),
           const SizedBox(width: 8),
-          Text('SCAN TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
+          Text('SCAN IN KATA TO IMPORT · ${spec.settingsCount} SETTINGS', style: KataType.monoStyle(size: 8, color: ink.mute, letterSpacing: 0.1)),
         ]),
       ]),
     );
@@ -579,7 +582,7 @@ class _S3Recipe extends StatelessWidget {
         const SizedBox(height: 22),
         Text('SCAN TO LOAD INTO YOUR OWN C-SLOT', maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.displayStyle(size: 12, color: ink.fg, letterSpacing: 0.02, height: 1.25)),
         const SizedBox(height: 8),
-        Text(spec.credit, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
+        Text(spec.creditLine, maxLines: 1, overflow: TextOverflow.ellipsis, style: KataType.bodyStyle(size: 10, weight: FontWeight.w600, color: ink.mute, height: 1)),
       ]),
     );
   }

@@ -277,4 +277,19 @@ void main() {
     expect(shareCaption(r, camera: 'X100V'), startsWith('Captured with FUJIFILM X100V'));
     expect(shareCaption(r, credit: 'Kata'), isNot(contains('Recipe:')));
   });
+
+  testWidgets('the credit names whose recipe it originally is; the code says where to scan it', (t) async {
+    t.view.physicalSize = const Size(kCardWidth, 1600);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(MaterialApp(
+      theme: KataTheme.light(),
+      home: Material(child: Align(alignment: Alignment.topLeft, child: SizedBox(width: kCardWidth, child: ShareCard(ShareSpec(recipe: Recipe(id: 'r1', ofr: _colour), template: ShareTemplate.card, credit: 'Fuji X Weekly'))))),
+    ));
+    expect(find.text('Original recipe by Fuji X Weekly'), findsOneWidget);
+    expect(find.textContaining('SCAN IN KATA TO IMPORT'), findsOneWidget);
+    // Kata's own katas are just Kata's
+    expect(const ShareSpec(recipe: Recipe(id: 'r1', ofr: _colour), template: ShareTemplate.card, credit: 'Kata').creditLine, 'Kata');
+  });
 }
