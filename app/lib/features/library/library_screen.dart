@@ -10,6 +10,7 @@ import '../../data/recipe.dart';
 import 'filter_sheet.dart';
 import '../../data/recipe_repository.dart';
 import 'recipe_card.dart';
+import '../mine/add_kata_sheet.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -103,6 +104,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ),
                         ),
                       ),
+                      // the same + as Mine: scan, new, import
+                      addKataButton(context, ref.read(recipeRepositoryProvider), size: 36),
+                      const SizedBox(width: 8),
                       _LayoutToggle(
                         layout: layout,
                         onChanged: (l) =>

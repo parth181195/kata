@@ -53,4 +53,13 @@ void main() {
     expect(find.text('Mono Push'), findsOneWidget);
     expect(find.text('Kodachrome 64'), findsNothing);
   });
+
+  testWidgets('the Library header carries the same + as Mine: scan, new, import', (t) async {
+    await pumpKata(t, initialLocation: '/library');
+    await t.tap(find.text('+').first);
+    await t.pumpAndSettle();
+    expect(find.text('ADD A KATA'), findsOneWidget);
+    expect(find.text('Scan a Kata Code'), findsOneWidget);
+    expect(find.text('Import OFR'), findsOneWidget);
+  });
 }

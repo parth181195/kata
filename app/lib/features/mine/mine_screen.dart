@@ -7,7 +7,7 @@ import '../../data/recipe_repository.dart';
 import '../../data/recipe.dart';
 import '../library/recipe_card.dart';
 import '../camera/write_sheet.dart';
-import '../ofr_io/import_sheet.dart';
+import 'add_kata_sheet.dart';
 import '../share/share_composer_sheet.dart';
 
 class MineScreen extends ConsumerStatefulWidget {
@@ -129,20 +129,7 @@ class _MineScreenState extends ConsumerState<MineScreen> {
           Positioned(
             right: 20,
             bottom: 20,
-            child: KataIconCircle(
-              size: 56,
-              filled: true,
-              onPressed: () => showKataSheet(context, builder: (c) => KataSheet(eyebrow: 'Mine', title: 'Add a kata', children: [
-                KataListRow(title: 'Scan a Kata Code', sub: 'From a card, a screen or a print — works offline', value: 'Camera', onTap: () { Navigator.of(c).pop(); context.push('/scan'); }),
-                KataListRow(title: 'New kata', sub: 'Start from camera defaults', value: 'Editor', onTap: () { Navigator.of(c).pop(); context.push('/new'); }),
-                KataListRow(title: 'Import OFR', sub: 'Paste JSON or pick a .ofr.json file', value: 'Import', onTap: () async {
-                  Navigator.of(c).pop();
-                  final id = await showImportSheet(context);
-                  if (id != null && context.mounted) KataToast.show(context, 'Saved to Mine', action: 'Undo', onAction: () => lib.remove(id));
-                }),
-              ])),
-              child: Text('+', style: KataType.bodyStyle(size: 24, color: p.bg, height: 1)),
-            ),
+            child: addKataButton(context, lib),
           ),
         ]),
       ),
